@@ -200,6 +200,25 @@ class SubmissionFlowTests(TestCase):
         response = self.client.get(reverse("submission_create"))
         self.assertEqual(response.context["form"].initial.get("character"), self.character.pk)
 
+    def test_blocked_player_cannot_submit(self):
+        self.player.can_submit = False
+        self.player.save(update_fields=["can_submit"])
+
+        # GET is bounced to the dashboard.
+        get = self.client.get(reverse("submission_create"))
+        self.assertRedirects(get, reverse("dashboard"))
+        # POST creates nothing.
+        self.client.post(reverse("submission_create"), self.post_data())
+        self.assertEqual(Submission.objects.count(), 0)
+        # The submit link disappears from the nav.
+        self.assertNotContains(self.client.get(reverse("dashboard")), reverse("submission_create"))
+
+    def test_unblocked_player_can_still_submit(self):
+        self.player.can_submit = True
+        self.player.save(update_fields=["can_submit"])
+        self.client.post(reverse("submission_create"), self.post_data())
+        self.assertEqual(Submission.objects.get().status, Submission.Status.APPROVED)
+
     def test_unparseable_played_time_is_rejected(self):
         response = self.client.post(reverse("submission_create"), self.post_data(played="ages"))
         self.assertEqual(Submission.objects.count(), 0)

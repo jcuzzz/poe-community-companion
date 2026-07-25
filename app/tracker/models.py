@@ -26,6 +26,10 @@ class User(AbstractUser):
         default=True,
         help_text="Players appear on the leaderboard. Uncheck for the dedicated admin account.",
     )
+    can_submit = models.BooleanField(
+        default=True,
+        help_text="Uncheck to block this player from logging new submissions.",
+    )
 
     class Meta:
         ordering = ["username"]

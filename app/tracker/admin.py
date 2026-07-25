@@ -33,21 +33,34 @@ class UserAdmin(DjangoUserAdmin):
     fieldsets = DjangoUserAdmin.fieldsets + (
         (
             "League profile",
-            {"fields": ("display_name", "avatar", "banner_hue", "is_player")},
+            {"fields": ("display_name", "avatar", "banner_hue", "is_player", "can_submit")},
         ),
     )
     add_fieldsets = DjangoUserAdmin.add_fieldsets + (
         (
             "League profile",
-            {"fields": ("display_name", "avatar", "banner_hue", "is_player")},
+            {"fields": ("display_name", "avatar", "banner_hue", "is_player", "can_submit")},
         ),
     )
     list_display = DjangoUserAdmin.list_display + (
         "display_name",
         "banner_hue",
         "is_player",
+        "can_submit",
     )
-    list_filter = DjangoUserAdmin.list_filter + ("is_player",)
+    list_editable = ("can_submit",)
+    list_filter = DjangoUserAdmin.list_filter + ("is_player", "can_submit")
+    actions = ["block_submissions", "unblock_submissions"]
+
+    @admin.action(description="Block selected players from submitting")
+    def block_submissions(self, request, queryset):
+        updated = queryset.update(can_submit=False)
+        self.message_user(request, f"Blocked {updated} player(s) from submitting.")
+
+    @admin.action(description="Allow selected players to submit")
+    def unblock_submissions(self, request, queryset):
+        updated = queryset.update(can_submit=True)
+        self.message_user(request, f"Unblocked {updated} player(s).")
 
 
 @admin.register(Achievement)
