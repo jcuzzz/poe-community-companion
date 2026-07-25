@@ -246,6 +246,10 @@ class Submission(models.Model):
     reviewed_at = models.DateTimeField(null=True, blank=True)
     review_note = models.TextField(blank=True)
 
+    # Discord announcements are sent at most once per submission per event.
+    announced_first = models.BooleanField(default=False)
+    announced_contested = models.BooleanField(default=False)
+
     objects = SubmissionQuerySet.as_manager()
 
     class Meta:

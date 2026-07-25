@@ -51,8 +51,8 @@ a *community site*, but flag the shift before building.
 - **All-time records & personal bests** across leagues.
 
 ## Integrations (were "out of scope" for the tracker — reconsider for a guild)
-- **Discord webhook on a new first-place / contested claim.** Cheap, high-signal.
-  ⚠️ `plan.md` lists Discord as out of scope — confirm the direction change first.
+- ✅ **Discord webhook on a new first-place / contested claim** — SHIPPED
+  (see FEATURES.md). The direction change from `plan.md` was greenlit 2026-07-25.
 - **Discord bot / OAuth login** — larger; only if the group lives in Discord.
 - Trade/price-check, live character tracking, item evaluation — still likely
   overkill; revisit only if clearly wanted.

@@ -74,6 +74,11 @@ HTMX), deployed via Docker/Caddy on a Proxmox LXC. See [../runbooks/](../runbook
   advisory uphold/reject vote with a live tally; an admin still makes the final
   call (implements the plan's mirror-tier majority-vote idea).
 
+## Integrations
+- **Discord webhook** (optional; `DISCORD_WEBHOOK_URL`) — announces a new
+  first-place claim and a contested claim to a channel, once each. Fail-safe
+  (stdlib `urllib`, short timeout); dormant when the URL is unset.
+
 ## Presentation
 - Hand-written dark parchment / gold theme (no PoE artwork). **Light theme toggle**
   (persisted). Mobile-first, `prefers-reduced-motion` respected, WCAG-AA targeted.

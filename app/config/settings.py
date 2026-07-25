@@ -135,6 +135,13 @@ ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG", "WEBP"}
 DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_BYTES + (1024 * 1024)
 FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 
+# --- Notifications -------------------------------------------------------
+# Optional Discord webhook. Left blank = feature off (no calls made).
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "").strip()
+DISCORD_TIMEOUT = float(os.environ.get("DISCORD_TIMEOUT", "5"))
+# Absolute base URL used to build links in notifications.
+SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "https://poe.example.com").rstrip("/")
+
 # --- League --------------------------------------------------------------
 LEAGUE_NAME = os.environ.get("LEAGUE_NAME", "Current League")
 LEAGUE_START = os.environ.get("LEAGUE_START", "")  # ISO 8601, e.g. 2026-08-01T19:00:00+10:00

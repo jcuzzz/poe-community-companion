@@ -26,7 +26,7 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from . import scoring
+from . import notifications, scoring
 from .forms import (
     CharacterForm,
     InviteCreateForm,
@@ -198,6 +198,8 @@ def submission_create(request: HttpRequest, slug: str | None = None) -> HttpResp
                     # Roll the draft back so a bad proof never leaves an orphan row.
                     transaction.set_rollback(True)
             if saved_pk is not None:
+                # Announce outside the transaction so a slow webhook never holds a write.
+                notifications.on_recalculated(submission.achievement)
                 return redirect("submission_detail", pk=saved_pk)
             # Rebind against the rolled-back state so nothing carries a dead pk.
             form = SubmissionForm(request.POST, user=request.user, acting_user=request.user)
@@ -267,6 +269,7 @@ def submission_edit(request: HttpRequest, pk: int) -> HttpResponse:
                     log_audit(submission, request.user, action, detail=detail)
                 # Any edit can change the medals, so rebuild this achievement.
                 scoring.recalculate(submission.achievement)
+            notifications.on_recalculated(submission.achievement)
             messages.success(request, "Submission updated.")
             return redirect("submission_detail", pk=submission.pk)
     else:
@@ -299,6 +302,7 @@ def submission_send(request: HttpRequest, pk: int) -> HttpResponse:
     submission.save(update_fields=["status", "reviewed_by", "reviewed_at"])
     log_audit(submission, request.user, "approved", "Logged by owner.")
     scoring.recalculate(submission.achievement)
+    notifications.on_recalculated(submission.achievement)
     messages.success(request, "Achievement logged.")
     return redirect("submission_detail", pk=submission.pk)
 
@@ -433,6 +437,10 @@ def review_submission(request: HttpRequest, pk: int) -> HttpResponse:
                 submission.save()
                 log_audit(submission, request.user, audit_action, detail=note)
                 scoring.recalculate(submission.achievement)
+            # Announce outside the transaction (fail-safe, no-op if unconfigured).
+            notifications.on_recalculated(submission.achievement)
+            if submission.status == Submission.Status.CONTESTED:
+                notifications.announce_contested(submission)
             messages.success(request, f"Submission {submission.get_status_display().lower()}.")
             return redirect("review_submission", pk=submission.pk)
     else:
