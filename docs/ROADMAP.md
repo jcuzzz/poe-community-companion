@@ -35,11 +35,11 @@ a *community site*, but flag the shift before building.
 - **Empty-league / pre-start states** — friendly copy before `LEAGUE_START`.
 
 ## Guild / community (the reframing)
-- **Guild roster & character showcase** — SPEC APPROVED, not yet built. Full design
-  in [specs/roster.md](specs/roster.md): a `/roster/` page + profile integration,
-  with character data from **both** auto-lookup (public profile, cached) **and** a
-  PoB-code paste fallback, rendered as class/level **badges** (no game art).
-  Background/feasibility: [research/character-lookup.md](research/character-lookup.md).
+- ✅ **Guild roster & character showcase** — SHIPPED 2026-07-25 (MVP). `/roster/`
+  grid + profile showcase, PoB-code paste (both games) and PoE 1 auto-lookup with a
+  Refresh + TTL throttle; class/level as badges (no art). Design & deferred items in
+  [specs/roster.md](specs/roster.md). Follow-ons: PoE 2 OAuth, passive-tree view,
+  a separate `PobBuild` model.
 - **Roles / titles / join requests / "about the guild" page** — smaller follow-ons
   to the roster.
 - **Events / race nights** — schedule guild events, RSVPs, countdowns. New models.

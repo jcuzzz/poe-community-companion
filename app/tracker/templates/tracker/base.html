@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="{% static 'css/proofs.css' %}">
   <link rel="stylesheet" href="{% static 'css/features.css' %}">
   <link rel="stylesheet" href="{% static 'css/social.css' %}">
+  <link rel="stylesheet" href="{% static 'css/roster.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -57,17 +58,17 @@
         {% endif %}
       </span>
 
-      <input type="checkbox" id="nav-toggle" class="nav-toggle-checkbox">
-      <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle navigation">
+      <button type="button" id="nav-toggle" class="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Toggle navigation">
         <span></span><span></span><span></span>
-      </label>
+      </button>
     </div>
 
-    <nav class="site-nav" aria-label="Primary">
+    <nav class="site-nav" id="site-nav" aria-label="Primary">
       <ul class="nav-list">
         <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
         <li><a href="{% url 'achievement_list' %}">Achievements</a></li>
         <li><a href="{% url 'leaderboard' %}">Leaderboard</a></li>
+        <li><a href="{% url 'roster' %}">Roster</a></li>
         {% if user.is_authenticated %}
           <li><a href="{% url 'activity_feed' %}">Activity</a></li>
           <li><a href="{% url 'character_list' %}">My characters</a></li>
@@ -87,6 +88,7 @@
             <a href="{% url 'account_settings' %}">{{ user.name }} &#9662;</a>
             <div class="profile-menu-panel">
               <a href="{% url 'account_settings' %}">Account</a>
+              <a href="{% url 'roster_settings' %}">Character / roster</a>
               <a href="{% url 'player_profile' user.username %}">My profile</a>
               <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
@@ -120,6 +122,25 @@
       <span data-theme-label>Theme</span>
     </button>
   </footer>
+
+  <script>
+    (function () {
+      var navBtn = document.getElementById("nav-toggle");
+      var nav = document.getElementById("site-nav");
+      if (!navBtn || !nav) return;
+      function setOpen(open) {
+        nav.classList.toggle("is-open", open);
+        navBtn.classList.toggle("is-active", open);
+        navBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      }
+      navBtn.addEventListener("click", function () {
+        setOpen(!nav.classList.contains("is-open"));
+      });
+      nav.addEventListener("click", function (e) {
+        if (e.target.closest("a")) setOpen(false);
+      });
+    })();
+  </script>
 
   <script>
     (function () {

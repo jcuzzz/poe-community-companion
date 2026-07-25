@@ -163,11 +163,20 @@ def leaderboard_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def player_profile(request: HttpRequest, username: str) -> HttpResponse:
     profile_user = get_object_or_404(User, username=username, is_player=True)
-    stats = scoring.player_stats(profile_user, get_viewing_league(request))
+    viewing = get_viewing_league(request)
+    stats = scoring.player_stats(profile_user, viewing)
+    from .models import CharacterSnapshot
+
+    snapshot = (
+        CharacterSnapshot.objects.filter(user=profile_user, league=viewing).first()
+        if viewing
+        else None
+    )
     context = {
         "stats": stats,
         "profile_user": profile_user,
         "is_self": profile_user.pk == request.user.pk,
+        "snapshot": snapshot,
     }
     return render(request, "tracker/player_profile.html", context)
 

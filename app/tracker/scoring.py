@@ -212,6 +212,16 @@ def achievement_standings(achievement: Achievement) -> dict:
 
     entries = sorted(approved_subs, key=entry_key)
 
+    # First place is already displayed in the winner banner above the list,
+    # so exclude that specific submission here to avoid showing it twice on
+    # the card. Other submissions from the same player (e.g. a repeat log of
+    # the same achievement) still appear normally. An exact tie for first
+    # (identical obtained_at AND submitted_at) is effectively impossible
+    # given datetime precision, so only the single `winner` submission is
+    # ever de-duplicated here.
+    if winner is not None:
+        entries = [e for e in entries if e.pk != winner.pk]
+
     entered_user_ids = {sub.user_id for sub in approved_subs}
     not_submitted = [player for player in players if player.pk not in entered_user_ids]
     not_submitted.sort(key=lambda p: p.name.lower())

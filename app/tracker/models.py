@@ -534,6 +534,79 @@ class SubmissionReaction(models.Model):
         return f"{self.emoji} by {self.user} on #{self.submission_id}"
 
 
+class MemberProfile(models.Model):
+    """Roster settings for a member. See docs/specs/roster.md.
+
+    The account/character are what a lookup needs; snapshots are cached separately in
+    CharacterSnapshot so a failed fetch or league reset never corrupts the roster.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="member_profile"
+    )
+    account_name = models.CharField(
+        max_length=80,
+        blank=True,
+        help_text="PoE account name (include the #1234 discriminator if your account has one).",
+    )
+    main_character_name = models.CharField(
+        max_length=60, blank=True, help_text="Which character to feature. Optional."
+    )
+    profile_public = models.BooleanField(
+        default=False,
+        help_text="Tick once you've unhidden your characters tab on pathofexile.com "
+        "(auto-lookup needs a public profile — PoE 1 only).",
+    )
+    show_on_roster = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["user__username"]
+
+    def __str__(self) -> str:
+        return f"Roster profile for {self.user.name}"
+
+
+class CharacterSnapshot(models.Model):
+    """Cached character lookup — never the source of truth. One per (member, league)."""
+
+    class Source(models.TextChoices):
+        API = "api", "Auto lookup"
+        POB = "pob", "Path of Building paste"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="snapshots"
+    )
+    league = models.ForeignKey(
+        League, on_delete=models.CASCADE, related_name="snapshots", null=True, blank=True
+    )
+    character_name = models.CharField(max_length=60, blank=True)
+    # Class/ascendancy are free-form strings (PoE 2 ascendancies vary and keep
+    # expanding — never a hard enum). See docs/research/character-lookup-poe2.md.
+    class_name = models.CharField(max_length=40, blank=True)
+    ascendancy = models.CharField(max_length=40, blank=True)
+    level = models.PositiveSmallIntegerField(null=True, blank=True)
+    league_text = models.CharField(
+        max_length=60, blank=True, help_text="In-game league string returned by the lookup."
+    )
+    source = models.CharField(max_length=4, choices=Source.choices, default=Source.API)
+    # Last-known raw payload (API JSON or the PoB export code) for later re-parsing.
+    raw = models.TextField(blank=True)
+    fetched_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-fetched_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "league"], name="one_snapshot_per_user_league")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.character_name or '—'} ({self.user.name})"
+
+    @property
+    def display_class(self) -> str:
+        return self.ascendancy or self.class_name
+
+
 class ContestVote(models.Model):
     """A group vote on a contested submission. Majority informs resolution."""
 

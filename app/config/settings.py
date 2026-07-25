@@ -155,6 +155,16 @@ LEAGUE_NAME = os.environ.get("LEAGUE_NAME", "Current League")
 LEAGUE_START = os.environ.get("LEAGUE_START", "")  # legacy, unused
 LEAGUE_END = os.environ.get("LEAGUE_END", "")  # legacy, unused
 
+# --- Roster / character lookup -------------------------------------------
+# All optional with sane defaults; the roster is inert until a member sets an
+# account name. Auto lookup is PoE 1 only (see docs/research/character-lookup-poe2.md).
+POE_API_BASE = os.environ.get("POE_API_BASE", "https://www.pathofexile.com")
+POE_API_TIMEOUT = float(os.environ.get("POE_API_TIMEOUT", "8"))
+POE_SNAPSHOT_TTL_SECONDS = int(os.environ.get("POE_SNAPSHOT_TTL_SECONDS", "600"))
+POE_USER_AGENT = os.environ.get(
+    "POE_USER_AGENT", "poe-community-companion/1.0 (self-hosted)"
+)
+
 # --- Security ------------------------------------------------------------
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True

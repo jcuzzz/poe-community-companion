@@ -69,6 +69,7 @@ html {
 
 body {
   margin: 0;
+  overflow-x: hidden;
   background: var(--color-bg);
   background-image:
     radial-gradient(ellipse at top, rgba(201, 162, 74, 0.06), transparent 60%);
@@ -156,6 +157,7 @@ ul, ol { padding-left: 1.25rem; }
   margin: 0 auto;
   padding: var(--space-3) var(--space-4);
 }
+.header-bar > * { min-width: 0; }
 
 .brand {
   display: flex;
@@ -181,26 +183,40 @@ ul, ol { padding-left: 1.25rem; }
 }
 .league-clock strong { color: var(--color-gold); }
 
-/* Nav toggle (checkbox hack, CSS-only mobile menu) */
-.nav-toggle-checkbox {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
+.league-select {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+}
+.league-select select {
+  max-width: 100%;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  color: var(--color-parchment);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.3em 0.5em;
 }
 
-.nav-toggle-label {
+/* Nav toggle (JS-driven mobile menu button) */
+.nav-toggle {
   display: none;
   flex-direction: column;
   justify-content: center;
+  align-items: stretch;
   gap: 5px;
+  flex: 0 0 auto;
   width: 2.25rem;
   height: 2.25rem;
+  padding: 0.5rem;
   cursor: pointer;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   background: var(--color-bg-raised);
 }
-.nav-toggle-label span {
+.nav-toggle span {
   display: block;
   height: 2px;
   background: var(--color-gold);
@@ -320,7 +336,7 @@ main {
    ========================================================================== */
 
 @media (max-width: 39.99rem) {
-  .nav-toggle-label { display: flex; }
+  .nav-toggle { display: flex; }
 
   .site-nav { padding-top: 0; }
 
@@ -334,13 +350,21 @@ main {
     padding: var(--space-2);
   }
 
-  .nav-toggle-checkbox:checked ~ .site-nav .nav-list {
+  .site-nav.is-open .nav-list {
     display: flex;
   }
 
   .nav-spacer { display: none; }
 
   .header-bar { flex-wrap: wrap; }
+
+  .brand { min-width: 0; }
+  .brand-name,
+  .brand-league { overflow: hidden; text-overflow: ellipsis; }
+
+  .league-select { order: 1; flex: 1 1 auto; min-width: 0; }
+  .league-clock { order: 2; flex: 1 1 auto; }
+  .nav-toggle { order: 3; }
 }
 
 /* ==========================================================================

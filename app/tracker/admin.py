@@ -21,9 +21,11 @@ from .models import (
     AuditEntry,
     Award,
     Character,
+    CharacterSnapshot,
     ContestVote,
     InviteCode,
     League,
+    MemberProfile,
     ProofImage,
     Submission,
     SubmissionComment,
@@ -34,6 +36,22 @@ from .models import (
 admin.site.register(SubmissionComment)
 admin.site.register(SubmissionReaction)
 admin.site.register(ContestVote)
+
+
+@admin.register(MemberProfile)
+class MemberProfileAdmin(admin.ModelAdmin):
+    list_display = ("user", "account_name", "main_character_name", "profile_public", "show_on_roster")
+    list_filter = ("profile_public", "show_on_roster")
+    search_fields = ("user__username", "account_name", "main_character_name")
+    autocomplete_fields = ("user",)
+
+
+@admin.register(CharacterSnapshot)
+class CharacterSnapshotAdmin(admin.ModelAdmin):
+    list_display = ("user", "league", "character_name", "class_name", "level", "source", "fetched_at")
+    list_filter = ("source", "league")
+    search_fields = ("user__username", "character_name")
+    readonly_fields = ("fetched_at",)
 
 
 @admin.register(League)

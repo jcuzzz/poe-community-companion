@@ -3,10 +3,14 @@
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
-from . import views
+from . import views, views_roster
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    # Roster & character showcase
+    path("roster/", views_roster.roster, name="roster"),
+    path("roster/settings/", views_roster.roster_settings, name="roster_settings"),
+    path("roster/refresh/", views_roster.roster_refresh, name="roster_refresh"),
     path("activity/", views.activity_feed, name="activity_feed"),
     path("achievements/", views.achievement_list, name="achievement_list"),
     path("achievements/<slug:slug>/", views.achievement_detail, name="achievement_detail"),

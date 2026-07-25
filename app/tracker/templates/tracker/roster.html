@@ -1,0 +1,28 @@
+{% extends "tracker/base.html" %}
+{% block title %}Roster &middot; {{ brand_name }}{% endblock %}
+{% block content %}
+  <h1>
+    Roster
+    {% if viewing_league %}<span class="brand-league">{{ viewing_league.name }}</span>{% endif %}
+  </h1>
+
+  {% if not auto_ok and viewing_league %}
+    <div class="empty-state empty-state--note">
+      Auto lookup isn't available for this league. Members can share a Path of Building
+      paste instead via <a href="{% url 'roster_settings' %}">Character / roster settings</a>.
+    </div>
+  {% endif %}
+
+  {% if cards %}
+    <div class="roster-grid">
+      {% for card in cards %}
+        {% include "tracker/partials/character_card.html" with member=card.member snapshot=card.snapshot %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <span class="icon" aria-hidden="true">&#128101;</span>
+      No members on the roster yet.
+    </div>
+  {% endif %}
+{% endblock %}

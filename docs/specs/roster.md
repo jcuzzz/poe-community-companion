@@ -1,7 +1,12 @@
 # Spec — Guild roster & character showcase
 
-Status: **approved, not yet built** (spec-first, 2026-07-25). Builds on the
-feasibility work in [../research/character-lookup.md](../research/character-lookup.md).
+Status: **BUILT & deployed 2026-07-25** (MVP). Builds on the feasibility work in
+[../research/character-lookup.md](../research/character-lookup.md) and the PoE 2 spike
+[../research/character-lookup-poe2.md](../research/character-lookup-poe2.md).
+Shipped: `MemberProfile` + `CharacterSnapshot`, a `/roster/` grid, profile showcase,
+account/roster settings, PoB-code paste (both games) and PoE 1 auto-lookup with a
+Refresh button + TTL throttle. Deferred: a separate `PobBuild` model (PoB code is
+stored on the snapshot's `raw` field for now), PoE 2 OAuth, and the passive-tree view.
 Decision: support **both** auto-lookup (public profile) **and** a PoB-code paste
 fallback. No PoE artwork — class/level shown as CSS badges.
 

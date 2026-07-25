@@ -17,6 +17,11 @@
     </div>
   </section>
 
+  <section class="character-showcase">
+    <h2>Character</h2>
+    {% include "tracker/partials/character_card.html" with member=stats.player snapshot=snapshot %}
+  </section>
+
   <div class="stat-grid">
     <div class="stat-tile"><span class="value">{{ stats.points }}</span><span class="label">Points</span></div>
     <div class="stat-tile"><span class="value">{{ stats.completions }}</span><span class="label">Completions</span></div>

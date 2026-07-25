@@ -16,6 +16,7 @@ from .models import (
     AllowlistItem,
     Character,
     InviteCode,
+    MemberProfile,
     ProofImage,
     Submission,
     User,
@@ -335,6 +336,26 @@ class InviteRedeemForm(forms.Form):
         )
         invite.consume(user)
         return user
+
+
+class MemberProfileForm(forms.ModelForm):
+    """Roster settings: PoE account, featured character, visibility."""
+
+    class Meta:
+        model = MemberProfile
+        fields = ["account_name", "main_character_name", "profile_public", "show_on_roster"]
+        widgets = {
+            "account_name": forms.TextInput(attrs={"placeholder": "AccountName#1234"}),
+        }
+
+
+class PobPasteForm(forms.Form):
+    """A Path of Building export code (or a pobb.in / pastebin URL)."""
+
+    code = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Paste your Path of Building export code…"}),
+        label="Path of Building code",
+    )
 
 
 class InviteCreateForm(forms.ModelForm):

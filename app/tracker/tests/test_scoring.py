@@ -284,18 +284,19 @@ class AchievementStandingsTests(TestCase):
         self.assertIsNone(card["winner"])
         self.assertEqual(card["approved_count"], 0)
 
-    def test_entries_include_every_approved_submission(self):
-        """A player with two approved entries appears twice in `entries`."""
+    def test_entries_include_every_approved_submission_except_the_winner(self):
+        """A player with two approved entries still shows their other (non-winning)
+        entry in `entries`; the winning submission is excluded because it's already
+        shown once, highlighted, in the winner banner above the list."""
         first = make_submission(self.jcuz, self.divine, hours_in=10)
         second = make_submission(self.jcuz, self.divine, hours_in=20, character=make_character(self.jcuz))
         other = make_submission(self.bob, self.divine, hours_in=30)
         scoring.recalculate()
 
         card = scoring.achievement_standings(self.divine)
-        self.assertEqual(len(card["entries"]), 3)
-        jcuz_entries = [e for e in card["entries"] if e.user == self.jcuz]
-        self.assertEqual(len(jcuz_entries), 2)
-        self.assertIn(first, card["entries"])
+        self.assertEqual(card["winner"], first)
+        self.assertEqual(len(card["entries"]), 2)
+        self.assertNotIn(first, card["entries"])
         self.assertIn(second, card["entries"])
         self.assertIn(other, card["entries"])
 

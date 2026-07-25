@@ -1,0 +1,180 @@
+/* roster.css — roster grid, character showcase cards, roster settings forms.
+   Uses app.css tokens only; no game artwork, badges are CSS pills. */
+
+/* ==========================================================================
+   Roster grid
+   ========================================================================== */
+
+.roster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+@media (max-width: 30rem) {
+  .roster-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   Character card
+   ========================================================================== */
+
+.character-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: var(--shadow-card);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.character-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.character-card-header .avatar-sm,
+.avatar-fallback-sm {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.avatar-fallback-sm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-gold-dim);
+  color: var(--color-parchment);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.character-card-identity {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.character-card-identity h3 {
+  margin: 0;
+  font-size: var(--fs-md, 1rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.character-card-username {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--color-parchment-dim);
+}
+
+.character-card-body {
+  min-width: 0;
+}
+
+.character-name {
+  margin: 0 0 var(--space-2);
+  font-weight: 700;
+  color: var(--color-parchment);
+  overflow-wrap: anywhere;
+}
+
+.character-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.character-source {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--color-parchment-dim);
+}
+
+/* ==========================================================================
+   Class / level / league pills (no artwork — CSS badges only)
+   ========================================================================== */
+
+.pill-class,
+.pill-level,
+.pill-league {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15em 0.6em;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-raised);
+  color: var(--color-parchment);
+  white-space: nowrap;
+}
+
+.pill-class {
+  border-color: var(--color-gold-dim);
+  color: var(--color-gold-bright);
+}
+
+.pill-level {
+  border-color: var(--color-border-strong);
+}
+
+.pill-league {
+  color: var(--color-parchment-dim);
+}
+
+/* ==========================================================================
+   Character showcase on the player profile page
+   ========================================================================== */
+
+.character-showcase {
+  margin: var(--space-4) 0;
+}
+
+.character-showcase .character-card {
+  max-width: 24rem;
+}
+
+/* ==========================================================================
+   Roster settings forms
+   ========================================================================== */
+
+.form-row--checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.form-row--checkbox label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 400;
+}
+
+.empty-state--note {
+  border: 1px dashed var(--color-border-strong);
+  color: var(--color-parchment-dim);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.empty-state--inline {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: var(--fs-sm);
+}
