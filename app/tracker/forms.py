@@ -61,26 +61,42 @@ class SubmissionForm(forms.ModelForm):
             "notes": forms.Textarea(attrs={"rows": 3}),
         }
 
-    def __init__(self, *args, user: User, **kwargs):
-        self.user = user
+    def __init__(self, *args, user: User, acting_user: User | None = None, **kwargs):
+        self.user = user  # current owner / default target
+        self.acting_user = acting_user or user
+        self.is_staff_actor = bool(self.acting_user and self.acting_user.is_staff)
         super().__init__(*args, **kwargs)
-        self.fields["character"].queryset = Character.objects.filter(
-            user=user, retired=False
-        )
+
         self.fields["achievement"].queryset = Achievement.objects.filter(active=True)
         self.fields["allowlist_item"].queryset = AllowlistItem.objects.filter(active=True)
         for name in ("character", "character_level", "kill_count", "allowlist_item", "notes"):
             self.fields[name].required = False
-        # Pre-select the player's default character so it only has to be picked once.
-        if not (self.instance and self.instance.pk) and not self.initial.get("character"):
-            default = self.fields["character"].queryset.filter(is_default=True).first()
-            if default is None:
-                default = self.fields["character"].queryset.first()
-            if default is not None:
-                self.initial["character"] = default.pk
-        # Field order: put "played" right after character_level for the template.
+
+        if self.is_staff_actor:
+            # Admins may log an entry on any player's behalf.
+            self.fields["on_behalf_of"] = forms.ModelChoiceField(
+                queryset=User.objects.filter(is_player=True, is_active=True).order_by("username"),
+                initial=self.user.pk,
+                required=True,
+                label="Submitting on behalf of",
+            )
+            # Any player's character may be attached; ownership is checked in clean().
+            self.fields["character"].queryset = Character.objects.filter(retired=False)
+        else:
+            self.fields["character"].queryset = Character.objects.filter(
+                user=self.user, retired=False
+            )
+            # Pre-select the player's default character (one-time pick).
+            if not (self.instance and self.instance.pk) and not self.initial.get("character"):
+                default = self.fields["character"].queryset.filter(is_default=True).first()
+                if default is None:
+                    default = self.fields["character"].queryset.first()
+                if default is not None:
+                    self.initial["character"] = default.pk
+
         self.order_fields(
             [
+                "on_behalf_of",
                 "character",
                 "achievement",
                 "character_level",
@@ -93,11 +109,11 @@ class SubmissionForm(forms.ModelForm):
         if self.instance and self.instance.pk and self.instance.played_seconds is not None:
             self.fields["played"].initial = format_played(self.instance.played_seconds)
 
-    def clean_character(self):
-        character = self.cleaned_data.get("character")
-        if character and character.user_id != self.user.pk:
-            raise ValidationError("That character does not belong to you.")
-        return character
+    def target_user(self) -> User:
+        """Who the submission is for: the chosen player (staff) or the owner."""
+        if self.is_staff_actor and self.cleaned_data.get("on_behalf_of"):
+            return self.cleaned_data["on_behalf_of"]
+        return self.user
 
     def clean_character_level(self):
         level = self.cleaned_data.get("character_level")
@@ -105,9 +121,17 @@ class SubmissionForm(forms.ModelForm):
             raise ValidationError("Character level must be between 1 and 100.")
         return level
 
+    def clean(self):
+        cleaned = super().clean()
+        character = cleaned.get("character")
+        target = self.target_user()
+        if character and character.user_id != target.pk:
+            self.add_error("character", "That character does not belong to that player.")
+        return cleaned
+
     def save(self, commit: bool = True):
         submission = super().save(commit=False)
-        submission.user = self.user
+        submission.user = self.target_user()
         submission.played_seconds = self.cleaned_data.get("played")
         # Timestamp comes from the server, set once when the row is first created.
         if submission._state.adding or submission.obtained_at is None:

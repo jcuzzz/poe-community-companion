@@ -213,6 +213,36 @@ class SubmissionFlowTests(TestCase):
         self.client.post(reverse("submission_create"), self.post_data())
         self.assertEqual(Submission.objects.count(), 0)
 
+    def test_admin_can_submit_on_behalf_of_another_player(self):
+        admin = make_admin()
+        target = make_player("bob")
+        self.client.logout()
+        self.client.login(username="leagueadmin", password=PASSWORD)
+
+        data = {
+            "achievement": self.achievement.pk,
+            "on_behalf_of": target.pk,
+            "character_level": "88",
+            **formset_management(),
+        }
+        self.client.post(reverse("submission_create"), data)
+
+        submission = Submission.objects.get()
+        self.assertEqual(submission.user, target)          # owned by the player
+        self.assertEqual(submission.reviewed_by, admin)    # logged by the admin
+        self.assertEqual(submission.status, Submission.Status.APPROVED)
+        self.assertTrue(submission.audit_entries.filter(action="created", detail__contains="on behalf").exists())
+
+    def test_non_staff_cannot_choose_another_player(self):
+        # The on_behalf_of field isn't offered to normal players...
+        response = self.client.get(reverse("submission_create"))
+        self.assertNotIn("on_behalf_of", response.context["form"].fields)
+        # ...and posting it is ignored: the entry is still theirs.
+        other = make_player("bob")
+        data = {"achievement": self.achievement.pk, "on_behalf_of": other.pk, **formset_management()}
+        self.client.post(reverse("submission_create"), data)
+        self.assertEqual(Submission.objects.get().user, self.player)
+
     def test_unblocked_player_can_still_submit(self):
         self.player.can_submit = True
         self.player.save(update_fields=["can_submit"])
@@ -378,14 +408,12 @@ class ReviewTests(TestCase):
         self.client.post(
             reverse("submission_edit", args=[self.submission.pk]),
             {
+                "on_behalf_of": self.submission.user.pk,
                 "character": self.submission.character.pk,
                 "achievement": self.achievement.pk,
                 "character_level": "81",
                 "played": "20h",
                 "kill_count": "22000",
-                "obtained_at": timezone.localtime(self.submission.obtained_at).strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ),
                 "notes": "",
                 **formset_management(),
             },

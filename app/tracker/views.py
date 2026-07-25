@@ -150,7 +150,7 @@ def submission_create(request: HttpRequest, slug: str | None = None) -> HttpResp
         achievement = get_object_or_404(Achievement, slug=slug, active=True)
 
     if request.method == "POST":
-        form = SubmissionForm(request.POST, user=request.user)
+        form = SubmissionForm(request.POST, user=request.user, acting_user=request.user)
         if form.is_valid():
             saved_pk = None
             with transaction.atomic():
@@ -158,7 +158,12 @@ def submission_create(request: HttpRequest, slug: str | None = None) -> HttpResp
                 formset = ProofImageFormSet(request.POST, request.FILES, instance=submission)
                 if formset.is_valid():
                     proofs = formset.save()
-                    log_audit(submission, request.user, "created")
+                    on_behalf = (
+                        ""
+                        if submission.user_id == request.user.pk
+                        else f"Logged by {request.user.name} on behalf of {submission.user.name}."
+                    )
+                    log_audit(submission, request.user, "created", on_behalf)
                     for proof in proofs:
                         log_audit(submission, request.user, "proof_added")
                     # Approvals are disabled: the entry counts immediately.
@@ -176,7 +181,7 @@ def submission_create(request: HttpRequest, slug: str | None = None) -> HttpResp
             if saved_pk is not None:
                 return redirect("submission_detail", pk=saved_pk)
             # Rebind against the rolled-back state so nothing carries a dead pk.
-            form = SubmissionForm(request.POST, user=request.user)
+            form = SubmissionForm(request.POST, user=request.user, acting_user=request.user)
             form.is_valid()
             formset = ProofImageFormSet(request.POST, request.FILES)
             formset.is_valid()
@@ -184,7 +189,7 @@ def submission_create(request: HttpRequest, slug: str | None = None) -> HttpResp
             formset = ProofImageFormSet(request.POST, request.FILES)
     else:
         initial = {"achievement": achievement} if achievement else None
-        form = SubmissionForm(user=request.user, initial=initial)
+        form = SubmissionForm(user=request.user, acting_user=request.user, initial=initial)
         formset = ProofImageFormSet()
 
     context = {
@@ -229,7 +234,7 @@ def submission_edit(request: HttpRequest, pk: int) -> HttpResponse:
         raise Http404("Submission not found.")
 
     if request.method == "POST":
-        form = SubmissionForm(request.POST, user=submission.user, instance=submission)
+        form = SubmissionForm(request.POST, user=submission.user, acting_user=request.user, instance=submission)
         formset = ProofImageFormSet(request.POST, request.FILES, instance=submission)
         if form.is_valid() and formset.is_valid():
             changed_fields = list(form.changed_data)
@@ -245,7 +250,7 @@ def submission_edit(request: HttpRequest, pk: int) -> HttpResponse:
             messages.success(request, "Submission updated.")
             return redirect("submission_detail", pk=submission.pk)
     else:
-        form = SubmissionForm(user=submission.user, instance=submission)
+        form = SubmissionForm(user=submission.user, acting_user=request.user, instance=submission)
         formset = ProofImageFormSet(instance=submission)
 
     context = {
