@@ -1,0 +1,234 @@
+/* ==========================================================================
+   firsts.css — celebratory treatment for FIRST-place finishes and the
+   overall champion. Layers on top of app.css tokens/classes; does not
+   redefine base layout. Owned by the "firsts" work.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Shimmer keyframes (guarded — see prefers-reduced-motion block below)
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes firsts-shimmer {
+    0%   { background-position: -150% 0; }
+    100% { background-position: 250% 0; }
+  }
+  @keyframes firsts-glow-pulse {
+    0%, 100% { box-shadow: 0 0 12px 1px rgba(232, 199, 108, 0.25), var(--shadow-card); }
+    50%      { box-shadow: 0 0 22px 4px rgba(232, 199, 108, 0.4), var(--shadow-card); }
+  }
+}
+
+/* ==========================================================================
+   Champion spotlight (.hero-champion)
+   ========================================================================== */
+
+.hero-champion--crowned {
+  border: 1px solid var(--color-gold);
+  box-shadow: 0 0 0 1px rgba(232, 199, 108, 0.15) inset, var(--shadow-raised);
+  position: relative;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-champion--crowned {
+    animation: firsts-glow-pulse 4s ease-in-out infinite;
+  }
+}
+
+.hero-champion--crowned .crown {
+  filter: drop-shadow(0 0 6px rgba(232, 199, 108, 0.55));
+}
+
+.hero-champion-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.champion-eyebrow {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-gold);
+  font-weight: 700;
+  margin-bottom: var(--space-1);
+}
+
+.hero-champion--crowned h2 a {
+  background: linear-gradient(90deg, var(--color-gold), var(--color-gold-bright), var(--color-gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-decoration: none;
+}
+
+.champion-laurel {
+  font-size: 2rem;
+  line-height: 1;
+  opacity: 0.85;
+  align-self: center;
+}
+.champion-laurel--right { transform: scaleX(-1); }
+
+@media (max-width: 30rem) {
+  .champion-laurel { display: none; }
+}
+
+/* ==========================================================================
+   Major "firsts" trophy cards — the showpieces
+   ========================================================================== */
+
+.trophy-card--first {
+  background:
+    radial-gradient(circle at top right, rgba(232, 199, 108, 0.22), transparent 60%),
+    linear-gradient(160deg, #2f2716, #1c170f 60%);
+  border: 1px solid var(--color-gold);
+  box-shadow: 0 0 0 1px rgba(232, 199, 108, 0.2) inset, var(--shadow-raised);
+}
+
+.trophy-ribbon {
+  position: absolute;
+  top: var(--space-3);
+  right: -1.9rem;
+  transform: rotate(40deg);
+  background: linear-gradient(90deg, var(--color-gold-dim), var(--color-gold-bright), var(--color-gold-dim));
+  color: #1a1408;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.2em 2.2rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .trophy-ribbon {
+    background-size: 200% 100%;
+    animation: firsts-shimmer 3.5s linear infinite;
+  }
+}
+
+.trophy-card--first .trophy-holder-crown {
+  color: var(--color-gold-bright);
+}
+
+.trophy-card--first .trophy-holder a {
+  color: var(--color-gold-bright);
+  text-decoration: none;
+}
+
+.trophy-card--first .trophy-holder a:hover { text-decoration: underline; }
+
+/* ==========================================================================
+   Achievement card winner block
+   ========================================================================== */
+
+.winner-block--champion {
+  border: 1px solid var(--color-gold-dim);
+  background:
+    linear-gradient(90deg, rgba(232, 199, 108, 0.08), transparent 70%),
+    var(--color-bg-raised);
+  position: relative;
+}
+.winner-block--champion .winner-seal {
+  font-size: 1.15rem;
+  color: var(--color-gold-bright);
+}
+.winner-block--champion .winner-name {
+  background: linear-gradient(180deg, var(--color-gold-bright), var(--color-gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.winner-block.no-winner {
+  border: 1px dashed var(--color-border-strong);
+}
+
+/* ==========================================================================
+   Level vs. /played emphasis (display only — no scoring changes)
+   ========================================================================== */
+
+.stat-level {
+  color: var(--color-gold-bright);
+  font-weight: 700;
+}
+
+.stat-played {
+  color: var(--color-parchment-dim);
+  font-weight: 400;
+}
+
+.trophy-meta .stat-sep { color: var(--color-parchment-dim); }
+
+/* ==========================================================================
+   Medals — make "First Overall" pop, keep the rest subdued
+   ========================================================================== */
+
+.medal-first {
+  background: linear-gradient(120deg, #2c2412, var(--color-gold-dim), #2c2412);
+  color: #1a1408;
+  border-color: var(--color-gold-bright);
+  font-weight: 800;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .medal-first {
+    background-size: 220% 100%;
+    animation: firsts-shimmer 4s linear infinite;
+  }
+}
+
+.medal-crown { font-size: 0.95em; }
+
+.medal-completion,
+.medal-lowest_played,
+.medal-fewest_kills,
+.medal-lowest_level {
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Leaderboard — rank #1 row stands out (rows render pre-sorted by rank)
+   ========================================================================== */
+
+table.standings tbody tr:first-child {
+  background: linear-gradient(90deg, rgba(232, 199, 108, 0.1), transparent 80%);
+}
+table.standings tbody tr:first-child:hover {
+  background: linear-gradient(90deg, rgba(232, 199, 108, 0.16), transparent 80%);
+}
+table.standings tbody tr:first-child td:first-child {
+  font-weight: 800;
+  color: var(--color-gold-bright);
+}
+table.standings tbody tr:first-child td:first-child::before {
+  content: "\265B\0020";
+}
+table.standings tbody tr:first-child a {
+  color: var(--color-gold-bright);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   Player profile — first-place stat tile
+   ========================================================================== */
+
+.stat-tile--first {
+  border-color: var(--color-gold);
+  background:
+    radial-gradient(circle at top, rgba(232, 199, 108, 0.15), transparent 70%),
+    var(--color-bg-card);
+  position: relative;
+}
+.stat-tile--first .value {
+  color: var(--color-gold-bright);
+}
+.stat-tile--first .tile-crown {
+  display: block;
+  font-size: 1rem;
+  color: var(--color-gold);
+  margin-bottom: 0.15em;
+}

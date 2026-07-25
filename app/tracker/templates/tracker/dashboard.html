@@ -3,12 +3,15 @@
 {% block content %}
 
   {% if champion %}
-    <section class="hero-champion" aria-label="Current champion">
-      <span class="crown" aria-hidden="true">&#128081;</span>
-      <div>
+    <section class="hero-champion hero-champion--crowned" aria-label="Current champion">
+      <span class="champion-laurel champion-laurel--left" aria-hidden="true">&#127807;</span>
+      <span class="crown" aria-hidden="true">&#9819;</span>
+      <div class="hero-champion-body">
+        <span class="champion-eyebrow">Reigning Champion</span>
         <h2><a href="{% url 'player_profile' champion.player.username %}">{{ champion.player.name }}</a></h2>
-        <p class="subtitle">Current overall champion &middot; {{ champion.points }} points &middot; {{ champion.completions }} completions &middot; {{ champion.firsts }} first{{ champion.firsts|pluralize }}</p>
+        <p class="subtitle">{{ champion.points }} points &middot; {{ champion.completions }} completions &middot; {{ champion.firsts }} first{{ champion.firsts|pluralize }}</p>
       </div>
+      <span class="champion-laurel champion-laurel--right" aria-hidden="true">&#127807;</span>
     </section>
   {% else %}
     <div class="empty-state">
@@ -21,11 +24,18 @@
     <h2>Major firsts</h2>
     <div class="trophy-row">
       {% for sub in firsts %}
-        <div class="trophy-card">
+        <div class="trophy-card trophy-card--first">
+          <span class="trophy-ribbon" aria-hidden="true">First</span>
           <span class="trophy-icon" aria-hidden="true">{{ sub.achievement.icon|default:"🏆" }}</span>
           <p class="trophy-label">{{ sub.achievement.label }}</p>
-          <p class="trophy-holder"><a href="{% url 'player_profile' sub.user.username %}">{{ sub.user.name }}</a></p>
-          <p class="trophy-meta">{{ sub.played_display }} played &middot; {{ sub.kill_count|default_if_none:"—" }} kills &middot; level {{ sub.character_level|default_if_none:"—" }}</p>
+          <p class="trophy-holder"><span class="trophy-holder-crown" aria-hidden="true">&#9819;</span> <a href="{% url 'player_profile' sub.user.username %}">{{ sub.user.name }}</a></p>
+          <p class="trophy-meta">
+            <span class="stat-level">Level {{ sub.character_level|default_if_none:"—" }}</span>
+            <span class="stat-sep" aria-hidden="true">&middot;</span>
+            <span class="stat-played">{{ sub.played_display }} played</span>
+            <span class="stat-sep" aria-hidden="true">&middot;</span>
+            <span class="stat-played">{{ sub.kill_count|default_if_none:"—" }} kills</span>
+          </p>
           <a class="btn btn-sm" href="{% url 'submission_detail' sub.pk %}">View proof</a>
         </div>
       {% endfor %}

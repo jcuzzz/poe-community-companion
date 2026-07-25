@@ -1,7 +1,7 @@
 {% if submission.awards.all %}
   <div class="medal-row">
     {% for award in submission.awards.all %}
-      <span class="medal medal-{{ award.award_type }}">{{ award.short_label }} (+{{ award.points }})</span>
+      <span class="medal medal-{{ award.award_type }}">{% if award.award_type == "first" %}<span class="medal-crown" aria-hidden="true">&#9819;</span>{% endif %}{{ award.short_label }} (+{{ award.points }})</span>
     {% endfor %}
   </div>
 {% endif %}

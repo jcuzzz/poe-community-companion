@@ -20,12 +20,12 @@
   <div class="stat-grid">
     <div class="stat-tile"><span class="value">{{ stats.points }}</span><span class="label">Points</span></div>
     <div class="stat-tile"><span class="value">{{ stats.completions }}</span><span class="label">Completions</span></div>
-    <div class="stat-tile"><span class="value">{{ stats.firsts }}</span><span class="label">Firsts</span></div>
-    <div class="stat-tile"><span class="value">{{ stats.highest_level }}</span><span class="label">Highest level</span></div>
+    <div class="stat-tile{% if stats.firsts %} stat-tile--first{% endif %}">{% if stats.firsts %}<span class="tile-crown" aria-hidden="true">&#9819;</span>{% endif %}<span class="value">{{ stats.firsts }}</span><span class="label">Firsts</span></div>
+    <div class="stat-tile"><span class="value stat-level">{{ stats.highest_level }}</span><span class="label">Highest level</span></div>
   </div>
 
   <div class="medal-row">
-    {% if stats.firsts %}<span class="medal medal-first">First Overall &times;{{ stats.firsts }}</span>{% endif %}
+    {% if stats.firsts %}<span class="medal medal-first"><span class="medal-crown" aria-hidden="true">&#9819;</span>First Overall &times;{{ stats.firsts }}</span>{% endif %}
     {% if stats.lowest_played %}<span class="medal medal-lowest_played">Lowest /played &times;{{ stats.lowest_played }}</span>{% endif %}
     {% if stats.fewest_kills %}<span class="medal medal-fewest_kills">Fewest Kills &times;{{ stats.fewest_kills }}</span>{% endif %}
     {% if stats.lowest_level %}<span class="medal medal-lowest_level">Lowest Level &times;{{ stats.lowest_level }}</span>{% endif %}
