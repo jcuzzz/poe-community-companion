@@ -79,6 +79,18 @@ code paste is now the primary (and only enabled) path**; it works for both games
 needs no API. The auto-lookup service code is retained but gated behind the flag for a
 possible future OAuth build (the correct long-term path — needs a GGG-approved app).
 
+**OAuth is currently NOT attainable (verified 2026-07-26).** GGG's developer docs state
+"We are currently unable to process new applications" — new OAuth app registration is
+**closed**, no self-serve portal, no small-app fast-track, contact `oauth@grindinggear.com`
+(frozen queue, no ETA). There is no OAuth without a registered `client_id` (PKCE removes
+the secret, not the registration). PoB's own "Import by Account Name" only works because
+PoB is a *local desktop app* (residential IP + native TLS); a hosted web app can't
+replicate it (Cloudflare 403 server-side + browser CORS). **Decision (2026-07-26):
+stay on PoB-code paste** — it's the only path that works without GGG. Revisit OAuth
+only if registration reopens; the flow is ~1–2 days of standard Authorization-Code work
+once a `client_id` exists (authorize endpoint `https://www.pathofexile.com/oauth/authorize`,
+token `…/oauth/token`, scope `account:characters`, character API `https://api.pathofexile.com/character`).
+
 ## Per-game lookup (PoE 1 vs PoE 2)
 The auto path (when enabled) is **PoE 1 only**. Per the PoE 2 spike
 ([../research/character-lookup-poe2.md](../research/character-lookup-poe2.md)), PoE 2
