@@ -283,6 +283,45 @@ class AchievementStandingsTests(TestCase):
         self.assertIsNone(card["winner"])
         self.assertEqual(card["approved_count"], 0)
 
+    def test_entries_include_every_approved_submission(self):
+        """A player with two approved entries appears twice in `entries`."""
+        first = make_submission(self.jcuz, self.divine, hours_in=10)
+        second = make_submission(self.jcuz, self.divine, hours_in=20, character=make_character(self.jcuz))
+        other = make_submission(self.bob, self.divine, hours_in=30)
+        scoring.recalculate()
+
+        card = scoring.achievement_standings(self.divine)
+        self.assertEqual(len(card["entries"]), 3)
+        jcuz_entries = [e for e in card["entries"] if e.user == self.jcuz]
+        self.assertEqual(len(jcuz_entries), 2)
+        self.assertIn(first, card["entries"])
+        self.assertIn(second, card["entries"])
+        self.assertIn(other, card["entries"])
+
+    def test_not_submitted_excludes_players_with_any_approved_entry(self):
+        make_submission(self.jcuz, self.divine, hours_in=10)
+        scoring.recalculate()
+
+        card = scoring.achievement_standings(self.divine)
+        self.assertNotIn(self.jcuz, card["not_submitted"])
+        self.assertIn(self.bob, card["not_submitted"])
+
+    def test_not_submitted_still_lists_player_with_only_pending_submission(self):
+        make_submission(self.jcuz, self.divine, status=Submission.Status.PENDING)
+        card = scoring.achievement_standings(self.divine)
+        self.assertIn(self.jcuz, card["not_submitted"])
+
+    def test_winner_is_still_first_award_holder(self):
+        winner = make_submission(self.jcuz, self.divine, hours_in=10)
+        make_submission(self.bob, self.divine, hours_in=20)
+        scoring.recalculate()
+
+        card = scoring.achievement_standings(self.divine)
+        self.assertEqual(card["winner"], winner)
+        self.assertTrue(
+            Award.objects.filter(submission=winner, award_type=Award.Type.FIRST).exists()
+        )
+
 
 class PlayerStatsTests(TestCase):
     def test_stats_shape(self):

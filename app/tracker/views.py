@@ -71,13 +71,13 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     recent_submissions = list(
         Submission.objects.visible()
         .select_related("user", "character", "achievement")
-        .prefetch_related("awards")[:10]
+        .prefetch_related("awards", "proofs")[:10]
     )
     firsts = list(
         Submission.objects.approved()
         .filter(awards__award_type=Award.Type.FIRST)
         .select_related("user", "character", "achievement")
-        .prefetch_related("awards")
+        .prefetch_related("awards", "proofs")
         .order_by("-obtained_at")
         .distinct()
     )

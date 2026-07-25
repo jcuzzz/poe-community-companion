@@ -26,8 +26,11 @@ Leaderboard row dict: `player`, `points`, `rank`, `completions`, `firsts`,
 `lowest_played`, `fewest_kills`, `lowest_level`.
 
 `achievement_standings()` dict: `achievement`, `winner` (Submission or None),
-`rows` (list of `{player, submission|None}`), `submissions`, `approved_count`,
-`player_count`.
+`entries` (every approved submission — a player may appear more than once —
+ordered by total award points desc then earliest `obtained_at`),
+`not_submitted` (active players with no approved entry),
+`rows` (legacy: one `{player, submission|None}` per player, kept for
+back-compat), `submissions`, `approved_count`, `player_count`.
 
 ### `achievement_list` — `tracker/achievement_list.html`
 `cards` = list of `achievement_standings()` dicts.

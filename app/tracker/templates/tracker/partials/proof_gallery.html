@@ -2,7 +2,9 @@
   <div class="proof-gallery" data-proof-gallery>
     {% for proof in submission.proofs.all %}
       <figure class="proof-frame{% if forloop.first %} proof-frame-hero{% endif %}">
-        <a href="{{ proof.image.url }}" target="_blank" rel="noopener" class="proof-link" data-proof-trigger data-full-src="{{ proof.image.url }}" data-full-alt="{{ proof.get_kind_display }} proof{% if proof.caption %}: {{ proof.caption }}{% endif %} for {{ submission.achievement.name }}">
+        <a href="{{ proof.image.url }}" target="_blank" rel="noopener" class="proof-link"
+           data-lightbox-src="{{ proof.image.url }}"
+           data-lightbox-alt="{{ proof.get_kind_display }} proof{% if proof.caption %}: {{ proof.caption }}{% endif %} for {{ submission.achievement.name }}">
           <span class="proof-kind-badge">{{ proof.get_kind_display }}</span>
           <img src="{{ proof.image.url }}" alt="{{ proof.get_kind_display }} proof{% if proof.caption %}: {{ proof.caption }}{% endif %} for {{ submission.achievement.name }}" loading="lazy">
           <span class="proof-zoom-hint" aria-hidden="true">&#128269; View full size</span>
@@ -13,64 +15,6 @@
       </figure>
     {% endfor %}
   </div>
-
-  <div class="proof-lightbox" data-proof-lightbox hidden>
-    <button type="button" class="proof-lightbox-backdrop" data-proof-close aria-label="Close"></button>
-    <div class="proof-lightbox-content" role="dialog" aria-modal="true" aria-label="Proof screenshot, full size">
-      <button type="button" class="proof-lightbox-close" data-proof-close aria-label="Close full-size image">&times;</button>
-      <img data-proof-lightbox-img src="" alt="">
-    </div>
-  </div>
-
-  <script>
-    (function () {
-      var script = document.currentScript;
-      var lightbox = script.previousElementSibling;
-      var root = lightbox ? lightbox.previousElementSibling : null;
-      if (!root || !root.hasAttribute('data-proof-gallery') || !lightbox || !lightbox.hasAttribute('data-proof-lightbox')) {
-        return;
-      }
-
-      var lbImg = lightbox.querySelector('[data-proof-lightbox-img]');
-      var lastFocused = null;
-
-      function openLightbox(src, alt) {
-        lbImg.src = src;
-        lbImg.alt = alt || '';
-        lightbox.hidden = false;
-        lastFocused = document.activeElement;
-        var closeBtn = lightbox.querySelector('.proof-lightbox-close');
-        if (closeBtn) closeBtn.focus();
-        document.addEventListener('keydown', onKeydown);
-      }
-
-      function closeLightbox() {
-        lightbox.hidden = true;
-        lbImg.src = '';
-        document.removeEventListener('keydown', onKeydown);
-        if (lastFocused && typeof lastFocused.focus === 'function') {
-          lastFocused.focus();
-        }
-      }
-
-      function onKeydown(e) {
-        if (e.key === 'Escape' || e.key === 'Esc') {
-          closeLightbox();
-        }
-      }
-
-      root.querySelectorAll('[data-proof-trigger]').forEach(function (link) {
-        link.addEventListener('click', function (e) {
-          e.preventDefault();
-          openLightbox(link.getAttribute('data-full-src'), link.getAttribute('data-full-alt'));
-        });
-      });
-
-      lightbox.querySelectorAll('[data-proof-close]').forEach(function (el) {
-        el.addEventListener('click', closeLightbox);
-      });
-    })();
-  </script>
 {% else %}
   <p class="text-muted">No proof screenshots attached.</p>
 {% endif %}

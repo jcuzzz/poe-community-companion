@@ -203,10 +203,28 @@ def achievement_standings(achievement: Achievement) -> dict:
         )
     )
 
+    # `entries` shows every approved submission individually - a player who
+    # logged the same achievement twice appears twice, each with its own
+    # stats and medals. Ordered by total award points (desc) then earliest
+    # obtained_at, so the strongest/earliest claims lead the list.
+    approved_subs = [s for s in subs if s.status == Submission.Status.APPROVED]
+
+    def entry_key(sub: Submission):
+        points = sum(a.points for a in sub.awards.all())
+        return (-points, sub.obtained_at)
+
+    entries = sorted(approved_subs, key=entry_key)
+
+    entered_user_ids = {sub.user_id for sub in approved_subs}
+    not_submitted = [player for player in players if player.pk not in entered_user_ids]
+    not_submitted.sort(key=lambda p: p.name.lower())
+
     return {
         "achievement": achievement,
         "winner": winner,
         "rows": rows,
+        "entries": entries,
+        "not_submitted": not_submitted,
         "submissions": subs,
         "approved_count": sum(1 for s in subs if s.status == Submission.Status.APPROVED),
         "player_count": len(players),

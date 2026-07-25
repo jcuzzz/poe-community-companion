@@ -1,0 +1,52 @@
+{% comment %}
+Global image lightbox. Included once in base.html. Any element on the page
+with data-lightbox-src (and optional data-lightbox-alt) opens it on click;
+keep a real <a href target="_blank"> as the no-JS fallback.
+{% endcomment %}
+<div class="proof-lightbox" data-global-lightbox hidden>
+  <button type="button" class="proof-lightbox-backdrop" data-lightbox-close aria-label="Close"></button>
+  <div class="proof-lightbox-content" role="dialog" aria-modal="true" aria-label="Screenshot, full size">
+    <button type="button" class="proof-lightbox-close" data-lightbox-close aria-label="Close full-size image">&times;</button>
+    <img data-lightbox-img src="" alt="">
+  </div>
+</div>
+
+<script>
+  (function () {
+    var lightbox = document.querySelector('[data-global-lightbox]');
+    if (!lightbox) return;
+    var lbImg = lightbox.querySelector('[data-lightbox-img]');
+    var lastFocused = null;
+
+    function open(src, alt) {
+      if (!src) return;
+      lbImg.src = src;
+      lbImg.alt = alt || '';
+      lightbox.hidden = false;
+      lastFocused = document.activeElement;
+      var closeBtn = lightbox.querySelector('.proof-lightbox-close');
+      if (closeBtn) closeBtn.focus();
+      document.addEventListener('keydown', onKeydown);
+    }
+    function close() {
+      lightbox.hidden = true;
+      lbImg.src = '';
+      document.removeEventListener('keydown', onKeydown);
+      if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    }
+    function onKeydown(e) {
+      if (e.key === 'Escape' || e.key === 'Esc') close();
+    }
+
+    // Delegated: works for triggers added anywhere on the page.
+    document.addEventListener('click', function (e) {
+      var trigger = e.target.closest ? e.target.closest('[data-lightbox-src]') : null;
+      if (!trigger) return;
+      e.preventDefault();
+      open(trigger.getAttribute('data-lightbox-src'), trigger.getAttribute('data-lightbox-alt'));
+    });
+    lightbox.querySelectorAll('[data-lightbox-close]').forEach(function (el) {
+      el.addEventListener('click', close);
+    });
+  })();
+</script>

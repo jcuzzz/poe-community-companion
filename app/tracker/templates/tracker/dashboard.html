@@ -37,6 +37,13 @@
             <span class="stat-played">{{ sub.kill_count|default_if_none:"—" }} kills</span>
           </p>
           <a class="btn btn-sm" href="{% url 'submission_detail' sub.pk %}">View proof</a>
+          {% with proof=sub.proofs.all.0 %}
+            {% if proof %}
+              <a class="btn btn-sm" href="{{ proof.image.url }}" target="_blank" rel="noopener"
+                 data-lightbox-src="{{ proof.image.url }}"
+                 data-lightbox-alt="Proof for {{ sub.achievement.name }} by {{ sub.user.name }}">View screenshot</a>
+            {% endif %}
+          {% endwith %}
         </div>
       {% endfor %}
     </div>
@@ -64,6 +71,13 @@
           {% for submission in recent_submissions %}
             <li class="card" style="margin-bottom: var(--space-3); padding: var(--space-3);">
               {% include "tracker/partials/submission_row.html" with submission=submission %}
+              {% with proof=submission.proofs.all.0 %}
+                {% if proof %}
+                  <a class="btn btn-sm" href="{{ proof.image.url }}" target="_blank" rel="noopener"
+                     data-lightbox-src="{{ proof.image.url }}"
+                     data-lightbox-alt="Proof for {{ submission.achievement.name }} by {{ submission.user.name }}">View screenshot</a>
+                {% endif %}
+              {% endwith %}
             </li>
           {% endfor %}
         </ul>

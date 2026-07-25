@@ -24,19 +24,29 @@
   {% endif %}
 
   <ul class="player-status-list">
-    {% for row in card.rows %}
+    {% for entry in card.entries %}
       <li class="player-status-row">
         <span class="player-name">
-          <a href="{% url 'player_profile' row.player.username %}">{{ row.player.name }}</a>
+          <a href="{% url 'player_profile' entry.user.username %}">{{ entry.user.name }}</a>
         </span>
-        {% if row.submission %}
-          <span class="pill pill-{{ row.submission.status }}">{{ row.submission.get_status_display }}</span>
-          <span class="stat-line">
-            <span class="stat-level">Level {{ row.submission.character_level|default_if_none:"—" }}</span> &middot; <span class="stat-played">{{ row.submission.played_display }}</span> &middot; <span class="stat-played">{{ row.submission.kill_count|default_if_none:"—" }} kills</span>
-          </span>
-        {% else %}
-          <span class="pill pill-not-submitted">Not submitted</span>
-        {% endif %}
+        <span class="pill pill-{{ entry.status }}">{{ entry.get_status_display }}</span>
+        <span class="stat-line">
+          <span class="stat-level">Level {{ entry.character_level|default_if_none:"—" }}</span> &middot; <span class="stat-played">{{ entry.played_display }}</span> &middot; <span class="stat-played">{{ entry.kill_count|default_if_none:"—" }} kills</span>
+        </span>
+        {% include "tracker/partials/medals.html" with submission=entry %}
+        {% with first_proof=entry.proofs.all.0 %}
+          {% if first_proof %}
+            <a class="btn btn-sm" href="{{ first_proof.image.url }}" target="_blank" rel="noopener" data-lightbox-src="{{ first_proof.image.url }}" data-lightbox-alt="Proof for {{ entry.achievement.name }} by {{ entry.user.name }}">View proof</a>
+          {% endif %}
+        {% endwith %}
+      </li>
+    {% endfor %}
+    {% for player in card.not_submitted %}
+      <li class="player-status-row">
+        <span class="player-name">
+          <a href="{% url 'player_profile' player.username %}">{{ player.name }}</a>
+        </span>
+        <span class="pill pill-not-submitted">Not submitted</span>
       </li>
     {% endfor %}
   </ul>
