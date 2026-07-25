@@ -34,17 +34,12 @@ BONUS_RULES = [
 
 
 def scoring_submissions(achievement: Achievement | None = None):
-    """Approved submissions that count - one per player per achievement."""
+    """Every approved submission. Players may hold more than one per achievement;
+    all of them compete for the first-place and efficiency medals."""
     qs = Submission.objects.approved().select_related("user", "achievement", "character")
     if achievement is not None:
         qs = qs.filter(achievement=achievement)
-
-    best: dict[tuple[int, int], Submission] = {}
-    for sub in qs.order_by("obtained_at", "submitted_at", "pk"):
-        key = (sub.achievement_id, sub.user_id)
-        if key not in best:
-            best[key] = sub
-    return list(best.values())
+    return list(qs.order_by("obtained_at", "submitted_at", "pk"))
 
 
 @transaction.atomic
@@ -67,7 +62,13 @@ def recalculate(achievement: Achievement | None = None) -> int:
         if not subs:
             continue
 
-        for sub in subs:
+        # Completion is once per player (their earliest counts), so resubmitting
+        # the same achievement never farms extra completion points.
+        completion_seen: set[int] = set()
+        for sub in subs:  # already ordered earliest-first
+            if sub.user_id in completion_seen:
+                continue
+            completion_seen.add(sub.user_id)
             awards.append(
                 Award(
                     submission=sub,
@@ -170,13 +171,17 @@ def achievement_standings(achievement: Achievement) -> dict:
         .order_by("obtained_at", "submitted_at")
     )
 
+    # A player may have several submissions here; show their strongest one
+    # (most award points, then earliest) so the card reflects their medals.
+    def rank_key(sub: Submission):
+        approved = sub.status == Submission.Status.APPROVED
+        points = sum(a.points for a in sub.awards.all())
+        return (approved, points, -sub.obtained_at.timestamp())
+
     by_user: dict[int, Submission] = {}
     for sub in subs:
         current = by_user.get(sub.user_id)
-        if current is None or (
-            sub.status == Submission.Status.APPROVED
-            and current.status != Submission.Status.APPROVED
-        ):
+        if current is None or rank_key(sub) > rank_key(current):
             by_user[sub.user_id] = sub
 
     winner = None

@@ -5,7 +5,7 @@ from django.test import TestCase
 from tracker import scoring
 from tracker.models import Award, Submission
 
-from .factories import make_achievement, make_player, make_submission
+from .factories import make_achievement, make_character, make_player, make_submission
 
 
 class ScoringTests(TestCase):
@@ -97,19 +97,41 @@ class ScoringTests(TestCase):
         self.assertIn(Award.Type.FIRST, self.awards_for(a))
         self.assertNotIn(Award.Type.FIRST, self.awards_for(b))
 
-    def test_only_a_players_earliest_submission_counts(self):
-        earliest = make_submission(self.jcuz, self.divine, hours_in=10, played_hours=30)
-        later = make_submission(
+    def test_multiple_submissions_per_player_all_compete(self):
+        # A player may log the same achievement more than once; a later, more
+        # efficient run still earns the efficiency medals.
+        earliest = make_submission(
+            self.jcuz, self.divine, character=make_character(self.jcuz), hours_in=10, played_hours=30
+        )
+        efficient = make_submission(
             self.jcuz,
             self.divine,
-            character=earliest.character,
+            character=make_character(self.jcuz),
             hours_in=60,
             played_hours=5,
         )
         scoring.recalculate()
 
-        self.assertTrue(self.awards_for(earliest))
-        self.assertFalse(self.awards_for(later))
+        # First (earliest obtained) and the single completion sit on the first run.
+        self.assertIn(Award.Type.FIRST, self.awards_for(earliest))
+        self.assertIn(Award.Type.COMPLETION, self.awards_for(earliest))
+        # The efficient later run wins lowest /played on its own merit.
+        self.assertIn(Award.Type.LOWEST_PLAYED, self.awards_for(efficient))
+        # But it does NOT get a second completion point.
+        self.assertNotIn(Award.Type.COMPLETION, self.awards_for(efficient))
+
+    def test_completion_counts_once_per_player_across_resubmissions(self):
+        make_submission(self.jcuz, self.divine, character=make_character(self.jcuz), hours_in=10)
+        make_submission(self.jcuz, self.divine, character=make_character(self.jcuz), hours_in=20)
+        make_submission(self.jcuz, self.divine, character=make_character(self.jcuz), hours_in=30)
+        scoring.recalculate()
+
+        self.assertEqual(
+            Award.objects.filter(
+                submission__user=self.jcuz, award_type=Award.Type.COMPLETION
+            ).count(),
+            1,
+        )
 
     def test_recalculate_is_idempotent(self):
         make_submission(self.jcuz, self.divine)
