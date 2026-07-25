@@ -21,11 +21,18 @@ from .models import (
     AuditEntry,
     Award,
     Character,
+    ContestVote,
     InviteCode,
     ProofImage,
     Submission,
+    SubmissionComment,
+    SubmissionReaction,
     User,
 )
+
+admin.site.register(SubmissionComment)
+admin.site.register(SubmissionReaction)
+admin.site.register(ContestVote)
 
 
 @admin.register(User)

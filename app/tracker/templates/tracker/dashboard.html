@@ -44,6 +44,7 @@
                  data-lightbox-alt="Proof for {{ sub.achievement.name }} by {{ sub.user.name }}">View screenshot</a>
             {% endif %}
           {% endwith %}
+          <a class="btn btn-sm" href="{% url 'share_card' sub.pk %}" target="_blank" rel="noopener">Share card</a>
         </div>
       {% endfor %}
     </div>

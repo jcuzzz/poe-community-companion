@@ -2,13 +2,25 @@
 
 from __future__ import annotations
 
+import csv
+import io
+import json
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.db import transaction
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseBadRequest,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -26,6 +38,7 @@ from .forms import (
 )
 from .models import (
     Achievement,
+    AuditEntry,
     Award,
     Character,
     InviteCode,
@@ -104,10 +117,16 @@ def achievement_list(request: HttpRequest) -> HttpResponse:
 def achievement_detail(request: HttpRequest, slug: str) -> HttpResponse:
     achievement = get_object_or_404(Achievement, slug=slug)
     standings = scoring.achievement_standings(achievement)
+    timeline = list(
+        AuditEntry.objects.filter(submission__achievement=achievement)
+        .exclude(submission__status=Submission.Status.DRAFT)
+        .select_related("actor", "submission__user")
+        .order_by("-created_at", "-pk")[:50]
+    )
     return render(
         request,
         "tracker/achievement_detail.html",
-        {"achievement": achievement, "standings": standings},
+        {"achievement": achievement, "standings": standings, "timeline": timeline},
     )
 
 
@@ -205,8 +224,9 @@ def submission_create(request: HttpRequest, slug: str | None = None) -> HttpResp
 @login_required
 def submission_detail(request: HttpRequest, pk: int) -> HttpResponse:
     submission = get_object_or_404(
-        Submission.objects.select_related("user", "character", "achievement")
-        .prefetch_related("awards", "proofs"),
+        Submission.objects.select_related("user", "character", "achievement").prefetch_related(
+            "awards", "proofs", "comments__author", "reactions__user", "contest_votes__voter"
+        ),
         pk=pk,
     )
     if submission.status == Submission.Status.DRAFT and submission.user_id != request.user.pk:
@@ -527,3 +547,108 @@ def played_preview(request: HttpRequest) -> HttpResponse:
 def healthz(request: HttpRequest) -> HttpResponse:
     User.objects.exists()
     return HttpResponse("ok")
+
+
+# --- Activity feed -------------------------------------------------------
+
+
+@login_required
+def activity_feed(request: HttpRequest) -> HttpResponse:
+    """Chronological league activity, built from the audit log."""
+    entries = (
+        AuditEntry.objects.select_related("actor", "submission__user", "submission__achievement")
+        .exclude(submission__status=Submission.Status.DRAFT)
+        .order_by("-created_at", "-pk")
+    )
+    page = Paginator(entries, 40).get_page(request.GET.get("page"))
+    return render(request, "tracker/activity_feed.html", {"page_obj": page})
+
+
+# --- Exports -------------------------------------------------------------
+
+
+@login_required
+def leaderboard_export(request: HttpRequest, fmt: str) -> HttpResponse:
+    """Download the leaderboard as CSV or JSON."""
+    rows = scoring.leaderboard()
+    payload = [
+        {
+            "rank": r["rank"],
+            "player": r["player"].name,
+            "username": r["player"].username,
+            "points": r["points"],
+            "completions": r["completions"],
+            "firsts": r["firsts"],
+            "lowest_played": r["lowest_played"],
+            "fewest_kills": r["fewest_kills"],
+            "lowest_level": r["lowest_level"],
+        }
+        for r in rows
+    ]
+    if fmt == "json":
+        return JsonResponse(payload, safe=False)
+    if fmt == "csv":
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="leaderboard.csv"'
+        writer = csv.DictWriter(response, fieldnames=list(payload[0].keys()) if payload else ["rank"])
+        writer.writeheader()
+        writer.writerows(payload)
+        return response
+    return HttpResponseBadRequest("Unsupported format. Use csv or json.")
+
+
+# --- Share card (Pillow-rendered PNG) ------------------------------------
+
+
+@login_required
+def share_card(request: HttpRequest, pk: int) -> HttpResponse:
+    """A dark parchment / gold PNG summarising a submission, for sharing."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    submission = get_object_or_404(
+        Submission.objects.select_related("user", "achievement").prefetch_related("awards"),
+        pk=pk,
+    )
+    if submission.status == Submission.Status.DRAFT and submission.user_id != request.user.pk:
+        raise Http404("Submission not found.")
+
+    W, H = 1200, 630
+    bg, gold, gold_bright, parch, dim = (
+        (20, 17, 13),
+        (201, 162, 74),
+        (232, 199, 108),
+        (231, 216, 184),
+        (184, 168, 136),
+    )
+    img = Image.new("RGB", (W, H), bg)
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([12, 12, W - 12, H - 12], outline=gold, width=3)
+
+    def font(size):
+        return ImageFont.load_default(size=size)
+
+    is_first = any(a.award_type == Award.Type.FIRST for a in submission.awards.all())
+    draw.text((60, 60), settings.LEAGUE_NAME.upper(), font=font(28), fill=dim)
+    if is_first:
+        draw.text((60, 110), "★ FIRST OVERALL ★", font=font(44), fill=gold_bright)
+    draw.text((60, 190), submission.achievement.name, font=font(64), fill=gold)
+    draw.text((60, 300), submission.user.name, font=font(52), fill=parch)
+
+    stats = []
+    if submission.character_level is not None:
+        stats.append(f"Level {submission.character_level}")
+    if submission.played_seconds is not None:
+        stats.append(f"{submission.played_display} played")
+    if submission.kill_count is not None:
+        stats.append(f"{submission.kill_count:,} kills")
+    if stats:
+        draw.text((60, 380), "  ·  ".join(stats), font=font(34), fill=dim)
+
+    medals = "   ".join(a.short_label for a in submission.awards.all())
+    if medals:
+        draw.text((60, 470), medals, font=font(28), fill=gold_bright)
+    draw.text((60, H - 70), "Squad Achieves", font=font(24), fill=dim)
+
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    return HttpResponse(buffer.getvalue(), content_type="image/png")

@@ -1,0 +1,41 @@
+/* features.css — activity feed, timeline, export, richer profile. Uses app.css tokens. */
+
+.export-links { display: inline-flex; gap: var(--space-2); }
+
+.activity-list {
+  list-style: none;
+  margin: var(--space-4) 0;
+  padding: 0;
+  border-left: 2px solid var(--color-border);
+}
+.activity-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: baseline;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+.activity-item:hover { background: var(--color-bg-raised); }
+.activity-when {
+  color: var(--color-parchment-dim);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  min-width: 9rem;
+}
+.activity-what { flex: 1 1 16rem; }
+.activity-detail {
+  display: block;
+  color: var(--color-parchment-dim);
+  font-size: var(--fs-sm);
+}
+.activity-who { color: var(--color-parchment-dim); font-size: var(--fs-xs); }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin: var(--space-5) 0;
+}
+.page-info { color: var(--color-parchment-dim); font-size: var(--fs-sm); }

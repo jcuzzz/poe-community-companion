@@ -1,7 +1,13 @@
 {% extends "tracker/base.html" %}
 {% block title %}Leaderboard &middot; {{ league_name }}{% endblock %}
 {% block content %}
-  <h1>Leaderboard</h1>
+  <div class="u-flex-between">
+    <h1>Leaderboard</h1>
+    <span class="export-links">
+      <a class="btn btn-sm" href="{% url 'leaderboard_export' 'csv' %}">Export CSV</a>
+      <a class="btn btn-sm" href="{% url 'leaderboard_export' 'json' %}">Export JSON</a>
+    </span>
+  </div>
   <p class="text-muted">Points combine verified completions with category medals &mdash; see the breakdown per player below.</p>
   {% include "tracker/partials/leaderboard_table.html" with rows=rows %}
 

@@ -4,9 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ league_name }}{% endblock %}</title>
+  <script>
+    // Apply saved theme before paint to avoid a flash.
+    (function () {
+      try {
+        var t = localStorage.getItem("sa-theme");
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/firsts.css' %}">
   <link rel="stylesheet" href="{% static 'css/proofs.css' %}">
+  <link rel="stylesheet" href="{% static 'css/features.css' %}">
+  <link rel="stylesheet" href="{% static 'css/social.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -41,6 +52,7 @@
         <li><a href="{% url 'achievement_list' %}">Achievements</a></li>
         <li><a href="{% url 'leaderboard' %}">Leaderboard</a></li>
         {% if user.is_authenticated %}
+          <li><a href="{% url 'activity_feed' %}">Activity</a></li>
           <li><a href="{% url 'character_list' %}">My characters</a></li>
           <li><a href="{% url 'submission_create' %}">Submit</a></li>
           {% if user.is_staff %}
@@ -87,7 +99,27 @@
 
   <footer class="site-footer">
     <p>{{ league_name }} &middot; a private tracker for five friends. No PoE artwork used.</p>
+    <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle light and dark theme">
+      <span data-theme-label>Theme</span>
+    </button>
   </footer>
+
+  <script>
+    (function () {
+      var btn = document.getElementById("theme-toggle");
+      if (!btn) return;
+      var label = btn.querySelector("[data-theme-label]");
+      function current() { return document.documentElement.getAttribute("data-theme") || "dark"; }
+      function paint() { if (label) label.textContent = current() === "dark" ? "☀ Light" : "☾ Dark"; }
+      paint();
+      btn.addEventListener("click", function () {
+        var next = current() === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("sa-theme", next); } catch (e) {}
+        paint();
+      });
+    })();
+  </script>
 
   {% if user.is_authenticated %}{% include "tracker/partials/lightbox.html" %}{% endif %}
   <script src="{% static 'js/htmx.min.js' %}" defer></script>

@@ -1,15 +1,18 @@
 """URL contract for the tracker. View names here are the template contract."""
 
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import include, path
 
 from . import views
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("activity/", views.activity_feed, name="activity_feed"),
     path("achievements/", views.achievement_list, name="achievement_list"),
     path("achievements/<slug:slug>/", views.achievement_detail, name="achievement_detail"),
     path("leaderboard/", views.leaderboard_view, name="leaderboard"),
+    path("leaderboard/export.<str:fmt>", views.leaderboard_export, name="leaderboard_export"),
+    path("submissions/<int:pk>/share-card.png", views.share_card, name="share_card"),
     path("players/<str:username>/", views.player_profile, name="player_profile"),
     # Submissions
     path("submit/", views.submission_create, name="submission_create"),
@@ -44,4 +47,6 @@ urlpatterns = [
     # HTMX partials
     path("partials/played-preview/", views.played_preview, name="played_preview"),
     path("healthz", views.healthz, name="healthz"),
+    # Social features (comments, reactions, contested-claim votes)
+    path("", include("tracker.social_urls")),
 ]

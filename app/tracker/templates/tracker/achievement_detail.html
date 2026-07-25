@@ -25,4 +25,21 @@
   {% else %}
     <div class="empty-state">No submissions for this achievement yet.</div>
   {% endif %}
+
+  {% if timeline %}
+    <h2>Timeline</h2>
+    <ol class="activity-list">
+      {% for entry in timeline %}
+        <li class="activity-item">
+          <span class="activity-when">{{ entry.created_at|date:"D j M, H:i" }}</span>
+          <span class="activity-what">
+            <a href="{% url 'submission_detail' entry.submission.pk %}">{{ entry.submission.user.name }}</a>
+            &mdash; {{ entry.get_action_display }}
+            {% if entry.detail %}<span class="activity-detail">{{ entry.detail }}</span>{% endif %}
+          </span>
+          {% if entry.actor %}<span class="activity-who">by {{ entry.actor.name }}</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  {% endif %}
 {% endblock %}

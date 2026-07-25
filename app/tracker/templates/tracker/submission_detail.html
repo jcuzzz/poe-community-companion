@@ -42,6 +42,108 @@
   <h2>Proof</h2>
   {% include "tracker/partials/proof_gallery.html" with submission=submission %}
 
+  {% regroup submission.reactions.all|dictsort:"emoji" by emoji as reaction_groups %}
+  <section id="reactions" class="card social-block" aria-labelledby="reactions-heading">
+    <h2 id="reactions-heading">Reactions</h2>
+    <div class="reaction-bar" role="group" aria-label="React to this submission">
+      {% for emoji in "🔥👏😮😂🐟" %}
+        <form class="inline-btn reaction-form" method="post" action="{% url 'reaction_toggle' submission.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="emoji" value="{{ emoji }}">
+          <button
+            type="submit"
+            class="reaction-btn{% for group in reaction_groups %}{% if group.grouper == emoji %}{% for r in group.list %}{% if r.user_id == request.user.pk %} is-active{% endif %}{% endfor %}{% endif %}{% endfor %}"
+            aria-label="React with {{ emoji }}"
+          >
+            <span class="reaction-emoji" aria-hidden="true">{{ emoji }}</span>
+            <span class="reaction-count">{% filter default:"0" %}{% for group in reaction_groups %}{% if group.grouper == emoji %}{{ group.list|length }}{% endif %}{% endfor %}{% endfilter %}</span>
+          </button>
+        </form>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section id="comments" class="card social-block" aria-labelledby="comments-heading">
+    <h2 id="comments-heading">Comments</h2>
+    {% with comment_list=submission.comments.all %}
+      {% if comment_list %}
+        <ul class="comment-list">
+          {% for comment in comment_list %}
+            <li class="comment" id="comment-{{ comment.pk }}">
+              <div class="comment-meta">
+                <strong class="comment-author">{{ comment.author.name }}</strong>
+                <time class="text-muted" datetime="{{ comment.created_at|date:'c' }}">{{ comment.created_at|date:"D j M Y, H:i" }}</time>
+              </div>
+              <p class="comment-body">{{ comment.body }}</p>
+              {% if comment.author_id == request.user.pk or request.user.is_staff %}
+                <form class="inline-btn" method="post" action="{% url 'comment_delete' submission.pk comment.pk %}" onsubmit="return confirm('Delete this comment?');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted">No comments yet — be the first to say something.</p>
+      {% endif %}
+    {% endwith %}
+    <form class="comment-form" method="post" action="{% url 'comment_add' submission.pk %}">
+      {% csrf_token %}
+      <label for="comment-body">Add a comment</label>
+      <textarea id="comment-body" name="body" maxlength="1000" rows="3" required placeholder="Say something nice (or not)..."></textarea>
+      <button type="submit" class="btn btn-primary">Post comment</button>
+    </form>
+  </section>
+
+  {% if submission.status == "contested" %}
+    <section id="contest" class="card social-block contest-panel" aria-labelledby="contest-heading">
+      <h2 id="contest-heading">Contested claim &mdash; group vote</h2>
+      <p class="text-muted contest-explainer">
+        This is an advisory group vote to help the squad weigh in on the contested claim.
+        It does not automatically decide the outcome &mdash; an admin makes the final call.
+      </p>
+      {% with votes=submission.contest_votes.all %}
+        {% regroup votes|dictsort:"decision" by decision as vote_groups %}
+        <div class="contest-tally">
+          <span class="tally-pill tally-uphold">Uphold: {% filter default:"0" %}{% for group in vote_groups %}{% if group.grouper == "uphold" %}{{ group.list|length }}{% endif %}{% endfor %}{% endfilter %}</span>
+          <span class="tally-pill tally-reject">Reject: {% filter default:"0" %}{% for group in vote_groups %}{% if group.grouper == "reject" %}{{ group.list|length }}{% endif %}{% endfor %}{% endfilter %}</span>
+        </div>
+        {% if votes %}
+          <ul class="contest-vote-list">
+            {% for vote in votes %}
+              <li>
+                <strong>{{ vote.voter.name }}</strong>
+                &mdash;
+                <span class="contest-decision contest-decision-{{ vote.decision }}">{{ vote.get_decision_display }}</span>
+                {% if vote.note %}<span class="text-muted">&ldquo;{{ vote.note }}&rdquo;</span>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted">No votes cast yet.</p>
+        {% endif %}
+        <form class="contest-vote-form" method="post" action="{% url 'contest_vote' submission.pk %}">
+          {% csrf_token %}
+          <fieldset>
+            <legend>Cast or update your vote</legend>
+            <label class="radio-option">
+              <input type="radio" name="decision" value="uphold" {% for v in votes %}{% if v.voter_id == request.user.pk and v.decision == "uphold" %}checked{% endif %}{% endfor %} required>
+              Uphold (counts)
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="decision" value="reject" {% for v in votes %}{% if v.voter_id == request.user.pk and v.decision == "reject" %}checked{% endif %}{% endfor %} required>
+              Reject (does not count)
+            </label>
+          </fieldset>
+          <label for="contest-note">Note (optional)</label>
+          <input type="text" id="contest-note" name="note" maxlength="200" value="{% for v in votes %}{% if v.voter_id == request.user.pk %}{{ v.note }}{% endif %}{% endfor %}" placeholder="Optional reasoning...">
+          <button type="submit" class="btn btn-primary">Submit vote</button>
+        </form>
+      {% endwith %}
+    </section>
+  {% endif %}
+
   <div class="card-actions">
     {% if can_edit %}
       <a class="btn" href="{% url 'submission_edit' submission.pk %}">Edit</a>

@@ -1,0 +1,44 @@
+{% extends "tracker/base.html" %}
+{% block title %}Activity &middot; {{ league_name }}{% endblock %}
+{% block content %}
+  <h1>League activity</h1>
+
+  {% if page_obj.object_list %}
+    <ol class="activity-list">
+      {% for entry in page_obj %}
+        <li class="activity-item">
+          <span class="activity-when">{{ entry.created_at|date:"D j M, H:i" }}</span>
+          <span class="activity-what">
+            {% if entry.submission %}
+              <a href="{% url 'submission_detail' entry.submission.pk %}">
+                {{ entry.submission.user.name }} &middot; {{ entry.submission.achievement.name }}
+              </a>
+              &mdash; {{ entry.get_action_display }}
+            {% else %}
+              {{ entry.get_action_display }}
+            {% endif %}
+            {% if entry.detail %}<span class="activity-detail">{{ entry.detail }}</span>{% endif %}
+          </span>
+          {% if entry.actor %}<span class="activity-who">by {{ entry.actor.name }}</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+
+    {% if page_obj.has_other_pages %}
+      <nav class="pagination" aria-label="Activity pages">
+        {% if page_obj.has_previous %}
+          <a class="btn btn-sm" href="?page={{ page_obj.previous_page_number }}">&larr; Newer</a>
+        {% endif %}
+        <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a class="btn btn-sm" href="?page={{ page_obj.next_page_number }}">Older &rarr;</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <span class="icon" aria-hidden="true">&#128220;</span>
+      No activity yet. It fills up as submissions are logged.
+    </div>
+  {% endif %}
+{% endblock %}

@@ -405,3 +405,77 @@ def log_audit(submission, actor, action, detail: str = "") -> AuditEntry:
     return AuditEntry.objects.create(
         submission=submission, actor=actor, action=action, detail=detail
     )
+
+
+class SubmissionComment(models.Model):
+    """A short comment thread on a submission (banter / questions)."""
+
+    submission = models.ForeignKey(
+        Submission, on_delete=models.CASCADE, related_name="comments"
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="comments"
+    )
+    body = models.CharField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "pk"]
+
+    def __str__(self) -> str:
+        return f"Comment by {self.author} on #{self.submission_id}"
+
+
+class SubmissionReaction(models.Model):
+    """One emoji reaction per player per submission per emoji."""
+
+    EMOJI = ["🔥", "👏", "😮", "😂", "🐟"]
+
+    submission = models.ForeignKey(
+        Submission, on_delete=models.CASCADE, related_name="reactions"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reactions"
+    )
+    emoji = models.CharField(max_length=8)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["submission", "user", "emoji"], name="unique_reaction_per_user"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.emoji} by {self.user} on #{self.submission_id}"
+
+
+class ContestVote(models.Model):
+    """A group vote on a contested submission. Majority informs resolution."""
+
+    class Decision(models.TextChoices):
+        UPHOLD = "uphold", "Uphold (counts)"
+        REJECT = "reject", "Reject (does not count)"
+
+    submission = models.ForeignKey(
+        Submission, on_delete=models.CASCADE, related_name="contest_votes"
+    )
+    voter = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="contest_votes"
+    )
+    decision = models.CharField(max_length=8, choices=Decision.choices)
+    note = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["submission", "voter"], name="one_contest_vote_per_voter"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.get_decision_display()} by {self.voter} on #{self.submission_id}"
