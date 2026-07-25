@@ -1,0 +1,73 @@
+{% extends "tracker/base.html" %}
+{% block title %}New season &middot; {{ brand_name }}{% endblock %}
+{% block content %}
+  <h1>New season</h1>
+  <p class="text-muted">
+    Create a league (season) from Path of Exile's live league list, or enter one
+    manually. Everything &mdash; submissions, awards and achievements &mdash; scopes to
+    the active season.
+    {% if active_league %}Current active: <strong>{{ active_league.name }}</strong>.{% endif %}
+  </p>
+
+  <form method="post" class="card">
+    {% csrf_token %}
+
+    <div class="form-row">
+      <label for="selection">Pick a league</label>
+      {% if leagues_poe1 or leagues_poe2 %}
+        <select id="selection" name="selection">
+          <option value="">&mdash; choose a league &mdash;</option>
+          {% if leagues_poe1 %}
+            <optgroup label="Path of Exile 1">
+              {% for lg in leagues_poe1 %}
+                <option value="poe1|{{ lg.id }}"{% if lg.already %} disabled{% endif %}>
+                  {{ lg.name }}{% if lg.current %} ★{% endif %}{% if lg.already %} (already added){% endif %}
+                </option>
+              {% endfor %}
+            </optgroup>
+          {% endif %}
+          {% if leagues_poe2 %}
+            <optgroup label="Path of Exile 2">
+              {% for lg in leagues_poe2 %}
+                <option value="poe2|{{ lg.id }}"{% if lg.already %} disabled{% endif %}>
+                  {{ lg.name }}{% if lg.already %} (already added){% endif %}
+                </option>
+              {% endfor %}
+            </optgroup>
+          {% endif %}
+        </select>
+        <p class="text-muted">&#9733; marks the current challenge league.</p>
+      {% else %}
+        <p class="empty-state empty-state--note">
+          Couldn't reach Path of Exile's league list right now &mdash; enter a season
+          manually below.
+        </p>
+      {% endif %}
+    </div>
+
+    <details class="roster-advanced"{% if not leagues_poe1 and not leagues_poe2 %} open{% endif %}>
+      <summary>Or enter manually</summary>
+      <div class="form-row">
+        <label for="manual_name">Season name</label>
+        <input type="text" id="manual_name" name="manual_name" placeholder="e.g. Curse of the Allflame">
+      </div>
+      <div class="form-row">
+        <label for="manual_game">Game</label>
+        <select id="manual_game" name="manual_game">
+          <option value="poe1">Path of Exile 1</option>
+          <option value="poe2">Path of Exile 2</option>
+        </select>
+      </div>
+    </details>
+
+    <div class="form-row form-row--checkbox">
+      <label for="make_active"><input type="checkbox" id="make_active" name="make_active" checked> Make this the active season</label>
+      <p class="text-muted">Members submit to the active season. The previous one becomes a read-only archive.</p>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Create season</button>
+      <a class="btn" href="{% url 'dashboard' %}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

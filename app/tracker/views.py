@@ -27,7 +27,7 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from . import notifications, scoring
+from . import league_api, notifications, scoring
 from .leagues import get_active_league, get_viewing_league, set_viewing_league
 from .forms import (
     CharacterForm,
@@ -44,6 +44,7 @@ from .models import (
     Award,
     Character,
     InviteCode,
+    League,
     ProofImage,
     Submission,
     User,
@@ -70,6 +71,81 @@ def set_league(request: HttpRequest) -> HttpResponse:
     if not url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
         nxt = reverse("dashboard")
     return redirect(nxt)
+
+
+@login_required
+@user_passes_test(_is_staff)
+def league_create(request: HttpRequest) -> HttpResponse:
+    """Staff: create a new season, picking from GGG's live league list (or manually)."""
+    existing_slugs = set(League.objects.values_list("slug", flat=True))
+
+    if request.method == "POST":
+        make_active = request.POST.get("make_active") == "on"
+        selection = request.POST.get("selection", "")
+        manual_name = request.POST.get("manual_name", "").strip()
+
+        data = None
+        if selection and "|" in selection:
+            game, league_id = selection.split("|", 1)
+            data = league_api.find_league(game, league_id)
+        if data is None and manual_name:
+            data = {
+                "id": "",
+                "name": manual_name,
+                "game": request.POST.get("manual_game", "poe1"),
+                "hardcore": False,
+                "ssf": False,
+                "starts_at": None,
+                "ends_at": None,
+            }
+        if data is None:
+            messages.error(request, "Pick a league from the list or enter one manually.")
+            return redirect("league_create")
+
+        from django.utils.text import slugify
+
+        slug = slugify(data["name"]) or slugify(data["id"]) or "season"
+        existing = League.objects.filter(slug=slug).first()
+        if existing:
+            if make_active:
+                existing.activate()
+                messages.info(request, f"'{existing.name}' already exists — made it active.")
+            else:
+                messages.info(request, f"'{existing.name}' already exists.")
+            return redirect("dashboard")
+
+        league = League.objects.create(
+            name=data["name"],
+            slug=slug,
+            game=data["game"],
+            ggg_id=data.get("id", ""),
+            is_hardcore=data.get("hardcore", False),
+            is_ssf=data.get("ssf", False),
+            starts_at=data.get("starts_at"),
+            ends_at=data.get("ends_at"),
+            source=League.Source.API if data.get("id") else League.Source.MANUAL,
+        )
+        if make_active:
+            league.activate()
+        messages.success(
+            request,
+            f"Created season '{league.name}'"
+            + (" and made it active." if make_active else "."),
+        )
+        return redirect("dashboard")
+
+    # GET: offer the live lists (fail-safe — empty means manual only).
+    from django.utils.text import slugify as slugify_name
+
+    def _annotate(leagues):
+        return [{**lg, "already": slugify_name(lg["name"]) in existing_slugs} for lg in leagues]
+
+    context = {
+        "leagues_poe1": _annotate(league_api.fetch_leagues("poe1")),
+        "leagues_poe2": _annotate(league_api.fetch_leagues("poe2")),
+        "active_league": get_active_league(),
+    }
+    return render(request, "tracker/league_form.html", context)
 
 
 # --- Auth -------------------------------------------------------------

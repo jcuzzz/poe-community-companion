@@ -164,6 +164,12 @@ LEAGUE_END = os.environ.get("LEAGUE_END", "")  # legacy, unused
 # docs/research/character-lookup-poe2.md and docs/specs/roster.md.
 POE_AUTO_LOOKUP_ENABLED = env_bool("POE_AUTO_LOOKUP_ENABLED", False)
 POE_API_BASE = os.environ.get("POE_API_BASE", "https://www.pathofexile.com")
+# Public leagues endpoints (reachable server-side, no auth) for the "create a season
+# from a dropdown" admin flow.
+POE_LEAGUES_API = os.environ.get("POE_LEAGUES_API", "https://api.pathofexile.com/leagues")
+POE2_LEAGUES_API = os.environ.get(
+    "POE2_LEAGUES_API", "https://www.pathofexile.com/api/trade2/data/leagues"
+)
 POE_API_TIMEOUT = float(os.environ.get("POE_API_TIMEOUT", "8"))
 POE_SNAPSHOT_TTL_SECONDS = int(os.environ.get("POE_SNAPSHOT_TTL_SECONDS", "600"))
 POE_USER_AGENT = os.environ.get(

@@ -52,11 +52,11 @@ a *community site*, but flag the shift before building.
 - ✅ **League scoping (seasons)** — SHIPPED 2026-07-25 (see FEATURES.md). `League`
   model; submissions/awards/achievements per-league; single active league; site-wide
   view selector; read-only archives; PoE1/PoE2; manual league entry. Design:
-  [specs/leagues.md](specs/leagues.md). Follow-ons: GGG leagues-API auto-fill
-  (manual works now); PoE 2 character auto-lookup stays deferred (PoB-paste only, per
+  [specs/leagues.md](specs/leagues.md). ✅ GGG leagues-API dropdown SHIPPED 2026-07-26
+  (staff "New season" page fetches the live list). PoE 2 character auto-lookup stays
+  deferred (PoB-paste only, per
   [research/character-lookup-poe2.md](research/character-lookup-poe2.md)).
 - **All-time records & personal bests** across leagues (now unblocked).
-- **All-time records & personal bests** across leagues.
 
 ## Integrations (were "out of scope" for the tracker — reconsider for a guild)
 - ✅ **Discord webhook on a new first-place / contested claim** — SHIPPED

@@ -33,9 +33,14 @@ HTMX), deployed via Docker/Caddy on a Proxmox LXC. See [../runbooks/](../runbook
 - **Per-league achievements** — each season has its own achievement set; an admin
   action clones achievements into the active league. `seed_achievements` seeds into
   the active league (or `--league <slug>`).
-- **Admin**: create leagues manually (name, game PoE1/PoE2, HC/SSF, dates, GGG id),
-  a "make active" action, and a per-league recalculate. Existing data migrated in as
-  the first season. Full design: [specs/leagues.md](specs/leagues.md).
+- **New season from a dropdown** — a staff page (`/seasons/new/`, profile menu →
+  "New season") fetches PoE's **live league list** from GGG's public leagues API
+  (PoE 1 via `api.pathofexile.com/leagues`, PoE 2 via the trade2 data list — both
+  reachable server-side) and creates a league with name/game/HC/SSF/dates prefilled,
+  optionally activating it. Manual entry is the fail-safe if the API is unreachable.
+- **Admin**: also create leagues manually, a "make active" action, and a per-league
+  recalculate. Existing data migrated in as the first season. Full design:
+  [specs/leagues.md](specs/leagues.md).
 
 ## Characters
 - Players manage their own `Character` records (name, class, league, retired) — these
