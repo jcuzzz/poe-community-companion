@@ -72,13 +72,10 @@
     <fieldset>
       <legend>Proof</legend>
       <div class="proof-upload-help">
-        <strong>Up to three screenshots:</strong>
-        <ol>
-          <li>The item, currency or relevant inventory view.</li>
-          <li>Chat output showing <code>/played</code>.</li>
-          <li>Chat output showing <code>/kills</code>, with character level visible where practical.</li>
-        </ol>
-        <p>JPEG, PNG or WebP only, 10 MB max per image.</p>
+        <p>Add a screenshot as proof — the item, currency or inventory view is the
+        main one. Optionally add more (e.g. <code>/played</code> and <code>/kills</code>
+        chat output) with <strong>Add another image</strong>.</p>
+        <p class="hint">JPEG, PNG or WebP only, 10 MB max per image.</p>
       </div>
 
       {% if existing_proofs %}
@@ -137,6 +134,7 @@
           {% endif %}
         </div>
       {% endfor %}
+      <button type="button" id="proof-add-slot" class="btn btn-sm proof-add-slot" hidden>Add another image</button>
     </fieldset>
 
     <fieldset>
@@ -176,6 +174,63 @@
       var dropzone = document.getElementById("proof-dropzone");
       var note = document.getElementById("proof-dropzone-note");
       var slots = Array.prototype.slice.call(document.querySelectorAll(".proof-form-item"));
+      var addSlotBtn = document.getElementById("proof-add-slot");
+
+      // --- Progressive slot reveal: show only the first slot by default,
+      // with an "Add another image" button to reveal the rest one at a time.
+      // Purely visual (CSS class) so the formset still submits every slot.
+      function refreshAddButton() {
+        if (!addSlotBtn) { return; }
+        var anyCollapsed = slots.some(function (slot) {
+          return slot.classList.contains("proof-slot-collapsed");
+        });
+        addSlotBtn.hidden = !anyCollapsed;
+      }
+
+      function revealSlot(indexOrSlot) {
+        var slot = typeof indexOrSlot === "number" ? slots[indexOrSlot] : indexOrSlot;
+        if (!slot) { return; }
+        slot.classList.remove("proof-slot-collapsed");
+        refreshAddButton();
+      }
+
+      function revealNextSlot() {
+        var next = slots.filter(function (slot) {
+          return slot.classList.contains("proof-slot-collapsed");
+        })[0];
+        if (next) {
+          revealSlot(next);
+          var input = getInput(next);
+          if (input) { input.focus(); }
+        }
+      }
+
+      function revealSlotsWithFiles() {
+        slots.forEach(function (slot) {
+          var input = getInput(slot);
+          if (input && input.files && input.files.length) {
+            revealSlot(slot);
+          }
+        });
+      }
+
+      if (slots.length) {
+        slots.forEach(function (slot, i) {
+          if (i > 0) { slot.classList.add("proof-slot-collapsed"); }
+        });
+        // Reveal any slot re-rendered with validation errors (e.g. after a
+        // failed submit) so the user can see and fix them.
+        slots.forEach(function (slot) {
+          if (slot.querySelector(".field-errors")) {
+            revealSlot(slot);
+          }
+        });
+        refreshAddButton();
+        if (addSlotBtn) {
+          addSlotBtn.addEventListener("click", revealNextSlot);
+        }
+      }
+
       if (!dropzone || !slots.length || typeof window.DataTransfer === "undefined" || typeof File === "undefined") {
         return;
       }
@@ -240,6 +295,7 @@
         dt.items.add(file);
         input.files = dt.files;
         renderPreview(slot, file);
+        revealSlot(slot);
       }
 
       function isImageFile(file) {
@@ -277,6 +333,7 @@
         input.addEventListener("change", function () {
           var file = input.files && input.files[0];
           renderPreview(slot, file || null);
+          revealSlot(slot);
         });
       });
 

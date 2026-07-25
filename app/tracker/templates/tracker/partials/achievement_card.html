@@ -17,7 +17,12 @@
       <span class="stat stat-played">Played: {{ card.winner.played_display }}</span>
       <span class="stat stat-played">Kills: {{ card.winner.kill_count|default_if_none:"—" }}</span>
       <span class="stat stat-level">Level: {{ card.winner.character_level|default_if_none:"—" }}</span>
-      <a class="btn btn-sm" href="{% url 'submission_detail' card.winner.pk %}">View proof</a>
+      <a class="btn btn-sm" href="{% url 'submission_detail' card.winner.pk %}">Details</a>
+      {% with first_proof=card.winner.proofs.all.0 %}
+        {% if first_proof %}
+          <a class="btn btn-sm" href="{{ first_proof.image.url }}" target="_blank" rel="noopener" data-lightbox-src="{{ first_proof.image.url }}" data-lightbox-alt="Proof for {{ card.achievement.name }} by {{ card.winner.user.name }}">Screenshot</a>
+        {% endif %}
+      {% endwith %}
     </div>
   {% else %}
     <div class="winner-block no-winner">Winner: Nobody yet</div>
@@ -34,9 +39,10 @@
           <span class="stat-level">Level {{ entry.character_level|default_if_none:"—" }}</span> &middot; <span class="stat-played">{{ entry.played_display }}</span> &middot; <span class="stat-played">{{ entry.kill_count|default_if_none:"—" }} kills</span>
         </span>
         {% include "tracker/partials/medals.html" with submission=entry %}
+        <a class="btn btn-sm" href="{% url 'submission_detail' entry.pk %}">Details</a>
         {% with first_proof=entry.proofs.all.0 %}
           {% if first_proof %}
-            <a class="btn btn-sm" href="{{ first_proof.image.url }}" target="_blank" rel="noopener" data-lightbox-src="{{ first_proof.image.url }}" data-lightbox-alt="Proof for {{ entry.achievement.name }} by {{ entry.user.name }}">View proof</a>
+            <a class="btn btn-sm" href="{{ first_proof.image.url }}" target="_blank" rel="noopener" data-lightbox-src="{{ first_proof.image.url }}" data-lightbox-alt="Proof for {{ entry.achievement.name }} by {{ entry.user.name }}">Screenshot</a>
           {% endif %}
         {% endwith %}
       </li>

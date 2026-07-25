@@ -274,3 +274,13 @@
     transition: none;
   }
 }
+
+/* --- Progressive proof slot reveal ------------------------------------- */
+
+.proof-slot-collapsed {
+  display: none;
+}
+
+.proof-add-slot {
+  margin: 0 0 var(--space-4);
+}
