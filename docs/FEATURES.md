@@ -21,6 +21,22 @@ HTMX), deployed via Docker/Caddy on a Proxmox LXC. See [../runbooks/](../runbook
   gif popup instead of the form. Toggle in admin (column + bulk actions).
 - **Strong-password policy**, session/CSRF hardening, secret-key prod guard.
 
+## Leagues / seasons
+- **DB-backed `League` model** — submissions, awards and achievements all belong to
+  a league (season). Exactly one league is **active** (a DB constraint enforces it);
+  members submit only to the active league.
+- **Site-wide league selector** in the header (shown when >1 league exists) lets
+  anyone *view* any past league — leaderboard, achievements, activity and profiles
+  all reflect the chosen league. Defaults to the active league.
+- **Archived leagues are read-only** for members: editing/deleting/adding to a
+  non-active league is blocked (staff may still correct history).
+- **Per-league achievements** — each season has its own achievement set; an admin
+  action clones achievements into the active league. `seed_achievements` seeds into
+  the active league (or `--league <slug>`).
+- **Admin**: create leagues manually (name, game PoE1/PoE2, HC/SSF, dates, GGG id),
+  a "make active" action, and a per-league recalculate. Existing data migrated in as
+  the first season. Full design: [specs/leagues.md](specs/leagues.md).
+
 ## Characters
 - Players manage their own `Character` records (name, class, league, retired).
 - **Default character** (`is_default`, unique per player) is pre-selected on the

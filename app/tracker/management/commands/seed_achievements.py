@@ -6,10 +6,12 @@ and allowlist items by name.
 
 from __future__ import annotations
 
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.utils.text import slugify
 
-from tracker.models import Achievement, AllowlistItem
+from tracker.models import Achievement, AllowlistItem, League
 
 ACHIEVEMENTS = [
     {
@@ -139,8 +141,35 @@ ALLOWLIST_STARTER = [
 class Command(BaseCommand):
     help = "Idempotently create/update the seven launch achievements and a starter T0 allowlist."
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--league",
+            dest="league_slug",
+            default="",
+            help="Slug of the league to seed. Defaults to the active league.",
+        )
+
+    def _resolve_league(self, league_slug: str) -> League:
+        if league_slug:
+            try:
+                return League.objects.get(slug=league_slug)
+            except League.DoesNotExist as exc:
+                raise CommandError(f"No league with slug '{league_slug}'.") from exc
+        league = League.get_active()
+        if league is not None:
+            return league
+        # Fresh install with no league yet: create one from the env league name.
+        name = (getattr(settings, "LEAGUE_NAME", "") or "Current League").strip()
+        league = League.objects.create(
+            name=name, slug=slugify(name) or "current-league", is_active=True
+        )
+        self.stdout.write(self.style.SUCCESS(f"Created active league: {league.name}"))
+        return league
+
     @transaction.atomic
     def handle(self, *args, **options):
+        league = self._resolve_league(options.get("league_slug", ""))
+        self.stdout.write(f"Seeding achievements into league: {league.name}")
         created_count = 0
         updated_count = 0
 
@@ -158,7 +187,7 @@ class Command(BaseCommand):
                 "active": True,
             }
             achievement, created = Achievement.objects.update_or_create(
-                slug=slug, defaults=defaults
+                league=league, slug=slug, defaults=defaults
             )
             if created:
                 created_count += 1

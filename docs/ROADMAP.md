@@ -49,9 +49,13 @@ a *community site*, but flag the shift before building.
   this is a deliberate reversal, do it carefully.
 
 ## Cross-league / longevity
-- **Season / league archiving** — FK submissions/awards to a `League`/`Season` model;
-  archive past leagues, browse history, all-time hall of fame. **Larger** — touches
-  scoring. Explicitly deferred in the original plan; core to a companion site.
+- ✅ **League scoping (seasons)** — SHIPPED 2026-07-25 (see FEATURES.md). `League`
+  model; submissions/awards/achievements per-league; single active league; site-wide
+  view selector; read-only archives; PoE1/PoE2; manual league entry. Design:
+  [specs/leagues.md](specs/leagues.md). Follow-ons: GGG leagues-API auto-fill
+  (manual works now); PoE 2 character auto-lookup stays deferred (PoB-paste only, per
+  [research/character-lookup-poe2.md](research/character-lookup-poe2.md)).
+- **All-time records & personal bests** across leagues (now unblocked).
 - **All-time records & personal bests** across leagues.
 
 ## Integrations (were "out of scope" for the tracker — reconsider for a guild)

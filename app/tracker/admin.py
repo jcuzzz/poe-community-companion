@@ -23,6 +23,7 @@ from .models import (
     Character,
     ContestVote,
     InviteCode,
+    League,
     ProofImage,
     Submission,
     SubmissionComment,
@@ -33,6 +34,30 @@ from .models import (
 admin.site.register(SubmissionComment)
 admin.site.register(SubmissionReaction)
 admin.site.register(ContestVote)
+
+
+@admin.register(League)
+class LeagueAdmin(admin.ModelAdmin):
+    list_display = ("name", "game", "is_active", "is_hardcore", "is_ssf", "starts_at", "ends_at")
+    list_filter = ("game", "is_active", "is_hardcore", "is_ssf")
+    search_fields = ("name", "slug", "ggg_id")
+    prepopulated_fields = {"slug": ("name",)}
+    actions = ["make_active", "recalculate_league"]
+
+    @admin.action(description="Make selected league the active one")
+    def make_active(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(request, "Select exactly one league to activate.", level="error")
+            return
+        league = queryset.first()
+        league.activate()
+        self.message_user(request, f"'{league.name}' is now the active league.")
+
+    @admin.action(description="Recalculate scores for selected league(s)")
+    def recalculate_league(self, request, queryset):
+        for league in queryset:
+            scoring.recalculate(league=league)
+        self.message_user(request, f"Recalculated {queryset.count()} league(s).")
 
 
 @admin.register(User)
@@ -74,6 +99,7 @@ class UserAdmin(DjangoUserAdmin):
 class AchievementAdmin(admin.ModelAdmin):
     list_display = (
         "name",
+        "league",
         "label",
         "icon",
         "base_points",
@@ -82,8 +108,37 @@ class AchievementAdmin(admin.ModelAdmin):
         "sort_order",
     )
     list_editable = ("sort_order", "active")
+    list_filter = ("league", "active")
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name", "label", "slug")
+
+    @admin.action(description="Clone selected achievements into the active league")
+    def clone_to_active(self, request, queryset):
+        active = League.get_active()
+        if active is None:
+            self.message_user(request, "No active league set.", level="error")
+            return
+        created = 0
+        for ach in queryset:
+            if Achievement.objects.filter(league=active, slug=ach.slug).exists():
+                continue
+            Achievement.objects.create(
+                league=active,
+                name=ach.name,
+                slug=ach.slug,
+                label=ach.label,
+                description=ach.description,
+                icon=ach.icon,
+                base_points=ach.base_points,
+                verification_rules=ach.verification_rules,
+                requires_allowlist=ach.requires_allowlist,
+                active=ach.active,
+                sort_order=ach.sort_order,
+            )
+            created += 1
+        self.message_user(request, f"Cloned {created} achievement(s) into '{active.name}'.")
+
+    actions = ["clone_to_active"]
 
 
 @admin.register(AllowlistItem)
@@ -150,6 +205,7 @@ class AuditEntryInline(admin.TabularInline):
 class SubmissionAdmin(admin.ModelAdmin):
     list_display = (
         "user",
+        "league",
         "achievement",
         "status",
         "character_level",
@@ -158,7 +214,7 @@ class SubmissionAdmin(admin.ModelAdmin):
         "obtained_at",
         "submitted_at",
     )
-    list_filter = ("status", "achievement", "user")
+    list_filter = ("league", "status", "achievement", "user")
     search_fields = (
         "user__username",
         "user__display_name",
@@ -166,7 +222,7 @@ class SubmissionAdmin(admin.ModelAdmin):
     )
     readonly_fields = ("submitted_at",)
     date_hierarchy = "obtained_at"
-    autocomplete_fields = ("user", "character", "achievement", "allowlist_item")
+    autocomplete_fields = ("user", "league", "character", "achievement", "allowlist_item")
     inlines = [ProofImageInline, AuditEntryInline]
     actions = ["approve_selected", "reject_selected", "mark_contested"]
 

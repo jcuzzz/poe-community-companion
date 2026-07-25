@@ -23,7 +23,7 @@ from collections import defaultdict
 from django.db import transaction
 from django.db.models import Count, Sum
 
-from .models import Achievement, Award, Submission, User
+from .models import Achievement, Award, League, Submission, User
 
 # (award type, attribute, "min" wins)
 BONUS_RULES = [
@@ -33,27 +33,40 @@ BONUS_RULES = [
 ]
 
 
-def scoring_submissions(achievement: Achievement | None = None):
+def scoring_submissions(achievement: Achievement | None = None, league: League | None = None):
     """Every approved submission. Players may hold more than one per achievement;
-    all of them compete for the first-place and efficiency medals."""
+    all of them compete for the first-place and efficiency medals.
+
+    An achievement belongs to exactly one league, so scoping by achievement is
+    already league-scoped; `league` is an extra filter for the all-achievements case.
+    """
     qs = Submission.objects.approved().select_related("user", "achievement", "character")
     if achievement is not None:
         qs = qs.filter(achievement=achievement)
+    if league is not None:
+        qs = qs.filter(league=league)
     return list(qs.order_by("obtained_at", "submitted_at", "pk"))
 
 
 @transaction.atomic
-def recalculate(achievement: Achievement | None = None) -> int:
-    """Rebuild Award rows. Returns the number of awards written."""
-    if achievement is None:
-        Award.objects.all().delete()
-        targets = list(Achievement.objects.all())
-    else:
+def recalculate(achievement: Achievement | None = None, league: League | None = None) -> int:
+    """Rebuild Award rows. Returns the number of awards written.
+
+    Pass an achievement to rebuild just that one (its league is implied), a league to
+    rebuild every achievement in that league, or neither to rebuild everything.
+    """
+    if achievement is not None:
         Award.objects.filter(submission__achievement=achievement).delete()
         targets = [achievement]
+    elif league is not None:
+        Award.objects.filter(submission__league=league).delete()
+        targets = list(Achievement.objects.filter(league=league))
+    else:
+        Award.objects.all().delete()
+        targets = list(Achievement.objects.all())
 
     by_achievement: dict[int, list[Submission]] = defaultdict(list)
-    for sub in scoring_submissions(achievement):
+    for sub in scoring_submissions(achievement, league):
         by_achievement[sub.achievement_id].append(sub)
 
     awards: list[Award] = []
@@ -110,20 +123,28 @@ def recalculate(achievement: Achievement | None = None) -> int:
     return len(awards)
 
 
-def leaderboard() -> list[dict]:
-    """Players ranked by total points, with a medal breakdown each."""
+def leaderboard(league: League | None = None) -> list[dict]:
+    """Players ranked by total points, with a medal breakdown each. Scoped to one
+    league when given (the default caller passes the viewing league)."""
     players = list(User.objects.filter(is_player=True, is_active=True))
+
+    awards = Award.objects.all()
+    approved = Submission.objects.approved()
+    if league is not None:
+        awards = awards.filter(submission__league=league)
+        approved = approved.filter(league=league)
+
     totals = {
         row["submission__user"]: row["total"]
-        for row in Award.objects.values("submission__user").annotate(total=Sum("points"))
+        for row in awards.values("submission__user").annotate(total=Sum("points"))
     }
     medals: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    for row in Award.objects.values("submission__user", "award_type").annotate(n=Count("pk")):
+    for row in awards.values("submission__user", "award_type").annotate(n=Count("pk")):
         medals[row["submission__user"]][row["award_type"]] = row["n"]
 
     completions = {
         row["user"]: row["n"]
-        for row in Submission.objects.approved().values("user").annotate(n=Count("achievement", distinct=True))
+        for row in approved.values("user").annotate(n=Count("achievement", distinct=True))
     }
 
     rows = []
@@ -153,8 +174,8 @@ def leaderboard() -> list[dict]:
     return rows
 
 
-def champion():
-    rows = leaderboard()
+def champion(league: League | None = None):
+    rows = leaderboard(league)
     if rows and rows[0]["points"] > 0:
         return rows[0]
     return None
@@ -206,15 +227,19 @@ def achievement_standings(achievement: Achievement) -> dict:
     }
 
 
-def player_stats(player: User) -> dict:
-    subs = list(
+def player_stats(player: User, league: League | None = None) -> dict:
+    subs_qs = (
         Submission.objects.visible()
         .filter(user=player)
         .select_related("achievement", "character")
         .prefetch_related("awards", "proofs")
     )
-    approved = [s for s in subs if s.status == Submission.Status.APPROVED]
     awards = Award.objects.filter(submission__user=player)
+    if league is not None:
+        subs_qs = subs_qs.filter(league=league)
+        awards = awards.filter(submission__league=league)
+    subs = list(subs_qs)
+    approved = [s for s in subs if s.status == Submission.Status.APPROVED]
 
     counts: dict[str, int] = defaultdict(int)
     for award in awards:

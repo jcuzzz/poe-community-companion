@@ -11,6 +11,7 @@ urlpatterns = [
     path("achievements/", views.achievement_list, name="achievement_list"),
     path("achievements/<slug:slug>/", views.achievement_detail, name="achievement_detail"),
     path("leaderboard/", views.leaderboard_view, name="leaderboard"),
+    path("set-league/", views.set_league, name="set_league"),
     path("leaderboard/export.<str:fmt>", views.leaderboard_export, name="leaderboard_export"),
     path("submissions/<int:pk>/share-card.png", views.share_card, name="share_card"),
     path("players/<str:username>/", views.player_profile, name="player_profile"),

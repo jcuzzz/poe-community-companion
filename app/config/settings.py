@@ -147,9 +147,13 @@ DISCORD_TIMEOUT = float(os.environ.get("DISCORD_TIMEOUT", "5"))
 SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "https://poe.example.com").rstrip("/")
 
 # --- League --------------------------------------------------------------
+# Leagues are DB-backed (tracker.models.League). LEAGUE_NAME only seeds the name of
+# the FIRST league on a fresh install / initial migration; manage the rest in the
+# admin. LEAGUE_START/END are legacy (each league carries its own dates). See
+# docs/specs/leagues.md.
 LEAGUE_NAME = os.environ.get("LEAGUE_NAME", "Current League")
-LEAGUE_START = os.environ.get("LEAGUE_START", "")  # ISO 8601, e.g. 2026-08-01T19:00:00+10:00
-LEAGUE_END = os.environ.get("LEAGUE_END", "")
+LEAGUE_START = os.environ.get("LEAGUE_START", "")  # legacy, unused
+LEAGUE_END = os.environ.get("LEAGUE_END", "")  # legacy, unused
 
 # --- Security ------------------------------------------------------------
 X_FRAME_OPTIONS = "DENY"

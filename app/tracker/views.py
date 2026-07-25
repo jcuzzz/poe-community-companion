@@ -22,11 +22,13 @@ from django.http import (
     JsonResponse,
 )
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from . import notifications, scoring
+from .leagues import get_active_league, get_viewing_league, set_viewing_league
 from .forms import (
     CharacterForm,
     InviteCreateForm,
@@ -55,6 +57,21 @@ def _is_staff(user: User) -> bool:
     return user.is_staff
 
 
+# --- League selection -----------------------------------------------------
+
+
+@login_required
+def set_league(request: HttpRequest) -> HttpResponse:
+    """Set which league the visitor is viewing (site-wide selector). This only
+    changes what they *see*; submissions always go to the active league."""
+    slug = request.POST.get("league") if request.method == "POST" else request.GET.get("league")
+    set_viewing_league(request, slug or "")
+    nxt = request.POST.get("next") or request.GET.get("next") or ""
+    if not url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
+        nxt = reverse("dashboard")
+    return redirect(nxt)
+
+
 # --- Auth -------------------------------------------------------------
 
 
@@ -77,18 +94,20 @@ class TrackerPasswordChangeView(PasswordChangeView):
 
 @login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
-    standings = scoring.leaderboard()
+    viewing = get_viewing_league(request)
+    standings = scoring.leaderboard(viewing)
     champion = standings[0] if standings and standings[0]["points"] > 0 else None
-    achievements = Achievement.objects.filter(active=True)
+    achievements = Achievement.objects.filter(active=True, league=viewing)
     achievement_cards = [scoring.achievement_standings(a) for a in achievements]
     recent_submissions = list(
         Submission.objects.visible()
+        .filter(league=viewing)
         .select_related("user", "character", "achievement")
         .prefetch_related("awards", "proofs")[:10]
     )
     firsts = list(
         Submission.objects.approved()
-        .filter(awards__award_type=Award.Type.FIRST)
+        .filter(league=viewing, awards__award_type=Award.Type.FIRST)
         .select_related("user", "character", "achievement")
         .prefetch_related("awards", "proofs")
         .order_by("-obtained_at")
@@ -108,14 +127,17 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def achievement_list(request: HttpRequest) -> HttpResponse:
-    achievements = Achievement.objects.filter(active=True)
+    viewing = get_viewing_league(request)
+    achievements = Achievement.objects.filter(active=True, league=viewing)
     cards = [scoring.achievement_standings(a) for a in achievements]
     return render(request, "tracker/achievement_list.html", {"cards": cards})
 
 
 @login_required
 def achievement_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    achievement = get_object_or_404(Achievement, slug=slug)
+    # Slugs are unique per league, so resolve within the league being viewed.
+    viewing = get_viewing_league(request)
+    achievement = get_object_or_404(Achievement, slug=slug, league=viewing)
     standings = scoring.achievement_standings(achievement)
     timeline = list(
         AuditEntry.objects.filter(submission__achievement=achievement)
@@ -132,15 +154,16 @@ def achievement_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
 @login_required
 def leaderboard_view(request: HttpRequest) -> HttpResponse:
-    rows = scoring.leaderboard()
-    achievements = Achievement.objects.filter(active=True)
+    viewing = get_viewing_league(request)
+    rows = scoring.leaderboard(viewing)
+    achievements = Achievement.objects.filter(active=True, league=viewing)
     return render(request, "tracker/leaderboard.html", {"rows": rows, "achievements": achievements})
 
 
 @login_required
 def player_profile(request: HttpRequest, username: str) -> HttpResponse:
     profile_user = get_object_or_404(User, username=username, is_player=True)
-    stats = scoring.player_stats(profile_user)
+    stats = scoring.player_stats(profile_user, get_viewing_league(request))
     context = {
         "stats": stats,
         "profile_user": profile_user,
@@ -159,17 +182,31 @@ def _blocked_response(request):
     return render(request, "tracker/submission_blocked.html", status=403)
 
 
+def _archived_locked(request, submission) -> bool:
+    """Non-staff may only write to the active league; past leagues are read-only."""
+    if request.user.is_staff:
+        return False
+    active = get_active_league()
+    return active is None or submission.league_id != active.pk
+
+
 @login_required
 def submission_create(request: HttpRequest, slug: str | None = None) -> HttpResponse:
     blocked = _blocked_response(request)
     if blocked:
         return blocked
+    active_league = get_active_league()
+    if active_league is None:
+        messages.error(request, "There is no active league yet. Ask an admin to set one.")
+        return redirect("dashboard")
     achievement = None
     if slug:
-        achievement = get_object_or_404(Achievement, slug=slug, active=True)
+        achievement = get_object_or_404(Achievement, slug=slug, active=True, league=active_league)
 
     if request.method == "POST":
-        form = SubmissionForm(request.POST, user=request.user, acting_user=request.user)
+        form = SubmissionForm(
+            request.POST, user=request.user, acting_user=request.user, league=active_league
+        )
         if form.is_valid():
             saved_pk = None
             with transaction.atomic():
@@ -202,7 +239,9 @@ def submission_create(request: HttpRequest, slug: str | None = None) -> HttpResp
                 notifications.on_recalculated(submission.achievement)
                 return redirect("submission_detail", pk=saved_pk)
             # Rebind against the rolled-back state so nothing carries a dead pk.
-            form = SubmissionForm(request.POST, user=request.user, acting_user=request.user)
+            form = SubmissionForm(
+                request.POST, user=request.user, acting_user=request.user, league=active_league
+            )
             form.is_valid()
             formset = ProofImageFormSet(request.POST, request.FILES)
             formset.is_valid()
@@ -210,7 +249,9 @@ def submission_create(request: HttpRequest, slug: str | None = None) -> HttpResp
             formset = ProofImageFormSet(request.POST, request.FILES)
     else:
         initial = {"achievement": achievement} if achievement else None
-        form = SubmissionForm(user=request.user, acting_user=request.user, initial=initial)
+        form = SubmissionForm(
+            user=request.user, acting_user=request.user, league=active_league, initial=initial
+        )
         formset = ProofImageFormSet()
 
     context = {
@@ -254,6 +295,9 @@ def submission_edit(request: HttpRequest, pk: int) -> HttpResponse:
     is_owner = submission.user_id == request.user.pk
     if not (request.user.is_staff or is_owner):
         raise Http404("Submission not found.")
+    if _archived_locked(request, submission):
+        messages.error(request, "That league is archived (read-only). You can't edit past entries.")
+        return redirect("submission_detail", pk=submission.pk)
 
     if request.method == "POST":
         form = SubmissionForm(request.POST, user=submission.user, acting_user=request.user, instance=submission)
@@ -293,6 +337,9 @@ def submission_send(request: HttpRequest, pk: int) -> HttpResponse:
     blocked = _blocked_response(request)
     if blocked:
         return blocked
+    if _archived_locked(request, submission):
+        messages.error(request, "That league is archived (read-only).")
+        return redirect("submission_detail", pk=submission.pk)
     if submission.status == Submission.Status.APPROVED:
         messages.info(request, "This achievement is already logged.")
         return redirect("submission_detail", pk=submission.pk)
@@ -314,6 +361,9 @@ def submission_delete(request: HttpRequest, pk: int) -> HttpResponse:
     is_owner = submission.user_id == request.user.pk
     if not (request.user.is_staff or (is_owner and submission.status == Submission.Status.DRAFT)):
         raise Http404("Submission not found.")
+    if _archived_locked(request, submission):
+        messages.error(request, "That league is archived (read-only).")
+        return redirect("submission_detail", pk=submission.pk)
     submission.delete()
     messages.success(request, "Submission deleted.")
     return redirect("dashboard")
@@ -327,6 +377,9 @@ def proof_delete(request: HttpRequest, pk: int, proof_pk: int) -> HttpResponse:
     is_owner = submission.user_id == request.user.pk
     if not (request.user.is_staff or (is_owner and submission.is_editable_by_player)):
         raise Http404("Submission not found.")
+    if _archived_locked(request, submission):
+        messages.error(request, "That league is archived (read-only).")
+        return redirect("submission_detail", pk=submission.pk)
     proof.image.delete(save=False)
     proof.delete()
     log_audit(submission, request.user, "proof_removed")
@@ -563,8 +616,10 @@ def healthz(request: HttpRequest) -> HttpResponse:
 @login_required
 def activity_feed(request: HttpRequest) -> HttpResponse:
     """Chronological league activity, built from the audit log."""
+    viewing = get_viewing_league(request)
     entries = (
         AuditEntry.objects.select_related("actor", "submission__user", "submission__achievement")
+        .filter(submission__league=viewing)
         .exclude(submission__status=Submission.Status.DRAFT)
         .order_by("-created_at", "-pk")
     )
@@ -578,7 +633,7 @@ def activity_feed(request: HttpRequest) -> HttpResponse:
 @login_required
 def leaderboard_export(request: HttpRequest, fmt: str) -> HttpResponse:
     """Download the leaderboard as CSV or JSON."""
-    rows = scoring.leaderboard()
+    rows = scoring.leaderboard(get_viewing_league(request))
     payload = [
         {
             "rank": r["rank"],
@@ -614,7 +669,7 @@ def share_card(request: HttpRequest, pk: int) -> HttpResponse:
     from PIL import Image, ImageDraw, ImageFont
 
     submission = get_object_or_404(
-        Submission.objects.select_related("user", "achievement").prefetch_related("awards"),
+        Submission.objects.select_related("user", "achievement", "league").prefetch_related("awards"),
         pk=pk,
     )
     if submission.status == Submission.Status.DRAFT and submission.user_id != request.user.pk:
@@ -636,7 +691,8 @@ def share_card(request: HttpRequest, pk: int) -> HttpResponse:
         return ImageFont.load_default(size=size)
 
     is_first = any(a.award_type == Award.Type.FIRST for a in submission.awards.all())
-    draw.text((60, 60), settings.LEAGUE_NAME.upper(), font=font(28), fill=dim)
+    league_label = submission.league.name if submission.league_id else settings.SITE_NAME
+    draw.text((60, 60), league_label.upper(), font=font(28), fill=dim)
     if is_first:
         draw.text((60, 110), "★ FIRST OVERALL ★", font=font(44), fill=gold_bright)
     draw.text((60, 190), submission.achievement.name, font=font(64), fill=gold)

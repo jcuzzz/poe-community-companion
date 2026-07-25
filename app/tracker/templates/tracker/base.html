@@ -30,6 +30,22 @@
         {% if league_name %}<span class="brand-league">{{ league_name }}</span>{% endif %}
       </a>
 
+      {% if leagues|length > 1 %}
+        <form class="league-select" method="post" action="{% url 'set_league' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <label class="u-visually-hidden" for="league-picker">Viewing league</label>
+          <select id="league-picker" name="league" onchange="this.form.submit()" aria-label="Viewing league">
+            {% for lg in leagues %}
+              <option value="{{ lg.slug }}"{% if viewing_league and lg.pk == viewing_league.pk %} selected{% endif %}>
+                {{ lg.name }}{% if lg.is_active %} (active){% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </form>
+        {% if is_archived_view %}<span class="archived-badge" title="This league is archived and read-only">Archived</span>{% endif %}
+      {% endif %}
+
       <span class="league-clock">
         {% if league_elapsed_days is not None %}
           Day <strong>{{ league_elapsed_days|add:1 }}</strong>

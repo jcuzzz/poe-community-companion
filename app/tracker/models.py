@@ -135,9 +135,81 @@ class Character(models.Model):
             self.save(update_fields=["is_default"])
 
 
-class Achievement(models.Model):
-    name = models.CharField(max_length=80, unique=True)
+class League(models.Model):
+    """A PoE league / season. The site scopes almost everything to a league:
+    submissions, awards and achievements all belong to one. Exactly one league is
+    active at a time (the one members submit to); the rest are read-only archives.
+    See docs/specs/leagues.md.
+    """
+
+    class Game(models.TextChoices):
+        POE1 = "poe1", "Path of Exile 1"
+        POE2 = "poe2", "Path of Exile 2"
+
+    class Source(models.TextChoices):
+        API = "api", "GGG API"
+        MANUAL = "manual", "Manual entry"
+
+    name = models.CharField(max_length=80)
     slug = models.SlugField(max_length=80, unique=True)
+    game = models.CharField(max_length=8, choices=Game.choices, default=Game.POE1)
+    # The GGG league identifier used for character lookups (e.g. the league string
+    # the character-window / OAuth API expects). Nullable for custom/private leagues.
+    ggg_id = models.CharField(
+        max_length=80,
+        blank=True,
+        help_text="GGG league identifier used for character lookups. Blank for custom leagues.",
+    )
+    is_hardcore = models.BooleanField(default=False)
+    is_ssf = models.BooleanField(default=False, verbose_name="SSF")
+    starts_at = models.DateTimeField(null=True, blank=True)
+    ends_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(
+        default=False,
+        help_text="Exactly one league is active. Members can only submit to the active league.",
+    )
+    source = models.CharField(max_length=8, choices=Source.choices, default=Source.MANUAL)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-is_active", "-starts_at", "-created_at"]
+        constraints = [
+            # At most one active league. (SQLite honours partial unique constraints.)
+            models.UniqueConstraint(
+                fields=["is_active"],
+                condition=models.Q(is_active=True),
+                name="only_one_active_league",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+    @property
+    def supports_auto_lookup(self) -> bool:
+        # PoE 2 has no anonymous public-profile lookup — PoB-code paste only.
+        # See docs/research/character-lookup-poe2.md.
+        return self.game == self.Game.POE1
+
+    @classmethod
+    def get_active(cls) -> "League | None":
+        return cls.objects.filter(is_active=True).first()
+
+    def activate(self) -> None:
+        """Make this the single active league, in one transaction."""
+        from django.db import transaction
+
+        with transaction.atomic():
+            League.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+            if not self.is_active:
+                self.is_active = True
+                self.save(update_fields=["is_active"])
+
+
+class Achievement(models.Model):
+    league = models.ForeignKey(League, on_delete=models.CASCADE, related_name="achievements")
+    name = models.CharField(max_length=80)
+    slug = models.SlugField(max_length=80)
     label = models.CharField(max_length=40, help_text='Badge text, e.g. "Divine First".')
     description = models.TextField(blank=True)
     icon = models.CharField(
@@ -155,6 +227,11 @@ class Achievement(models.Model):
 
     class Meta:
         ordering = ["sort_order", "name"]
+        constraints = [
+            # Achievements are per-league: the same name/slug may recur each season.
+            models.UniqueConstraint(fields=["league", "name"], name="unique_achievement_name_per_league"),
+            models.UniqueConstraint(fields=["league", "slug"], name="unique_achievement_slug_per_league"),
+        ]
 
     def __str__(self) -> str:
         return self.name
@@ -201,6 +278,7 @@ class Submission(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="submissions"
     )
+    league = models.ForeignKey(League, on_delete=models.CASCADE, related_name="submissions")
     character = models.ForeignKey(
         Character,
         on_delete=models.PROTECT,
@@ -257,6 +335,7 @@ class Submission(models.Model):
         indexes = [
             models.Index(fields=["achievement", "status"]),
             models.Index(fields=["user", "status"]),
+            models.Index(fields=["league", "status"]),
         ]
 
     def __str__(self) -> str:

@@ -61,13 +61,19 @@ class SubmissionForm(forms.ModelForm):
             "notes": forms.Textarea(attrs={"rows": 3}),
         }
 
-    def __init__(self, *args, user: User, acting_user: User | None = None, **kwargs):
+    def __init__(self, *args, user: User, acting_user: User | None = None, league=None, **kwargs):
         self.user = user  # current owner / default target
         self.acting_user = acting_user or user
         self.is_staff_actor = bool(self.acting_user and self.acting_user.is_staff)
+        # The league this submission belongs to: the active league on create, or the
+        # submission's own league on edit. Achievements are scoped to it.
         super().__init__(*args, **kwargs)
+        self.league = league or (self.instance.league if self.instance and self.instance.pk else None)
 
-        self.fields["achievement"].queryset = Achievement.objects.filter(active=True)
+        achievements = Achievement.objects.filter(active=True)
+        if self.league is not None:
+            achievements = achievements.filter(league=self.league)
+        self.fields["achievement"].queryset = achievements
         self.fields["allowlist_item"].queryset = AllowlistItem.objects.filter(active=True)
         for name in ("character", "character_level", "kill_count", "allowlist_item", "notes"):
             self.fields[name].required = False
@@ -133,6 +139,12 @@ class SubmissionForm(forms.ModelForm):
         submission = super().save(commit=False)
         submission.user = self.target_user()
         submission.played_seconds = self.cleaned_data.get("played")
+        # A submission always belongs to a league; keep it in sync with the chosen
+        # achievement's league (they are the same by construction).
+        if self.league is not None:
+            submission.league = self.league
+        elif submission.achievement_id:
+            submission.league = submission.achievement.league
         # Timestamp comes from the server, set once when the row is first created.
         if submission._state.adding or submission.obtained_at is None:
             submission.obtained_at = timezone.now()
@@ -209,7 +221,10 @@ class CharacterForm(forms.ModelForm):
         self.user = user
         super().__init__(*args, **kwargs)
         if not self.instance.pk:
-            self.fields["league_name"].initial = settings.LEAGUE_NAME
+            from .models import League
+
+            active = League.get_active()
+            self.fields["league_name"].initial = active.name if active else settings.LEAGUE_NAME
 
     def clean_character_name(self):
         name = self.cleaned_data["character_name"]

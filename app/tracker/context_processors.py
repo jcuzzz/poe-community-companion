@@ -2,29 +2,23 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-
 from django.conf import settings
 from django.utils import timezone
 
-from .models import Submission
-
-
-def _parse_iso(value: str):
-    if not value:
-        return None
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError:
-        return None
-    if timezone.is_naive(parsed):
-        parsed = timezone.make_aware(parsed)
-    return parsed
+from .leagues import get_active_league, get_viewing_league
+from .models import League, Submission
 
 
 def league(request):
-    start = _parse_iso(settings.LEAGUE_START)
-    end = _parse_iso(settings.LEAGUE_END)
+    active_league = get_active_league()
+    viewing_league = get_viewing_league(request)
+    is_archived_view = bool(
+        viewing_league and active_league and viewing_league.pk != active_league.pk
+    )
+
+    # League clock is driven by the viewing league's own start/end dates.
+    start = viewing_league.starts_at if viewing_league else None
+    end = viewing_league.ends_at if viewing_league else None
     now = timezone.now()
 
     pending = 0
@@ -36,7 +30,12 @@ def league(request):
         # Named brand_name (not site_name) to avoid colliding with the site_name
         # Django's auth views inject (the request host) on login/password pages.
         "brand_name": settings.SITE_NAME,
-        "league_name": settings.LEAGUE_NAME,
+        "active_league": active_league,
+        "viewing_league": viewing_league,
+        "is_archived_view": is_archived_view,
+        "leagues": list(League.objects.all()),
+        # Kept for templates that show the league name in the header.
+        "league_name": viewing_league.name if viewing_league else settings.LEAGUE_NAME,
         "league_start": start,
         "league_end": end,
         "league_elapsed_days": (now - start).days if start and start <= now else None,

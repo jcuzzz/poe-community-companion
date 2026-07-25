@@ -7,11 +7,24 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from tracker.models import Achievement, Character, Submission
+from tracker.models import Achievement, Character, League, Submission
 
 User = get_user_model()
 
 LEAGUE_START = timezone.now() - timedelta(days=10)
+
+
+def make_league(name: str = "Test League", *, active: bool = True, **kwargs) -> League:
+    slug = kwargs.pop("slug", name.lower().replace(" ", "-").replace("'", ""))
+    league = League.objects.create(name=name, slug=slug, **kwargs)
+    if active:
+        league.activate()
+    return league
+
+
+def _default_league() -> League:
+    """The active league (the migration seeds one), else a fresh one."""
+    return League.get_active() or make_league()
 
 
 def make_player(username: str, **kwargs) -> User:
@@ -36,7 +49,9 @@ def make_admin(username: str = "leagueadmin") -> User:
 
 def make_achievement(name: str = "First Divine Orb", **kwargs) -> Achievement:
     slug = kwargs.pop("slug", name.lower().replace(" ", "-").replace("'", ""))
+    league = kwargs.pop("league", None) or _default_league()
     return Achievement.objects.create(
+        league=league,
         name=name,
         slug=slug,
         label=kwargs.pop("label", "Divine First"),
@@ -66,6 +81,7 @@ def make_submission(
 ) -> Submission:
     return Submission.objects.create(
         user=user,
+        league=kwargs.pop("league", None) or achievement.league,
         character=character or make_character(user),
         achievement=achievement,
         obtained_at=LEAGUE_START + timedelta(hours=hours_in),
