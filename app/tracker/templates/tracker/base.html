@@ -1,0 +1,92 @@
+{% load static %}<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ league_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="header-bar">
+      <a class="brand" href="{% url 'dashboard' %}">
+        <span class="brand-name">{{ league_name }}</span>
+      </a>
+
+      <span class="league-clock">
+        {% if league_elapsed_days is not None %}
+          Day <strong>{{ league_elapsed_days|add:1 }}</strong>
+          {% if league_days_remaining is not None and league_days_remaining >= 0 %}
+            &middot; <strong>{{ league_days_remaining }}</strong> day{{ league_days_remaining|pluralize }} left
+          {% endif %}
+        {% else %}
+          League not started
+        {% endif %}
+      </span>
+
+      <input type="checkbox" id="nav-toggle" class="nav-toggle-checkbox">
+      <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </label>
+    </div>
+
+    <nav class="site-nav" aria-label="Primary">
+      <ul class="nav-list">
+        <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+        <li><a href="{% url 'achievement_list' %}">Achievements</a></li>
+        <li><a href="{% url 'leaderboard' %}">Leaderboard</a></li>
+        {% if user.is_authenticated %}
+          <li><a href="{% url 'character_list' %}">My characters</a></li>
+          <li><a href="{% url 'submission_create' %}">Submit</a></li>
+          {% if user.is_staff %}
+            <li>
+              <a href="{% url 'review_queue' %}">
+                Review
+                {% if pending_review_count %}
+                  <span class="nav-badge">{{ pending_review_count }}</span>
+                {% endif %}
+              </a>
+            </li>
+          {% endif %}
+          <li class="nav-spacer"></li>
+          <li class="profile-menu">
+            <a href="{% url 'account_settings' %}">{{ user.name }} &#9662;</a>
+            <div class="profile-menu-panel">
+              <a href="{% url 'account_settings' %}">Account</a>
+              <a href="{% url 'player_profile' user.username %}">My profile</a>
+              <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit">Log out</button>
+              </form>
+            </div>
+          </li>
+        {% else %}
+          <li class="nav-spacer"></li>
+          <li><a href="{% url 'login' %}">Log in</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </header>
+
+  {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+        <li class="{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <main id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <p>{{ league_name }} &middot; a private tracker for five friends. No PoE artwork used.</p>
+  </footer>
+
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
+</body>
+</html>

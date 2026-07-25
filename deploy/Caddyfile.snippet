@@ -1,0 +1,43 @@
+# Squad Achieves — Caddy vhost snippet.
+#
+# This is NOT a standalone Caddyfile. It is imported into the existing
+# Caddy config on the proxy LXC (192.0.2.22), alongside the Jellyfin
+# block in configs-sanitized/Caddyfile.example in the parent repo.
+# **Verify:** confirm how the parent repo's live Caddyfile is organized
+# (single file vs. `import` of per-site files under e.g. /etc/caddy/sites/)
+# and drop this block in using that same convention.
+#
+# Caddy v2 automatically sets X-Forwarded-Proto (and X-Forwarded-For /
+# X-Forwarded-Host) on reverse_proxy — no manual header_up needed for that.
+# Django's settings.py already trusts X-Forwarded-Proto
+# (SECURE_PROXY_SSL_HEADER), so nothing else is required here for HTTPS
+# detection to work.
+
+poe.example.com {
+    encode zstd gzip
+
+    # 10 MB image limit (MAX_UPLOAD_BYTES) + form fields/multipart overhead
+    # + up to 3 proof images per submission. 15 MB gives headroom without
+    # inviting abuse.
+    request_body {
+        max_size 15MB
+    }
+
+    reverse_proxy 192.0.2.60:8000
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "same-origin"
+        X-Robots-Tag "noindex, nofollow, noarchive"
+        -Server
+    }
+
+    log {
+        output file /var/log/caddy/poe-tracker.access.log {
+            roll_size 10mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+    }
+}

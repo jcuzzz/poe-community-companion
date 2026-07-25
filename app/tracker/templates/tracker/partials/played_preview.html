@@ -1,0 +1,9 @@
+<div id="played-preview" class="{% if error %}has-error{% endif %}" role="status" aria-live="polite">
+  {% if error %}
+    {{ error }}
+  {% elif played_display %}
+    Parsed as <strong>{{ played_display }}</strong>
+  {% else %}
+    Type a played time like <strong>1d 7h 24m</strong>
+  {% endif %}
+</div>

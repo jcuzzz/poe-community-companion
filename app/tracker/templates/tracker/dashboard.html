@@ -1,0 +1,74 @@
+{% extends "tracker/base.html" %}
+{% block title %}Dashboard &middot; {{ league_name }}{% endblock %}
+{% block content %}
+
+  {% if champion %}
+    <section class="hero-champion" aria-label="Current champion">
+      <span class="crown" aria-hidden="true">&#128081;</span>
+      <div>
+        <h2><a href="{% url 'player_profile' champion.player.username %}">{{ champion.player.name }}</a></h2>
+        <p class="subtitle">Current overall champion &middot; {{ champion.points }} points &middot; {{ champion.completions }} completions &middot; {{ champion.firsts }} first{{ champion.firsts|pluralize }}</p>
+      </div>
+    </section>
+  {% else %}
+    <div class="empty-state">
+      <span class="icon" aria-hidden="true">&#127942;</span>
+      No champion yet &mdash; be the first to get an achievement approved.
+    </div>
+  {% endif %}
+
+  {% if firsts %}
+    <h2>Major firsts</h2>
+    <div class="trophy-row">
+      {% for sub in firsts %}
+        <div class="trophy-card">
+          <span class="trophy-icon" aria-hidden="true">{{ sub.achievement.icon|default:"🏆" }}</span>
+          <p class="trophy-label">{{ sub.achievement.label }}</p>
+          <p class="trophy-holder"><a href="{% url 'player_profile' sub.user.username %}">{{ sub.user.name }}</a></p>
+          <p class="trophy-meta">{{ sub.played_display }} played &middot; {{ sub.kill_count }} kills &middot; level {{ sub.character_level }}</p>
+          <a class="btn btn-sm" href="{% url 'submission_detail' sub.pk %}">View proof</a>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="card-grid cols-2">
+    <section>
+      <h2>Achievement race</h2>
+      {% if achievement_cards %}
+        {% for card in achievement_cards %}
+          {% include "tracker/partials/achievement_card.html" with card=card %}
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">No achievements have been configured yet.</div>
+      {% endif %}
+    </section>
+
+    <aside>
+      <h2>Standings</h2>
+      {% include "tracker/partials/leaderboard_table.html" with rows=standings %}
+
+      <h2>Recent submissions</h2>
+      {% if recent_submissions %}
+        <ul class="player-status-list">
+          {% for submission in recent_submissions %}
+            <li class="card" style="margin-bottom: var(--space-3); padding: var(--space-3);">
+              {% include "tracker/partials/submission_row.html" with submission=submission %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty-state">No submissions yet.</div>
+      {% endif %}
+
+      {% if latest_first %}
+        <h2>Latest first</h2>
+        <div class="card">
+          <p><strong>{{ latest_first.user.name }}</strong> claimed <strong>{{ latest_first.achievement.label }}</strong></p>
+          <p class="text-muted">{{ latest_first.submitted_at|date:"D j, H:i" }}</p>
+          <a class="btn btn-sm" href="{% url 'submission_detail' latest_first.pk %}">View proof</a>
+        </div>
+      {% endif %}
+    </aside>
+  </div>
+{% endblock %}

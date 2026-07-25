@@ -1,0 +1,107 @@
+{% extends "tracker/base.html" %}
+{% block title %}{{ stats.player.name }} &middot; {{ league_name }}{% endblock %}
+{% block content %}
+  <section class="player-banner" style="--banner-hue: {{ stats.player.banner_hue }};">
+    {% if stats.player.avatar %}
+      <img class="avatar" src="{{ stats.player.avatar.url }}" alt="{{ stats.player.name }}'s avatar">
+    {% else %}
+      <span class="avatar-fallback" aria-hidden="true">{{ stats.player.name|slice:":1" }}</span>
+    {% endif %}
+    <div>
+      <h1>{{ stats.player.name }}</h1>
+      <p class="player-meta">
+        {{ stats.completions }} completion{{ stats.completions|pluralize }} &middot;
+        {{ stats.points }} point{{ stats.points|pluralize }}
+        {% if is_self %}&middot; <a href="{% url 'account_settings' %}">Edit profile</a>{% endif %}
+      </p>
+    </div>
+  </section>
+
+  <div class="stat-grid">
+    <div class="stat-tile"><span class="value">{{ stats.points }}</span><span class="label">Points</span></div>
+    <div class="stat-tile"><span class="value">{{ stats.completions }}</span><span class="label">Completions</span></div>
+    <div class="stat-tile"><span class="value">{{ stats.firsts }}</span><span class="label">Firsts</span></div>
+    <div class="stat-tile"><span class="value">{{ stats.highest_level }}</span><span class="label">Highest level</span></div>
+  </div>
+
+  <div class="medal-row">
+    {% if stats.firsts %}<span class="medal medal-first">First Overall &times;{{ stats.firsts }}</span>{% endif %}
+    {% if stats.lowest_played %}<span class="medal medal-lowest_played">Lowest /played &times;{{ stats.lowest_played }}</span>{% endif %}
+    {% if stats.fewest_kills %}<span class="medal medal-fewest_kills">Fewest Kills &times;{{ stats.fewest_kills }}</span>{% endif %}
+    {% if stats.lowest_level %}<span class="medal medal-lowest_level">Lowest Level &times;{{ stats.lowest_level }}</span>{% endif %}
+  </div>
+
+  <div class="card-grid cols-2">
+    <section class="card">
+      <h2>Characters</h2>
+      {% if stats.characters %}
+        <ul class="player-status-list">
+          {% for character in stats.characters %}
+            <li class="player-status-row">
+              <span class="player-name">{{ character.character_name }}</span>
+              <span class="stat-line">{{ character.class_name }} &middot; {{ character.league_name }}{% if character.retired %} &middot; retired{% endif %}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty-state">No characters yet.</div>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h2>Totals</h2>
+      <ul>
+        <li>Best approved /kills: {{ stats.total_kills }}</li>
+        <li>Highest level: {{ stats.highest_level }}</li>
+        <li>Firsts: {{ stats.firsts }}</li>
+      </ul>
+    </section>
+  </div>
+
+  <h2>Achievements completed</h2>
+  {% if stats.approved %}
+    <div class="card-grid">
+      {% for submission in stats.approved %}
+        <div class="card">
+          {% include "tracker/partials/submission_row.html" with submission=submission %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">No approved achievements yet.</div>
+  {% endif %}
+
+  <h2>Submitted screenshots</h2>
+  {% with proofs_found=False %}
+    <div class="image-gallery">
+      {% for submission in stats.submissions %}
+        {% for proof in submission.proofs.all %}
+          <figure>
+            <a href="{{ proof.image.url }}" target="_blank" rel="noopener">
+              <img src="{{ proof.image.url }}" alt="{{ proof.get_kind_display }} proof for {{ submission.achievement.name }}">
+            </a>
+            <figcaption>{{ submission.achievement.name }} &mdash; {{ proof.get_kind_display }}</figcaption>
+          </figure>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  {% endwith %}
+  {% if not stats.submissions %}
+    <div class="empty-state">No screenshots submitted yet.</div>
+  {% endif %}
+
+  <h2>Timeline</h2>
+  {% if stats.timeline %}
+    <ol class="timeline">
+      {% for submission in stats.timeline %}
+        <li>
+          <time datetime="{{ submission.submitted_at|date:'c' }}">{{ submission.submitted_at|date:"D j M, H:i" }}</time>
+          <a href="{% url 'submission_detail' submission.pk %}">{{ submission.achievement.name }}</a>
+          <span class="pill pill-{{ submission.status }}">{{ submission.get_status_display }}</span>
+        </li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    <div class="empty-state">No activity yet.</div>
+  {% endif %}
+{% endblock %}

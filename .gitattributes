@@ -1,0 +1,21 @@
+# Normalise text to LF in the repo. The app is built and run on Linux
+# (Docker/Debian LXC); CRLF in these files would break them at runtime.
+* text=auto eol=lf
+
+# Shell scripts and container files MUST be LF regardless of platform —
+# a CRLF entrypoint.sh fails with "no such file or directory" in the container.
+*.sh        text eol=lf
+entrypoint.sh   text eol=lf
+Dockerfile      text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+deploy/poe-tracker-backup.service  text eol=lf
+deploy/poe-tracker-backup.timer    text eol=lf
+deploy/Caddyfile.snippet           text eol=lf
+
+# Binary assets git should never touch.
+*.png binary
+*.jpg binary
+*.webp binary
+*.gz binary
+*.sqlite3 binary

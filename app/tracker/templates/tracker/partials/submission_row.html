@@ -1,0 +1,13 @@
+<div class="u-flex-between">
+  <span>
+    <a href="{% url 'player_profile' submission.user.username %}">{{ submission.user.name }}</a>
+    &mdash;
+    <a href="{% url 'submission_detail' submission.pk %}">{{ submission.achievement.name }}</a>
+  </span>
+  <span class="pill pill-{{ submission.status }}">{{ submission.get_status_display }}</span>
+</div>
+<div class="stat-line text-muted">
+  Level {{ submission.character_level }} &middot; {{ submission.played_display }} played &middot; {{ submission.kill_count }} kills
+  &middot; submitted {{ submission.submitted_at|date:"M j, H:i" }}
+</div>
+{% include "tracker/partials/medals.html" with submission=submission %}

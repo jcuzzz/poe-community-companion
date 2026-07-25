@@ -1,0 +1,96 @@
+{% extends "tracker/base.html" %}
+{% block title %}Review &middot; {{ submission.achievement.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'review_queue' %}">&larr; Review queue</a></p>
+
+  <div class="u-flex-between">
+    <h1>{{ submission.user.name }} &mdash; {{ submission.achievement.name }}</h1>
+    <span class="pill pill-{{ submission.status }}">{{ submission.get_status_display }}</span>
+  </div>
+
+  <div class="card">
+    <dl>
+      <dt class="text-muted">Character</dt>
+      <dd>{{ submission.character.character_name }} ({{ submission.character.class_name }})</dd>
+      <dt class="text-muted">Level</dt>
+      <dd>{{ submission.character_level }}</dd>
+      <dt class="text-muted">Played</dt>
+      <dd>{{ submission.played_display }}</dd>
+      <dt class="text-muted">Kills</dt>
+      <dd>{{ submission.kill_count }}</dd>
+      <dt class="text-muted">Obtained</dt>
+      <dd>{{ submission.obtained_at|date:"D j M Y, H:i" }}</dd>
+      <dt class="text-muted">Submitted</dt>
+      <dd>{{ submission.submitted_at|date:"D j M Y, H:i" }}</dd>
+      {% if submission.notes %}
+        <dt class="text-muted">Notes</dt>
+        <dd>{{ submission.notes }}</dd>
+      {% endif %}
+    </dl>
+  </div>
+
+  <h2>Proof</h2>
+  {% include "tracker/partials/proof_gallery.html" with submission=submission %}
+
+  <h2>Peer submissions for this achievement</h2>
+  {% if peers %}
+    <div class="compare-grid">
+      {% for peer in peers %}
+        <div class="compare-tile {% if peer.pk == submission.pk %}is-current{% endif %}">
+          <dl>
+            <dt>Player</dt>
+            <dd>{{ peer.user.name }}</dd>
+            <dt>Status</dt>
+            <dd><span class="pill pill-{{ peer.status }}">{{ peer.get_status_display }}</span></dd>
+            <dt>Level</dt>
+            <dd>{{ peer.character_level }}</dd>
+            <dt>Played</dt>
+            <dd>{{ peer.played_display }}</dd>
+            <dt>Kills</dt>
+            <dd>{{ peer.kill_count }}</dd>
+          </dl>
+          <a class="btn btn-sm" href="{% url 'submission_detail' peer.pk %}">View</a>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">No other submissions for this achievement yet.</div>
+  {% endif %}
+
+  <h2>Decision</h2>
+  {% if form.non_field_errors %}
+    <div class="form-errors">
+      <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+  <form method="post" class="card">
+    {% csrf_token %}
+    <div class="form-row">
+      <label for="{{ form.action.id_for_label }}">Action</label>
+      {{ form.action }}
+      {% if form.action.errors %}<ul class="field-errors">{% for error in form.action.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="form-row">
+      <label for="{{ form.review_note.id_for_label }}">Review note</label>
+      {{ form.review_note }}
+      {% if form.review_note.errors %}<ul class="field-errors">{% for error in form.review_note.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+      <span class="hint">Required for reject, contest and request-proof.</span>
+    </div>
+    <div class="review-actions">
+      <button type="submit" class="btn btn-primary">Submit decision</button>
+    </div>
+  </form>
+
+  {% if audit_entries %}
+    <h2>History</h2>
+    <ul class="audit-list">
+      {% for entry in audit_entries %}
+        <li>
+          <time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"D j M, H:i" }}</time>
+          &mdash; {{ entry.get_action_display }}{% if entry.actor %} by {{ entry.actor.name }}{% endif %}
+          {% if entry.detail %}<div class="text-muted">{{ entry.detail }}</div>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,14 @@
+{% if submission.proofs.all %}
+  <div class="image-gallery gallery-large">
+    {% for proof in submission.proofs.all %}
+      <figure>
+        <a href="{{ proof.image.url }}" target="_blank" rel="noopener">
+          <img src="{{ proof.image.url }}" alt="{{ proof.get_kind_display }} proof{% if proof.caption %}: {{ proof.caption }}{% endif %} for {{ submission.achievement.name }}">
+        </a>
+        <figcaption>{{ proof.get_kind_display }}{% if proof.caption %} &mdash; {{ proof.caption }}{% endif %}</figcaption>
+      </figure>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-muted">No proof screenshots attached.</p>
+{% endif %}

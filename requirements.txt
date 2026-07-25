@@ -1,0 +1,9 @@
+# Pinned runtime dependencies for Squad Achieves.
+# Python target: 3.13-slim (see Dockerfile). Django 6.0 supports 3.12-3.14;
+# 3.13 is used because it has mature manylinux wheels for Pillow today,
+# whereas 3.14 wheel coverage is still catching up at time of writing.
+
+Django==6.0.7
+gunicorn==23.0.0
+whitenoise==6.11.0
+Pillow==12.0.0

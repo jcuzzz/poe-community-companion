@@ -1,0 +1,156 @@
+{% extends "tracker/base.html" %}
+{% load static %}
+{% block title %}{% if submission %}Edit submission{% else %}Submit achievement{% endif %} &middot; {{ league_name }}{% endblock %}
+{% block content %}
+  <h1>{% if submission %}Edit submission{% else %}Submit achievement{% endif %}</h1>
+
+  {% if form.non_field_errors %}
+    <div class="form-errors">
+      <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+  {% if proof_formset.non_form_errors %}
+    <div class="form-errors">
+      <ul>{% for error in proof_formset.non_form_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+
+    <fieldset>
+      <legend>Claim</legend>
+      <div class="form-row">
+        <label for="{{ form.achievement.id_for_label }}">Achievement</label>
+        {{ form.achievement }}
+        {% if form.achievement.errors %}<ul class="field-errors">{% for error in form.achievement.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+      <div class="form-row">
+        <label for="{{ form.character.id_for_label }}">Character</label>
+        {{ form.character }}
+        {% if form.character.errors %}<ul class="field-errors">{% for error in form.character.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        <span class="hint">No character yet? <a href="{% url 'character_create' %}">Add one first</a>.</span>
+      </div>
+      <div class="form-row">
+        <label for="{{ form.allowlist_item.id_for_label }}">Allowlist item (T0 uniques only)</label>
+        {{ form.allowlist_item }}
+        {% if form.allowlist_item.errors %}<ul class="field-errors">{% for error in form.allowlist_item.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Numbers</legend>
+      <div class="form-row">
+        <label for="{{ form.character_level.id_for_label }}">Character level</label>
+        {{ form.character_level }}
+        {% if form.character_level.errors %}<ul class="field-errors">{% for error in form.character_level.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+      <div class="form-row">
+        <label for="{{ form.played.id_for_label }}">Played time (/played)</label>
+        {{ form.played }}
+        <input type="hidden" id="played-raw" data-preview-url="{% url 'played_preview' %}">
+        {% if form.played.errors %}<ul class="field-errors">{% for error in form.played.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        <span class="hint">Enter it exactly as PoE shows it, e.g. 1d 7h 24m.</span>
+        {% include "tracker/partials/played_preview.html" with played_seconds=None played_display=form.played.value error=None %}
+      </div>
+      <div class="form-row">
+        <label for="{{ form.kill_count.id_for_label }}">Kill count (/kills)</label>
+        {{ form.kill_count }}
+        {% if form.kill_count.errors %}<ul class="field-errors">{% for error in form.kill_count.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+      <div class="form-row">
+        <label for="{{ form.obtained_at.id_for_label }}">Obtained at</label>
+        {{ form.obtained_at }}
+        {% if form.obtained_at.errors %}<ul class="field-errors">{% for error in form.obtained_at.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Proof</legend>
+      <div class="proof-upload-help">
+        <strong>Up to three screenshots:</strong>
+        <ol>
+          <li>The item, currency or relevant inventory view.</li>
+          <li>Chat output showing <code>/played</code>.</li>
+          <li>Chat output showing <code>/kills</code>, with character level visible where practical.</li>
+        </ol>
+        <p>JPEG, PNG or WebP only, 10 MB max per image.</p>
+      </div>
+
+      {% if existing_proofs %}
+        <div class="u-flex">
+          {% for proof in existing_proofs %}
+            <div class="existing-proof-thumb">
+              <img src="{{ proof.image.url }}" alt="{{ proof.get_kind_display }} proof">
+              <span class="caption">{{ proof.get_kind_display }}</span>
+              {% if submission %}
+                <form class="inline-btn" method="post" action="{% url 'proof_delete' submission.pk proof.pk %}" onsubmit="return confirm('Remove this proof image?');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                </form>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {{ proof_formset.management_form }}
+      {% if proof_formset.non_field_errors %}
+        <div class="form-errors"><ul>{% for error in proof_formset.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul></div>
+      {% endif %}
+      {% for proof_form in proof_formset %}
+        <div class="proof-form-item">
+          {% for hidden in proof_form.hidden_fields %}{{ hidden }}{% endfor %}
+          <div class="form-row">
+            <label for="{{ proof_form.image.id_for_label }}">Image</label>
+            {{ proof_form.image }}
+            {% if proof_form.image.errors %}<ul class="field-errors">{% for error in proof_form.image.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="form-row">
+            <label for="{{ proof_form.kind.id_for_label }}">Kind</label>
+            {{ proof_form.kind }}
+          </div>
+          <div class="form-row">
+            <label for="{{ proof_form.caption.id_for_label }}">Caption (optional)</label>
+            {{ proof_form.caption }}
+          </div>
+          {% if proof_form.DELETE %}
+            <div class="form-row checkbox-row">
+              {{ proof_form.DELETE }}
+              <label for="{{ proof_form.DELETE.id_for_label }}" class="u-mb-0">Remove this proof</label>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </fieldset>
+
+    <fieldset>
+      <legend>Notes</legend>
+      <div class="form-row">
+        <label for="{{ form.notes.id_for_label }}">Notes (optional)</label>
+        {{ form.notes }}
+        {% if form.notes.errors %}<ul class="field-errors">{% for error in form.notes.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    </fieldset>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save submission</button>
+      <a class="btn" href="{% url 'achievement_list' %}">Cancel</a>
+    </div>
+  </form>
+
+  <script>
+    (function () {
+      var input = document.getElementById("{{ form.played.id_for_label }}");
+      var target = document.getElementById("played-preview");
+      var url = "{% url 'played_preview' %}";
+      if (!input || !target || typeof window.htmx === "undefined") { return; }
+      input.setAttribute("hx-get", url);
+      input.setAttribute("hx-trigger", "keyup changed delay:300ms");
+      input.setAttribute("hx-target", "#played-preview");
+      input.setAttribute("hx-swap", "outerHTML");
+      input.setAttribute("name", "played");
+      window.htmx.process(input);
+    })();
+  </script>
+{% endblock %}

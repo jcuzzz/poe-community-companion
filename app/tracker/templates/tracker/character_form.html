@@ -1,0 +1,38 @@
+{% extends "tracker/base.html" %}
+{% block title %}{% if character %}Edit character{% else %}New character{% endif %} &middot; {{ league_name }}{% endblock %}
+{% block content %}
+  <h1>{% if character %}Edit character{% else %}New character{% endif %}</h1>
+
+  {% if form.non_field_errors %}
+    <div class="form-errors">
+      <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="form-row">
+      <label for="{{ form.character_name.id_for_label }}">Character name</label>
+      {{ form.character_name }}
+      {% if form.character_name.errors %}<ul class="field-errors">{% for error in form.character_name.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="form-row">
+      <label for="{{ form.class_name.id_for_label }}">Class</label>
+      {{ form.class_name }}
+      {% if form.class_name.errors %}<ul class="field-errors">{% for error in form.class_name.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="form-row">
+      <label for="{{ form.league_name.id_for_label }}">League</label>
+      {{ form.league_name }}
+      {% if form.league_name.errors %}<ul class="field-errors">{% for error in form.league_name.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="form-row checkbox-row">
+      {{ form.retired }}
+      <label for="{{ form.retired.id_for_label }}" class="u-mb-0">Retired</label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save character</button>
+      <a class="btn" href="{% url 'character_list' %}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

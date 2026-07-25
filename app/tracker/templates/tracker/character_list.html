@@ -1,0 +1,30 @@
+{% extends "tracker/base.html" %}
+{% block title %}My characters &middot; {{ league_name }}{% endblock %}
+{% block content %}
+  <div class="u-flex-between">
+    <h1>My characters</h1>
+    <a class="btn btn-primary" href="{% url 'character_create' %}">New character</a>
+  </div>
+
+  {% if characters %}
+    <div class="card-grid cols-2">
+      {% for character in characters %}
+        <div class="card">
+          <div class="u-flex-between">
+            <h3 class="u-mb-0">{{ character.character_name }}</h3>
+            {% if character.retired %}<span class="pill pill-not-submitted">Retired</span>{% endif %}
+          </div>
+          <p class="text-muted">{{ character.class_name }} &middot; {{ character.league_name }}</p>
+          <div class="card-actions">
+            <a class="btn btn-sm" href="{% url 'character_edit' character.pk %}">Edit</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <span class="icon" aria-hidden="true">&#9876;</span>
+      No characters yet. Add your first league character to start submitting achievements.
+    </div>
+  {% endif %}
+{% endblock %}

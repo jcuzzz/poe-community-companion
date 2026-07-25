@@ -1,0 +1,63 @@
+name: poe-tracker
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: poe-tracker:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      # LAN-only bind: only the Docker host itself (192.0.2.60) can reach
+      # this port, and only Caddy on the LAN should ever talk to it.
+      # NEVER bind 0.0.0.0:8000 — that would expose Django directly.
+      #
+      # Local-only variant (default below): reachable only from inside the
+      # LXC itself, e.g. for `curl localhost:8000/healthz` during setup.
+      #
+      # LAN variant (use this once Caddy on 192.0.2.22 needs to reach it):
+      #   - "192.0.2.60:8000:8000"
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./media:/app/media
+    tmpfs:
+      - /tmp
+    read_only: false
+    security_opt:
+      - "no-new-privileges:true"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # One-shot backup job. Run manually or from the systemd timer in
+  # deploy/poe-tracker-backup.timer:
+  #   docker compose run --rm backup
+  backup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: poe-tracker:latest
+    profiles: ["backup"]
+    env_file:
+      - .env
+    environment:
+      # Belt and braces: the backup must land on the mounted volume, not on
+      # the container's own filesystem, even if .env forgets BACKUP_DIR.
+      BACKUP_DIR: /app/backups
+    volumes:
+      - ./data:/app/data
+      - ./media:/app/media
+      - ./backups:/app/backups
+    entrypoint: ["python", "manage.py"]
+    command: ["backup"]

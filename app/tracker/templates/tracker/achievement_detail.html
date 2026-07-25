@@ -1,0 +1,28 @@
+{% extends "tracker/base.html" %}
+{% block title %}{{ achievement.name }} &middot; {{ league_name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'achievement_list' %}">&larr; All achievements</a></p>
+  <h1>{{ achievement.icon }} {{ achievement.name }}</h1>
+  {% if achievement.description %}<p>{{ achievement.description }}</p>{% endif %}
+  {% if achievement.verification_rules %}
+    <div class="proof-upload-help">
+      <strong>What proof is required:</strong>
+      <p>{{ achievement.verification_rules }}</p>
+    </div>
+  {% endif %}
+
+  {% include "tracker/partials/achievement_card.html" with card=standings %}
+
+  <h2>All submissions</h2>
+  {% if standings.submissions %}
+    <div class="card-grid">
+      {% for submission in standings.submissions %}
+        <div class="card">
+          {% include "tracker/partials/submission_row.html" with submission=submission %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">No submissions for this achievement yet.</div>
+  {% endif %}
+{% endblock %}

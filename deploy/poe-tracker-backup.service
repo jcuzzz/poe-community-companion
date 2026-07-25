@@ -1,0 +1,13 @@
+[Unit]
+Description=Squad Achieves (poe-tracker) nightly backup
+# **Verify:** confirm the Docker daemon's unit name on Debian 13 (usually
+# docker.service) matches this After= line.
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# **Verify:** replace with the actual non-root deploy user on CT100.
+User=deploy
+WorkingDirectory=/opt/poe-tracker
+ExecStart=/opt/poe-tracker/deploy/backup.sh

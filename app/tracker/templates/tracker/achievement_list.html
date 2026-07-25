@@ -1,0 +1,17 @@
+{% extends "tracker/base.html" %}
+{% block title %}Achievements &middot; {{ league_name }}{% endblock %}
+{% block content %}
+  <h1>Achievements</h1>
+  {% if cards %}
+    <div class="card-grid cols-2">
+      {% for card in cards %}
+        {% include "tracker/partials/achievement_card.html" with card=card %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <span class="icon" aria-hidden="true">&#128220;</span>
+      No achievements have been configured yet.
+    </div>
+  {% endif %}
+{% endblock %}

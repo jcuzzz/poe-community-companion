@@ -1,0 +1,21 @@
+{% extends "tracker/base.html" %}
+{% block title %}Leaderboard &middot; {{ league_name }}{% endblock %}
+{% block content %}
+  <h1>Leaderboard</h1>
+  <p class="text-muted">Points combine verified completions with category medals &mdash; see the breakdown per player below.</p>
+  {% include "tracker/partials/leaderboard_table.html" with rows=rows %}
+
+  <h2>Active achievements</h2>
+  {% if achievements %}
+    <ul class="player-status-list">
+      {% for achievement in achievements %}
+        <li class="player-status-row">
+          <span class="player-name">{{ achievement.icon }} <a href="{% url 'achievement_detail' achievement.slug %}">{{ achievement.name }}</a></span>
+          <span class="stat-line">{{ achievement.label }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="empty-state">No active achievements.</div>
+  {% endif %}
+{% endblock %}

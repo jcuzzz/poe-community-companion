@@ -1,0 +1,46 @@
+<article class="achievement-card" aria-labelledby="achv-{{ card.achievement.slug }}">
+  <div class="achievement-card-header">
+    {% if card.achievement.icon %}<span class="achievement-icon" aria-hidden="true">{{ card.achievement.icon }}</span>{% endif %}
+    <div>
+      <h3 id="achv-{{ card.achievement.slug }}">
+        <a href="{% url 'achievement_detail' card.achievement.slug %}">{{ card.achievement.name }}</a>
+      </h3>
+      <span class="badge-label">{{ card.achievement.label }}</span>
+    </div>
+  </div>
+
+  {% if card.winner %}
+    <div class="winner-block">
+      <span>Winner: <span class="winner-name">{{ card.winner.user.name }}</span></span>
+      <span class="stat">Submitted {{ card.winner.submitted_at|date:"D j, H:i" }}</span>
+      <span class="stat">Played: {{ card.winner.played_display }}</span>
+      <span class="stat">Kills: {{ card.winner.kill_count }}</span>
+      <span class="stat">Level: {{ card.winner.character_level }}</span>
+      <a class="btn btn-sm" href="{% url 'submission_detail' card.winner.pk %}">View proof</a>
+    </div>
+  {% else %}
+    <div class="winner-block no-winner">Winner: Nobody yet</div>
+  {% endif %}
+
+  <ul class="player-status-list">
+    {% for row in card.rows %}
+      <li class="player-status-row">
+        <span class="player-name">
+          <a href="{% url 'player_profile' row.player.username %}">{{ row.player.name }}</a>
+        </span>
+        {% if row.submission %}
+          <span class="pill pill-{{ row.submission.status }}">{{ row.submission.get_status_display }}</span>
+          <span class="stat-line">
+            Level {{ row.submission.character_level }} &middot; {{ row.submission.played_display }} &middot; {{ row.submission.kill_count }} kills
+          </span>
+        {% else %}
+          <span class="pill pill-not-submitted">Not submitted</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+
+  <div class="card-actions">
+    <a class="btn btn-primary" href="{% url 'submission_create_for' card.achievement.slug %}">Submit Achievement</a>
+  </div>
+</article>

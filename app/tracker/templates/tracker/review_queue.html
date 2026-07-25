@@ -1,0 +1,50 @@
+{% extends "tracker/base.html" %}
+{% block title %}Review queue &middot; {{ league_name }}{% endblock %}
+{% block content %}
+  <h1>Review queue</h1>
+
+  <h2>Pending</h2>
+  {% if pending %}
+    <div class="card-grid">
+      {% for submission in pending %}
+        <div class="card">
+          {% include "tracker/partials/submission_row.html" with submission=submission %}
+          <div class="card-actions">
+            <a class="btn btn-primary" href="{% url 'review_submission' submission.pk %}">Review</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">Nothing pending review.</div>
+  {% endif %}
+
+  <h2>Contested</h2>
+  {% if contested %}
+    <div class="card-grid">
+      {% for submission in contested %}
+        <div class="card">
+          {% include "tracker/partials/submission_row.html" with submission=submission %}
+          <div class="card-actions">
+            <a class="btn btn-primary" href="{% url 'review_submission' submission.pk %}">Review</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">No contested submissions.</div>
+  {% endif %}
+
+  <h2>Recently reviewed</h2>
+  {% if recently_reviewed %}
+    <div class="card-grid">
+      {% for submission in recently_reviewed %}
+        <div class="card">
+          {% include "tracker/partials/submission_row.html" with submission=submission %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">No recent review activity.</div>
+  {% endif %}
+{% endblock %}

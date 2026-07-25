@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Squad Achieves (poe-tracker) backup nightly
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+# Spread the actual start over a 20-minute window so it doesn't always
+# land at exactly 03:00 (avoids collisions with other scheduled jobs).
+RandomizedDelaySec=20min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,93 @@
+{% extends "tracker/base.html" %}
+{% block title %}Account &middot; {{ league_name }}{% endblock %}
+{% block content %}
+  <h1>Account settings</h1>
+
+  {% if form.non_field_errors %}
+    <div class="form-errors">
+      <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="card">
+    {% csrf_token %}
+    <div class="form-row">
+      <label for="{{ form.display_name.id_for_label }}">Display name</label>
+      {{ form.display_name }}
+      {% if form.display_name.errors %}<ul class="field-errors">{% for error in form.display_name.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="form-row">
+      <label for="{{ form.avatar.id_for_label }}">Avatar</label>
+      {{ form.avatar }}
+      {% if form.avatar.errors %}<ul class="field-errors">{% for error in form.avatar.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="form-row">
+      <label for="{{ form.banner_hue.id_for_label }}">Banner hue (0-360)</label>
+      {{ form.banner_hue }}
+      {% if form.banner_hue.errors %}<ul class="field-errors">{% for error in form.banner_hue.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save changes</button>
+      <a class="btn" href="{% url 'password_change' %}">Change password</a>
+    </div>
+  </form>
+
+  {% if invite_form %}
+    <h2>Invite a friend</h2>
+    <form method="post" class="card">
+      {% csrf_token %}
+      <input type="hidden" name="create_invite" value="1">
+      <div class="form-row">
+        <label for="{{ invite_form.display_name.id_for_label }}">Display name</label>
+        {{ invite_form.display_name }}
+      </div>
+      <div class="form-row">
+        <label for="{{ invite_form.note.id_for_label }}">Note</label>
+        {{ invite_form.note }}
+      </div>
+      <div class="form-row">
+        <label for="{{ invite_form.expires_at.id_for_label }}">Expires at (optional)</label>
+        {{ invite_form.expires_at }}
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Create invite</button>
+      </div>
+    </form>
+
+    <h2>Invites</h2>
+    {% if invites %}
+      <div class="table-wrap">
+        <table class="standings">
+          <thead>
+            <tr>
+              <th scope="col">Code</th>
+              <th scope="col">Display name</th>
+              <th scope="col">Status</th>
+              <th scope="col">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for invite in invites %}
+              <tr>
+                <td><code>{{ invite.code }}</code></td>
+                <td>{{ invite.display_name }}</td>
+                <td>
+                  {% if invite.used_at %}
+                    <span class="pill pill-approved">Used</span>
+                  {% elif invite.is_expired %}
+                    <span class="pill pill-rejected">Expired</span>
+                  {% else %}
+                    <span class="pill pill-pending">Unused</span>
+                  {% endif %}
+                </td>
+                <td>{{ invite.created_at|date:"D j M" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">No invites yet.</div>
+    {% endif %}
+  {% endif %}
+{% endblock %}
