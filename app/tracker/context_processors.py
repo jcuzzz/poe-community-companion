@@ -33,6 +33,7 @@ def league(request):
         pending = Submission.objects.pending_review().count()
 
     return {
+        "site_name": settings.SITE_NAME,
         "league_name": settings.LEAGUE_NAME,
         "league_start": start,
         "league_end": end,

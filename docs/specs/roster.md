@@ -1,0 +1,70 @@
+# Spec — Guild roster & character showcase
+
+Status: **approved, not yet built** (spec-first, 2026-07-25). Builds on the
+feasibility work in [../research/character-lookup.md](../research/character-lookup.md).
+Decision: support **both** auto-lookup (public profile) **and** a PoB-code paste
+fallback. No PoE artwork — class/level shown as CSS badges.
+
+## Goal
+A **roster** page listing guild members, each with a character showcase: class,
+ascendancy, level, league — pulled live-ish from their PoE account when possible,
+or from a pasted Path of Building export code otherwise. Reinforces the shift from
+"achievement tracker" to "guild companion site."
+
+## Data model (proposed)
+Add to `tracker/models.py`:
+
+- `MemberProfile` (1:1 with `User`) — roster settings per member:
+  - `account_name` (the PoE account, incl. `#1234` discriminator if needed)
+  - `main_character_name` (optional; which character to feature)
+  - `profile_public` (bool the member sets to confirm they've unhidden their profile)
+  - `show_on_roster` (bool, default True)
+- `CharacterSnapshot` — cached result of a lookup (never the source of truth):
+  - `user` FK, `character_name`, `class_name`, `ascendancy`, `level`, `league`,
+    `source` (`"api"` | `"pob"`), `raw_json` (last-known items/passives for later
+    PoB-export generation), `fetched_at`.
+- `PobBuild` (optional, for the paste path) — `user` FK, `code` (base64+zlib XML),
+  `parsed` summary (class/level/ascendancy/main skills), `updated_at`.
+
+Keep snapshots disposable: a league reset or a failed fetch should never corrupt
+the members list.
+
+## Data flow
+1. **Auto (primary):** server-side, read-only calls to GGG's character-window API
+   (`get-characters`, `get-items`, `get-passive-skills`) using stdlib `urllib` (no
+   new dep) with a `User-Agent`, short timeout, and retry/backoff. **Cache** the
+   snapshot; refresh on-demand when the roster/profile is viewed and the snapshot
+   is older than a TTL (~10–15 min). Never poll in the background. Requires the
+   member's profile to be **public**.
+2. **PoB fallback:** a textarea where a member pastes their PoB export code; decode
+   base64 → zlib → parse XML (stdlib) into a `PobBuild` + `CharacterSnapshot`
+   (`source="pob"`). Not live; refreshed when they re-paste. Zero API fragility.
+3. Roster/profile renders the snapshot as **badges** (class colour-coded pill,
+   ascendancy, level, league). On fetch failure show "lookup unavailable — using
+   last snapshot / paste a PoB code," never an error page.
+
+## Config
+- `POE_API_BASE` (default `https://www.pathofexile.com`), `POE_API_TIMEOUT`,
+  `POE_SNAPSHOT_TTL_SECONDS`, `POE_USER_AGENT`. All optional with sane defaults;
+  the feature is inert if a member hasn't set an `account_name`.
+
+## UI
+- New **`/roster/`** page: grid of member cards (avatar/banner, name, main
+  character badge, medals summary, links to profile). Respect `show_on_roster`.
+- Fold the character showcase into existing **player profiles** too (decided:
+  roster page + profile integration).
+- A per-member **Refresh** button (POST, throttled) to force a re-fetch.
+- Onboarding note + an account-settings toggle explaining the "make your PoE
+  profile public" step (the #1 failure mode).
+
+## Effort & risk
+Medium. Main risks (from the research doc): the character-window API is
+**unofficial** (could break/Cloudflare-block), **private profiles** fail, **league
+resets** churn character lists, and **PoE 2** would need separate handling. Treat
+auto-lookup as best-effort; the PoB paste path is the reliable floor.
+
+## Build order (when greenlit)
+1. `MemberProfile` + account-settings fields + the "make public" onboarding copy.
+2. PoB-paste path end-to-end (reliable, no external calls) + badge rendering.
+3. Auto-lookup service module + caching + Refresh, layered on top.
+4. `/roster/` page + profile integration + tests (mock the HTTP layer).

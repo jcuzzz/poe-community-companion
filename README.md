@@ -1,6 +1,11 @@
-# Squad Achieves
+# PoE Community Companion
 
-A private Path of Exile league achievement tracker for five friends. Players submit
+<sub>(codename "Squad Achieves" · repo `poe-tracker`) — the user-facing name is set
+via the `SITE_NAME` env var so self-hosted instances can brand their own. Planned
+to go open source; see [docs/ROADMAP.md](docs/ROADMAP.md).</sub>
+
+A private, self-hosted Path of Exile guild / community companion site (started as a
+league achievement tracker). Players submit
 screenshot-backed claims for league firsts; an admin approves them; the site ranks
 everyone by who got there first and who got there most efficiently.
 

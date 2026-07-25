@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}{{ league_name }}{% endblock %}</title>
+  <title>{% block title %}{{ site_name }}{% endblock %}</title>
   <script>
     // Apply saved theme before paint to avoid a flash.
     (function () {
@@ -26,7 +26,8 @@
   <header class="site-header">
     <div class="header-bar">
       <a class="brand" href="{% url 'dashboard' %}">
-        <span class="brand-name">{{ league_name }}</span>
+        <span class="brand-name">{{ site_name }}</span>
+        {% if league_name %}<span class="brand-league">{{ league_name }}</span>{% endif %}
       </a>
 
       <span class="league-clock">
@@ -98,7 +99,7 @@
   </main>
 
   <footer class="site-footer">
-    <p>{{ league_name }} &middot; a private tracker for five friends. No PoE artwork used.</p>
+    <p>{{ site_name }} &middot; a private tracker for five friends. No PoE artwork used.</p>
     <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle light and dark theme">
       <span data-theme-label>Theme</span>
     </button>

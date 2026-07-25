@@ -655,7 +655,7 @@ def share_card(request: HttpRequest, pk: int) -> HttpResponse:
     medals = "   ".join(a.short_label for a in submission.awards.all())
     if medals:
         draw.text((60, 470), medals, font=font(28), fill=gold_bright)
-    draw.text((60, H - 70), "Squad Achieves", font=font(24), fill=dim)
+    draw.text((60, H - 70), settings.SITE_NAME, font=font(24), fill=dim)
 
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")

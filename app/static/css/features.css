@@ -39,3 +39,10 @@
   margin: var(--space-5) 0;
 }
 .page-info { color: var(--color-parchment-dim); font-size: var(--fs-sm); }
+
+.brand-league {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--color-parchment-dim);
+  letter-spacing: 0.02em;
+}

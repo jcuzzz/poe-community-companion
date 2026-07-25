@@ -1,9 +1,9 @@
 {% extends "tracker/base.html" %}
-{% block title %}Join &middot; {{ league_name }}{% endblock %}
+{% block title %}Join &middot; {{ site_name }}{% endblock %}
 {% block content %}
   <div class="auth-shell">
     <div class="card">
-      <h1>Join {{ league_name }}</h1>
+      <h1>Join {{ site_name }}</h1>
 
       {% if invite and not invite.is_valid %}
         <div class="form-errors">This invite code has already been used or has expired.</div>

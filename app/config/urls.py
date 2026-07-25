@@ -12,8 +12,8 @@ from django.views.static import serve as _serve_media
 serve_media = login_required(_serve_media)
 
 # Keep the admin off a guessable path.
-admin.site.site_header = "Squad Achieves administration"
-admin.site.site_title = "Squad Achieves"
+admin.site.site_header = f"{settings.SITE_NAME} administration"
+admin.site.site_title = settings.SITE_NAME
 admin.site.index_title = "League management"
 
 ADMIN_PATH = os.environ.get("DJANGO_ADMIN_PATH", "manage-league").strip("/")

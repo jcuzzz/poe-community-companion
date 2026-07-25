@@ -6,10 +6,14 @@ This is a living plan, not a commitment — reorder freely. Update it as items s
 
 ## Direction
 
-Squad Achieves started as a league **achievement tracker** and is becoming a
-**PoE guild / community companion site**: the place the group gathers around a
-league — track firsts and efficiency, show off characters, talk about drops, run
-events, and keep a history across leagues. Guiding principles carried over from
+This started as a league **achievement tracker** (codename "Squad Achieves", repo
+`poe-tracker`) and is becoming the **PoE Community Companion** — a guild/community
+site: the place a group gathers around a league to track firsts and efficiency,
+show off characters, talk about drops, run events, and keep history across leagues.
+The user-facing name is set via the `SITE_NAME` env var (default
+"PoE Community Companion") so self-hosted forks can brand their own instance —
+**the project is planned to go open source** so others can run it (see
+"Open-source readiness" below). Guiding principles carried over from
 [../plan.md](../plan.md):
 
 - **Private, small-group first.** Invite-only; no scraping; trust-based with proof.
@@ -31,13 +35,13 @@ a *community site*, but flag the shift before building.
 - **Empty-league / pre-start states** — friendly copy before `LEAGUE_START`.
 
 ## Guild / community (the reframing)
-- **Guild roster & membership** — a members page, roles/titles, join requests, an
-  "about the guild" page. Small models + views.
-- **Character showcase** — see [research/character-lookup.md](research/character-lookup.md):
-  server-side, cached, read-only lookups against GGG's character-window API
-  (requires each member to make their profile public), rendered as class/level
-  **badges** (no game art). Optional "paste your PoB code" fallback. **Medium**,
-  fragile (unofficial API) — treat as best-effort.
+- **Guild roster & character showcase** — SPEC APPROVED, not yet built. Full design
+  in [specs/roster.md](specs/roster.md): a `/roster/` page + profile integration,
+  with character data from **both** auto-lookup (public profile, cached) **and** a
+  PoB-code paste fallback, rendered as class/level **badges** (no game art).
+  Background/feasibility: [research/character-lookup.md](research/character-lookup.md).
+- **Roles / titles / join requests / "about the guild" page** — smaller follow-ons
+  to the roster.
 - **Events / race nights** — schedule guild events, RSVPs, countdowns. New models.
 - **Announcements / news** — a pinned posts area on the dashboard.
 - **Public read-only view (opt-in)** — a shareable leaderboard/first-page for the
@@ -62,6 +66,23 @@ a *community site*, but flag the shift before building.
 - **OG meta tags** using the existing share-card so links unfurl nicely in chat.
 - **Contested-claim auto-resolution** — when the vote reaches a threshold, prompt
   the admin (or auto-flip) instead of purely manual resolution.
+
+## Open-source readiness (planned)
+Goal: anyone can self-host their own instance. Before making the repo public:
+- **License** — pick one (e.g. MIT or AGPL) and add `LICENSE`.
+- **De-brand / generalise config** — done: `SITE_NAME` is configurable; secrets
+  are env-only and gitignored. Still to do: move site-specific values out of docs
+  into examples (the runbooks hardcode `poe.example.com`, `192.0.2.x`, CT100 — keep
+  a sanitised generic guide + an optional "our setup" appendix).
+- **Setup docs for strangers** — a top-level quickstart (clone → `.env` → compose
+  up → seed), screenshots, and a note that it's PoE 1 / no GGG affiliation / no
+  artwork included.
+- **`CONTRIBUTING.md`** + a clean issue/PR template; ensure the test suite runs from
+  a fresh checkout with documented commands.
+- **Scrub history** — confirm no secret ever landed in git (the dev key/passwords
+  were only ever in `.env`/generated, not committed — verify before going public).
+- **Rename question** — decide whether to rename the repo from `poe-tracker` to
+  something matching the product before publishing.
 
 ## Known tech debt / follow-ups (from the code review)
 Fixed already: media behind login, secret-key prod guard, dead `rows` removed,
