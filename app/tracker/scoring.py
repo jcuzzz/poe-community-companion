@@ -171,19 +171,6 @@ def achievement_standings(achievement: Achievement) -> dict:
         .order_by("obtained_at", "submitted_at")
     )
 
-    # A player may have several submissions here; show their strongest one
-    # (most award points, then earliest) so the card reflects their medals.
-    def rank_key(sub: Submission):
-        approved = sub.status == Submission.Status.APPROVED
-        points = sum(a.points for a in sub.awards.all())
-        return (approved, points, -sub.obtained_at.timestamp())
-
-    by_user: dict[int, Submission] = {}
-    for sub in subs:
-        current = by_user.get(sub.user_id)
-        if current is None or rank_key(sub) > rank_key(current):
-            by_user[sub.user_id] = sub
-
     winner = None
     for sub in subs:
         if sub.status == Submission.Status.APPROVED and any(
@@ -191,17 +178,6 @@ def achievement_standings(achievement: Achievement) -> dict:
         ):
             winner = sub
             break
-
-    rows = []
-    for player in players:
-        rows.append({"player": player, "submission": by_user.get(player.pk)})
-    rows.sort(
-        key=lambda r: (
-            r["submission"] is None,
-            r["submission"].obtained_at if r["submission"] else None,
-            r["player"].name.lower(),
-        )
-    )
 
     # `entries` shows every approved submission individually - a player who
     # logged the same achievement twice appears twice, each with its own
@@ -222,7 +198,6 @@ def achievement_standings(achievement: Achievement) -> dict:
     return {
         "achievement": achievement,
         "winner": winner,
-        "rows": rows,
         "entries": entries,
         "not_submitted": not_submitted,
         "submissions": subs,

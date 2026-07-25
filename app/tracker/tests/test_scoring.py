@@ -259,7 +259,8 @@ class AchievementStandingsTests(TestCase):
         card = scoring.achievement_standings(self.divine)
         self.assertIsNone(card["winner"])
         self.assertEqual(card["player_count"], 2)
-        self.assertTrue(all(row["submission"] is None for row in card["rows"]))
+        self.assertEqual(card["entries"], [])
+        self.assertEqual(len(card["not_submitted"]), 2)
 
     def test_winner_and_rows(self):
         winner = make_submission(self.jcuz, self.divine, hours_in=10)
@@ -274,7 +275,7 @@ class AchievementStandingsTests(TestCase):
         make_submission(self.jcuz, self.divine, status=Submission.Status.DRAFT)
         card = scoring.achievement_standings(self.divine)
         self.assertEqual(card["submissions"], [])
-        self.assertTrue(all(row["submission"] is None for row in card["rows"]))
+        self.assertEqual(card["entries"], [])
 
     def test_pending_shows_but_does_not_win(self):
         make_submission(self.jcuz, self.divine, status=Submission.Status.PENDING)

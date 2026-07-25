@@ -17,6 +17,14 @@ def env_list(name, default=""):
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-insecure-key-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", False)
 
+if not DEBUG and SECRET_KEY == "dev-insecure-key-change-me":
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY is unset in production. Set a real key in .env "
+        "(python -c \"import secrets; print(secrets.token_urlsafe(50))\")."
+    )
+
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]")
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 

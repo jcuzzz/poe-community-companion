@@ -278,6 +278,21 @@ class SubmissionFlowTests(TestCase):
         response = self.client.get(proof.image.url)
         self.assertEqual(response.status_code, 200)
 
+    @override_settings(DEBUG=False)
+    def test_media_requires_login(self):
+        # Proof screenshots are private: an anonymous visitor is redirected
+        # to login, not handed the image.
+        data = self.post_data(**formset_management(total=1))
+        data["proofs-0-kind"] = ProofImage.Kind.ITEM
+        data["proofs-0-image"] = image_upload()
+        self.client.post(reverse("submission_create"), data)
+        proof = ProofImage.objects.get()
+
+        self.client.logout()
+        response = self.client.get(proof.image.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("login"), response["Location"])
+
     def test_non_image_upload_is_rejected(self):
         data = self.post_data(**formset_management(total=1))
         data["proofs-0-kind"] = ProofImage.Kind.ITEM
@@ -299,6 +314,13 @@ class SubmissionFlowTests(TestCase):
         victim = make_player("bob")
         theirs = make_submission(victim, self.achievement, status=Submission.Status.DRAFT)
         self.assertEqual(self.client.get(reverse("submission_edit", args=[theirs.pk])).status_code, 404)
+
+    def test_cannot_delete_someone_elses_submission(self):
+        victim = make_player("bob")
+        theirs = make_submission(victim, self.achievement, status=Submission.Status.APPROVED)
+        response = self.client.post(reverse("submission_delete", args=[theirs.pk]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Submission.objects.filter(pk=theirs.pk).exists())
 
     def test_cannot_view_someone_elses_draft(self):
         victim = make_player("bob")
