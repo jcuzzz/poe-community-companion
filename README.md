@@ -8,7 +8,10 @@ Self-hosted on Proxmox (LXC CT100, `192.0.2.60`) behind the existing Caddy insta
 at `192.0.2.22`, published as `poe.example.com`. The app port is never exposed
 publicly — Caddy is the only entry point.
 
-Design rationale and the full product spec live in [plan.md](plan.md).
+Design rationale and the original product spec live in [plan.md](plan.md).
+**Current features:** [docs/FEATURES.md](docs/FEATURES.md) · **where it's going:**
+[docs/ROADMAP.md](docs/ROADMAP.md) · **research spikes:** [docs/research/](docs/research/).
+Keep these updated as work lands so the project doesn't live only in chat history.
 
 ## Stack
 
