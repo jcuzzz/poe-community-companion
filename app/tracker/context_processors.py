@@ -33,7 +33,9 @@ def league(request):
         pending = Submission.objects.pending_review().count()
 
     return {
-        "site_name": settings.SITE_NAME,
+        # Named brand_name (not site_name) to avoid colliding with the site_name
+        # Django's auth views inject (the request host) on login/password pages.
+        "brand_name": settings.SITE_NAME,
         "league_name": settings.LEAGUE_NAME,
         "league_start": start,
         "league_end": end,

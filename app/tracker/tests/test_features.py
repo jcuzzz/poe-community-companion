@@ -1,6 +1,6 @@
 """Activity feed, exports and the share-card image."""
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from tracker import scoring
@@ -33,6 +33,16 @@ class ActivityFeedTests(TestCase):
 
     def test_empty_state(self):
         self.assertContains(self.client.get(reverse("activity_feed")), "No activity yet")
+
+
+class BrandingTests(TestCase):
+    @override_settings(SITE_NAME="Test Companion")
+    def test_login_page_shows_brand_not_host(self):
+        # Regression: Django auth views inject their own `site_name` (the host);
+        # our brand must come from a non-colliding var (brand_name).
+        response = self.client.get(reverse("login"))
+        self.assertContains(response, "Test Companion")
+        self.assertNotContains(response, 'class="brand-name">testserver')
 
 
 class ExportTests(TestCase):

@@ -1,5 +1,5 @@
 {% extends "tracker/base.html" %}
-{% block title %}{{ stats.player.name }} &middot; {{ site_name }}{% endblock %}
+{% block title %}{{ stats.player.name }} &middot; {{ brand_name }}{% endblock %}
 {% block content %}
   <section class="player-banner" style="--banner-hue: {{ stats.player.banner_hue }};">
     {% if stats.player.avatar %}

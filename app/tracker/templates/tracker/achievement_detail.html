@@ -1,5 +1,5 @@
 {% extends "tracker/base.html" %}
-{% block title %}{{ achievement.name }} &middot; {{ site_name }}{% endblock %}
+{% block title %}{{ achievement.name }} &middot; {{ brand_name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'achievement_list' %}">&larr; All achievements</a></p>
   <h1>{{ achievement.icon }} {{ achievement.name }}</h1>
