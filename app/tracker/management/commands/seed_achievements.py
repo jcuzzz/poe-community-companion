@@ -14,8 +14,8 @@ from tracker.models import Achievement, AllowlistItem
 ACHIEVEMENTS = [
     {
         "slug": "first-divine-orb",
-        "name": "First Divine Orb",
-        "label": "Divine First",
+        "name": "Divine Orb Drop",
+        "label": "Divine Drop",
         "icon": "\U0001FA99",  # coin
         "base_points": 2,
         "sort_order": 10,
@@ -27,8 +27,8 @@ ACHIEVEMENTS = [
     },
     {
         "slug": "first-fracturing-orb",
-        "name": "First Fracturing Orb",
-        "label": "Fracturing First",
+        "name": "Fracturing Orb Drop",
+        "label": "Fracturing Drop",
         "icon": "\U0001F48E",  # gem
         "base_points": 2,
         "sort_order": 20,
@@ -40,8 +40,8 @@ ACHIEVEMENTS = [
     },
     {
         "slug": "first-hinekoras-lock",
-        "name": "First Hinekora's Lock",
-        "label": "Lock First",
+        "name": "Hinekora's Lock Drop",
+        "label": "Lock Drop",
         "icon": "\U0001F511",  # key
         "base_points": 2,
         "sort_order": 30,
@@ -53,8 +53,8 @@ ACHIEVEMENTS = [
     },
     {
         "slug": "first-t0-unique",
-        "name": "First T0 Unique",
-        "label": "T0 First",
+        "name": "T0 Unique Drop",
+        "label": "T0 Drop",
         "icon": "\U0001F451",  # crown
         "base_points": 2,
         "sort_order": 40,
@@ -73,8 +73,8 @@ ACHIEVEMENTS = [
     },
     {
         "slug": "first-ralakeshs-impatience",
-        "name": "First Ralakesh's Impatience",
-        "label": "Ralakesh First",
+        "name": "Ralakesh's Impatience Drop",
+        "label": "Ralakesh Drop",
         "icon": "\U0001F45F",  # boot
         "base_points": 2,
         "sort_order": 50,
@@ -86,8 +86,8 @@ ACHIEVEMENTS = [
     },
     {
         "slug": "first-mirror-of-kalandra",
-        "name": "First Mirror of Kalandra",
-        "label": "Mirror First",
+        "name": "Mirror of Kalandra Drop",
+        "label": "Mirror Drop",
         "icon": "\U0001FA9E",  # mirror
         "base_points": 2,
         "sort_order": 60,
@@ -99,7 +99,7 @@ ACHIEVEMENTS = [
     },
     {
         "slug": "first-mirror-tier-item",
-        "name": "First Mirror-Tier Item",
+        "name": "Mirror-Tier Item",
         "label": "Mirror-Tier Craft",
         "icon": "✨",  # sparkles
         "base_points": 2,
