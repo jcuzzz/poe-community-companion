@@ -42,9 +42,7 @@
         <li><a href="{% url 'leaderboard' %}">Leaderboard</a></li>
         {% if user.is_authenticated %}
           <li><a href="{% url 'character_list' %}">My characters</a></li>
-          {% if user.can_submit %}
-            <li><a href="{% url 'submission_create' %}">Submit</a></li>
-          {% endif %}
+          <li><a href="{% url 'submission_create' %}">Submit</a></li>
           {% if user.is_staff %}
             <li>
               <a href="{% url 'review_queue' %}">

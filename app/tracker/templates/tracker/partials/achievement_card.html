@@ -41,9 +41,7 @@
     {% endfor %}
   </ul>
 
-  {% if user.can_submit %}
-    <div class="card-actions">
-      <a class="btn btn-primary" href="{% url 'submission_create_for' card.achievement.slug %}">Submit Achievement</a>
-    </div>
-  {% endif %}
+  <div class="card-actions">
+    <a class="btn btn-primary" href="{% url 'submission_create_for' card.achievement.slug %}">Submit Achievement</a>
+  </div>
 </article>

@@ -998,3 +998,35 @@ input[type="radio"] {
   margin: var(--space-7) auto;
 }
 .auth-shell .card { margin-bottom: 0; }
+
+/* --- Blocked-from-submitting popup ------------------------------------- */
+.blocked-overlay {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-6) var(--space-4);
+}
+.blocked-popup {
+  max-width: 40rem;
+  width: 100%;
+  text-align: center;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
+  padding: var(--space-6);
+}
+.blocked-title {
+  font-family: var(--font-display);
+  color: var(--color-gold-bright);
+  margin-bottom: var(--space-4);
+}
+.blocked-gif {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+.blocked-body {
+  color: var(--color-parchment);
+  margin: var(--space-4) 0 var(--space-5);
+}

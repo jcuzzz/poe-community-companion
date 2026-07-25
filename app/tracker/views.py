@@ -133,18 +133,18 @@ def player_profile(request: HttpRequest, username: str) -> HttpResponse:
 # --- Submissions ---------------------------------------------------------
 
 
-def _blocked_from_submitting(request) -> bool:
-    """A player whose can_submit flag is off cannot log new entries."""
+def _blocked_response(request):
+    """If the player is blocked from submitting, the cheeky gif popup; else None."""
     if request.user.can_submit:
-        return False
-    messages.error(request, "Your account is currently blocked from submitting.")
-    return True
+        return None
+    return render(request, "tracker/submission_blocked.html", status=403)
 
 
 @login_required
 def submission_create(request: HttpRequest, slug: str | None = None) -> HttpResponse:
-    if _blocked_from_submitting(request):
-        return redirect("dashboard")
+    blocked = _blocked_response(request)
+    if blocked:
+        return blocked
     achievement = None
     if slug:
         achievement = get_object_or_404(Achievement, slug=slug, active=True)
@@ -262,8 +262,9 @@ def submission_edit(request: HttpRequest, pk: int) -> HttpResponse:
 @require_POST
 def submission_send(request: HttpRequest, pk: int) -> HttpResponse:
     submission = get_object_or_404(Submission, pk=pk, user=request.user)
-    if _blocked_from_submitting(request):
-        return redirect("submission_detail", pk=submission.pk)
+    blocked = _blocked_response(request)
+    if blocked:
+        return blocked
     if submission.status == Submission.Status.APPROVED:
         messages.info(request, "This achievement is already logged.")
         return redirect("submission_detail", pk=submission.pk)

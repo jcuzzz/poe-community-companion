@@ -90,17 +90,28 @@
         </div>
       {% endif %}
 
+      <div id="proof-dropzone" class="proof-dropzone" tabindex="0" role="button"
+           aria-describedby="proof-dropzone-note"
+           aria-label="Drag screenshots here, or press Enter and paste with Ctrl+V, to fill the next empty proof slot">
+        <p class="proof-dropzone-text">
+          <strong>Drag screenshots here, or paste with Ctrl+V</strong><br>
+          — or use the file pickers below.
+        </p>
+        <p id="proof-dropzone-note" class="proof-dropzone-note" aria-live="polite"></p>
+      </div>
+
       {{ proof_formset.management_form }}
       {% if proof_formset.non_field_errors %}
         <div class="form-errors"><ul>{% for error in proof_formset.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul></div>
       {% endif %}
       {% for proof_form in proof_formset %}
-        <div class="proof-form-item">
+        <div class="proof-form-item" data-proof-slot="{{ forloop.counter0 }}">
           {% for hidden in proof_form.hidden_fields %}{{ hidden }}{% endfor %}
           <div class="form-row">
             <label for="{{ proof_form.image.id_for_label }}">Image</label>
             {{ proof_form.image }}
             {% if proof_form.image.errors %}<ul class="field-errors">{% for error in proof_form.image.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+            <div class="proof-slot-preview" data-proof-preview></div>
           </div>
           <div class="form-row">
             <label for="{{ proof_form.kind.id_for_label }}">Kind</label>
@@ -147,6 +158,171 @@
       input.setAttribute("hx-swap", "outerHTML");
       input.setAttribute("name", "played");
       window.htmx.process(input);
+    })();
+  </script>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var dropzone = document.getElementById("proof-dropzone");
+      var note = document.getElementById("proof-dropzone-note");
+      var slots = Array.prototype.slice.call(document.querySelectorAll(".proof-form-item"));
+      if (!dropzone || !slots.length || typeof window.DataTransfer === "undefined" || typeof File === "undefined") {
+        return;
+      }
+
+      function getInput(slot) {
+        return slot.querySelector('input[type="file"]');
+      }
+
+      function getPreviewContainer(slot) {
+        return slot.querySelector("[data-proof-preview]");
+      }
+
+      function nextEmptySlots(count) {
+        var empties = [];
+        for (var i = 0; i < slots.length && empties.length < count; i++) {
+          var input = getInput(slots[i]);
+          if (input && (!input.files || input.files.length === 0)) {
+            empties.push(slots[i]);
+          }
+        }
+        return empties;
+      }
+
+      function showNote(message) {
+        if (!note) { return; }
+        note.textContent = message || "";
+      }
+
+      function renderPreview(slot, file) {
+        var container = getPreviewContainer(slot);
+        if (!container) { return; }
+
+        var previousUrl = container.getAttribute("data-object-url");
+        if (previousUrl) {
+          URL.revokeObjectURL(previousUrl);
+          container.removeAttribute("data-object-url");
+        }
+        container.innerHTML = "";
+
+        if (!file) { return; }
+
+        if (typeof URL !== "undefined" && URL.createObjectURL) {
+          var url = URL.createObjectURL(file);
+          var img = document.createElement("img");
+          img.src = url;
+          img.alt = "";
+          img.className = "proof-slot-preview-img";
+          container.setAttribute("data-object-url", url);
+          container.appendChild(img);
+        }
+
+        var name = document.createElement("span");
+        name.className = "proof-slot-preview-name";
+        name.textContent = file.name;
+        container.appendChild(name);
+      }
+
+      function assignFileToSlot(slot, file) {
+        var input = getInput(slot);
+        if (!input) { return; }
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        renderPreview(slot, file);
+      }
+
+      function isImageFile(file) {
+        return !!file && typeof file.type === "string" && file.type.indexOf("image/") === 0;
+      }
+
+      function distributeFiles(files) {
+        var images = [];
+        for (var i = 0; i < files.length; i++) {
+          if (isImageFile(files[i])) { images.push(files[i]); }
+        }
+        if (!images.length) {
+          showNote("No image files found to attach.");
+          return;
+        }
+        var targets = nextEmptySlots(images.length);
+        var placed = 0;
+        for (var j = 0; j < targets.length; j++) {
+          assignFileToSlot(targets[j], images[j]);
+          placed++;
+        }
+        if (placed === 0) {
+          showNote("All three proof slots are already full.");
+        } else if (placed < images.length) {
+          showNote("Only " + placed + " of " + images.length + " images attached — the remaining proof slots are full.");
+        } else {
+          showNote(placed === 1 ? "Attached 1 screenshot." : "Attached " + placed + " screenshots.");
+        }
+      }
+
+      // Native picker: keep preview in sync when a user manually chooses a file.
+      slots.forEach(function (slot) {
+        var input = getInput(slot);
+        if (!input) { return; }
+        input.addEventListener("change", function () {
+          var file = input.files && input.files[0];
+          renderPreview(slot, file || null);
+        });
+      });
+
+      // Drag and drop.
+      ["dragenter", "dragover"].forEach(function (type) {
+        dropzone.addEventListener(type, function (event) {
+          event.preventDefault();
+          dropzone.classList.add("is-dragover");
+        });
+      });
+      ["dragleave", "dragend"].forEach(function (type) {
+        dropzone.addEventListener(type, function () {
+          dropzone.classList.remove("is-dragover");
+        });
+      });
+      dropzone.addEventListener("drop", function (event) {
+        event.preventDefault();
+        dropzone.classList.remove("is-dragover");
+        var files = event.dataTransfer && event.dataTransfer.files;
+        if (files && files.length) {
+          distributeFiles(files);
+        }
+      });
+
+      // Keyboard activation is purely informative — actual pasting needs Ctrl+V, which
+      // works anywhere on the page via the document-level paste listener below.
+      dropzone.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          showNote("Press Ctrl+V to paste a screenshot from your clipboard.");
+        }
+      });
+
+      // Paste anywhere on the page.
+      document.addEventListener("paste", function (event) {
+        var items = event.clipboardData && event.clipboardData.items;
+        if (!items || !items.length) { return; }
+        var pastedFiles = [];
+        var counter = 0;
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          if (item.kind === "file" && item.type && item.type.indexOf("image/") === 0) {
+            var blob = item.getAsFile();
+            if (!blob) { continue; }
+            counter++;
+            var ext = item.type.split("/")[1] || "png";
+            var name = blob.name && blob.name !== "" ? blob.name : ("pasted-" + counter + "." + ext);
+            pastedFiles.push(new File([blob], name, { type: item.type }));
+          }
+        }
+        if (pastedFiles.length) {
+          distributeFiles(pastedFiles);
+        }
+      });
     })();
   </script>
 {% endblock %}
