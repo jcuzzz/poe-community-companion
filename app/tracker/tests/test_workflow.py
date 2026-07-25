@@ -235,6 +235,19 @@ class SubmissionFlowTests(TestCase):
         self.assertEqual(proof.kind, ProofImage.Kind.ITEM)
         self.assertTrue(proof.image.name.startswith("proofs/"))
 
+    @override_settings(DEBUG=False)
+    def test_uploaded_media_is_served_in_production(self):
+        # Regression: /media/ must be routed even with DEBUG off, otherwise
+        # every uploaded screenshot 404s and looks like a corrupted upload.
+        data = self.post_data(**formset_management(total=1))
+        data["proofs-0-kind"] = ProofImage.Kind.ITEM
+        data["proofs-0-image"] = image_upload()
+        self.client.post(reverse("submission_create"), data)
+
+        proof = ProofImage.objects.get()
+        response = self.client.get(proof.image.url)
+        self.assertEqual(response.status_code, 200)
+
     def test_non_image_upload_is_rejected(self):
         data = self.post_data(**formset_management(total=1))
         data["proofs-0-kind"] = ProofImage.Kind.ITEM

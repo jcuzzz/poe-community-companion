@@ -3,9 +3,9 @@
 import os
 
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
+from django.views.static import serve as serve_media
 
 # Keep the admin off a guessable path.
 admin.site.site_header = "Squad Achieves administration"
@@ -19,6 +19,15 @@ urlpatterns = [
     path("", include("tracker.urls")),
 ]
 
-# In production Caddy (or whitenoise) serves media; this is for local runs.
+# Serve uploaded media. Django's static() helper no-ops when DEBUG is False,
+# so we route the serve view explicitly — this must work in production too,
+# where SERVE_MEDIA is on and there is no separate media file server.
 if settings.DEBUG or os.environ.get("SERVE_MEDIA", "1") == "1":
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    media_prefix = settings.MEDIA_URL.lstrip("/")
+    urlpatterns += [
+        re_path(
+            rf"^{media_prefix}(?P<path>.*)$",
+            serve_media,
+            {"document_root": settings.MEDIA_ROOT},
+        ),
+    ]
