@@ -6,6 +6,12 @@
     <a class="btn btn-primary" href="{% url 'character_create' %}">New character</a>
   </div>
 
+  <p class="text-muted">
+    These are the character names you attach to achievement submissions. To show off a
+    build on the <a href="{% url 'roster' %}">roster</a>, paste a Path of Building code in
+    <a href="{% url 'roster_settings' %}">Character / roster</a> instead.
+  </p>
+
   {% if characters %}
     <div class="card-grid cols-2">
       {% for character in characters %}

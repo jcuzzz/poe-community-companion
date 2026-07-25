@@ -6,12 +6,10 @@
     {% if viewing_league %}<span class="brand-league">{{ viewing_league.name }}</span>{% endif %}
   </h1>
 
-  {% if not auto_ok and viewing_league %}
-    <div class="empty-state empty-state--note">
-      Auto lookup isn't available for this league. Members can share a Path of Building
-      paste instead via <a href="{% url 'roster_settings' %}">Character / roster settings</a>.
-    </div>
-  {% endif %}
+  <p class="text-muted">
+    Add your character by pasting a Path of Building code in
+    <a href="{% url 'roster_settings' %}">Character / roster</a>.
+  </p>
 
   {% if cards %}
     <div class="roster-grid">

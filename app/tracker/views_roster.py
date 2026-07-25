@@ -6,6 +6,7 @@ All lookups are best-effort and never raise to the page.
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
@@ -22,6 +23,16 @@ def _snapshot_for(user, league):
     if league is None:
         return None
     return CharacterSnapshot.objects.filter(user=user, league=league).first()
+
+
+def _auto_ok(league) -> bool:
+    """Auto-lookup is only offered when a league supports it (PoE 1) AND the server
+    has it enabled. It's disabled by default because GGG blocks server-side calls."""
+    return bool(
+        league
+        and league.supports_auto_lookup
+        and getattr(settings, "POE_AUTO_LOOKUP_ENABLED", False)
+    )
 
 
 @login_required
@@ -41,7 +52,7 @@ def roster(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "tracker/roster.html",
-        {"cards": cards, "viewing_league": viewing, "auto_ok": bool(viewing and viewing.supports_auto_lookup)},
+        {"cards": cards, "viewing_league": viewing, "auto_ok": _auto_ok(viewing)},
     )
 
 
@@ -83,7 +94,7 @@ def roster_settings(request: HttpRequest) -> HttpResponse:
             "pob_form": pob_form,
             "active_league": active,
             "snapshot": _snapshot_for(request.user, active),
-            "auto_ok": bool(active and active.supports_auto_lookup),
+            "auto_ok": _auto_ok(active),
         },
     )
 
@@ -95,6 +106,13 @@ def roster_refresh(request: HttpRequest) -> HttpResponse:
     active = get_active_league()
     if active is None:
         messages.error(request, "No active league.")
+        return redirect("roster_settings")
+    if not _auto_ok(active):
+        messages.error(
+            request,
+            "Auto-lookup is turned off (GGG blocks server-side character lookups). "
+            "Paste a Path of Building code instead.",
+        )
         return redirect("roster_settings")
     _snap, error = roster_service.refresh_auto_snapshot(request.user, active)
     if error:

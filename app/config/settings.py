@@ -156,8 +156,13 @@ LEAGUE_START = os.environ.get("LEAGUE_START", "")  # legacy, unused
 LEAGUE_END = os.environ.get("LEAGUE_END", "")  # legacy, unused
 
 # --- Roster / character lookup -------------------------------------------
-# All optional with sane defaults; the roster is inert until a member sets an
-# account name. Auto lookup is PoE 1 only (see docs/research/character-lookup-poe2.md).
+# The primary roster path is Path of Building code paste (reliable, both games).
+# Anonymous server-side auto-lookup via GGG's legacy character-window API is
+# DISABLED by default: GGG's Cloudflare 403s non-browser TLS clients regardless of
+# headers/IP (verified 2026), so it doesn't work from a server. Flip this on only if
+# you have a working path (e.g. a future OAuth build). See
+# docs/research/character-lookup-poe2.md and docs/specs/roster.md.
+POE_AUTO_LOOKUP_ENABLED = env_bool("POE_AUTO_LOOKUP_ENABLED", False)
 POE_API_BASE = os.environ.get("POE_API_BASE", "https://www.pathofexile.com")
 POE_API_TIMEOUT = float(os.environ.get("POE_API_TIMEOUT", "8"))
 POE_SNAPSHOT_TTL_SECONDS = int(os.environ.get("POE_SNAPSHOT_TTL_SECONDS", "600"))

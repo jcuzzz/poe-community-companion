@@ -127,10 +127,18 @@ def fetch_poe1_characters(account_name: str) -> list[dict]:
     try:
         data = _http_get_json(url)
     except urllib.error.HTTPError as exc:
-        if exc.code in (403, 404):
+        if exc.code == 403:
+            # GGG's Cloudflare 403s non-browser (server-side) clients regardless of
+            # headers/IP — this is not a profile-privacy problem. See
+            # docs/research/character-lookup-poe2.md.
             raise ValueError(
-                "Couldn't read that account. Is your profile public and the account "
-                "name (with #discriminator) correct?"
+                "PoE blocks automated character lookups from servers, so auto-lookup "
+                "can't fetch your character. Paste a Path of Building code instead."
+            ) from exc
+        if exc.code == 404:
+            raise ValueError(
+                "That account/character wasn't found. Check the account name "
+                "(include the #discriminator)."
             ) from exc
         raise ValueError("PoE lookup is unavailable right now. Try again later.") from exc
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:

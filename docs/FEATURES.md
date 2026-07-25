@@ -38,9 +38,22 @@ HTMX), deployed via Docker/Caddy on a Proxmox LXC. See [../runbooks/](../runbook
   the first season. Full design: [specs/leagues.md](specs/leagues.md).
 
 ## Characters
-- Players manage their own `Character` records (name, class, league, retired).
+- Players manage their own `Character` records (name, class, league, retired) — these
+  are the names attached to achievement submissions.
 - **Default character** (`is_default`, unique per player) is pre-selected on the
   submission form so it's a one-time pick; first character auto-becomes default.
+
+## Roster & character showcase
+- **`/roster/` page** — grid of guild members (respecting `show_on_roster`), each with
+  a character card: class/ascendancy/level/league as CSS **badges**, no game art.
+  Folded into player profiles too. `MemberProfile` + `CharacterSnapshot` (per member
+  & league). Full design: [specs/roster.md](specs/roster.md).
+- **Path of Building paste** is the way members set their showcased character (works
+  for PoE 1 **and** PoE 2; parsed locally, no API). Re-paste to update.
+- **Auto-lookup is disabled by default** (`POE_AUTO_LOOKUP_ENABLED=0`): GGG's
+  Cloudflare blocks server-side character lookups (verified 2026). The service code is
+  retained behind the flag for a future OAuth build. See
+  [research/character-lookup-poe2.md](research/character-lookup-poe2.md).
 
 ## Achievements & submissions
 - Seven seeded achievements (the "X Drop" set), admin-editable; each has an icon,

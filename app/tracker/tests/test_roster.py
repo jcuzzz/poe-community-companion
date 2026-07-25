@@ -189,3 +189,11 @@ class RosterRefreshViewTests(TestCase):
         self.client.login(username="refreshmember", password=PASSWORD)
         response = self.client.get(reverse("roster_refresh"))
         self.assertEqual(response.status_code, 405)
+
+    def test_refresh_blocked_when_auto_disabled(self):
+        # Auto-lookup is off by default; POST should redirect with an error rather
+        # than attempt a (blocked) server-side fetch.
+        make_player("refreshmember2")
+        self.client.login(username="refreshmember2", password=PASSWORD)
+        response = self.client.post(reverse("roster_refresh"))
+        self.assertRedirects(response, reverse("roster_settings"))

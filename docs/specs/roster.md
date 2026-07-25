@@ -69,8 +69,18 @@ the members list.
 - Onboarding note + an account-settings toggle explaining the "make your PoE
   profile public" step (the #1 failure mode).
 
+## Auto-lookup is disabled (2026 reality)
+**Update 2026-07-25:** anonymous server-side auto-lookup is **turned off by default**
+(`POE_AUTO_LOOKUP_ENABLED=0`). Live testing confirmed GGG's Cloudflare returns **403 to
+any non-browser TLS client** (curl/urllib), regardless of User-Agent, headers, or a
+residential IP — so the legacy `character-window` endpoint cannot be used from a server.
+This matches PoB community bug reports and poe.ninja's move to OAuth. **Path of Building
+code paste is now the primary (and only enabled) path**; it works for both games and
+needs no API. The auto-lookup service code is retained but gated behind the flag for a
+possible future OAuth build (the correct long-term path — needs a GGG-approved app).
+
 ## Per-game lookup (PoE 1 vs PoE 2)
-The auto path is **PoE 1 only**. Per the PoE 2 spike
+The auto path (when enabled) is **PoE 1 only**. Per the PoE 2 spike
 ([../research/character-lookup-poe2.md](../research/character-lookup-poe2.md)), PoE 2
 has **no anonymous public lookup** — the service branches on `league.game`:
 - `poe1` → public character-window fetch (account + character name), as below.

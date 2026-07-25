@@ -1,50 +1,39 @@
 {% extends "tracker/base.html" %}
 {% block title %}Character / roster &middot; {{ brand_name }}{% endblock %}
 {% block content %}
-  <h1>Character / roster settings</h1>
-
-  {% if profile_form.non_field_errors %}
-    <div class="form-errors">
-      <ul>{% for error in profile_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
-    </div>
-  {% endif %}
+  <h1>Character / roster</h1>
+  <p class="text-muted">
+    Show off your build on the <a href="{% url 'roster' %}">roster</a>. Paste a
+    <strong>Path of Building</strong> code below &mdash; that's the way to set your
+    character here. (This is separate from
+    <a href="{% url 'character_list' %}">My characters</a>, which are just the character
+    names you attach to achievement submissions.)
+  </p>
 
   <section class="card">
-    <h2>Roster profile</h2>
-    <form method="post" class="card">
+    <h2>Set your character from Path of Building</h2>
+    <p class="text-muted">
+      In Path of Building: <em>Import/Export build &rarr; Generate</em> (or copy your
+      pobb.in / pastebin link) and paste it here. We read your class, ascendancy and
+      level from it &mdash; nothing is sent anywhere. Re-paste any time to update.
+    </p>
+    {% if pob_form.non_field_errors %}
+      <div class="form-errors">
+        <ul>{% for error in pob_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+      </div>
+    {% endif %}
+    <form method="post">
       {% csrf_token %}
+      <input type="hidden" name="form_name" value="pob">
       <div class="form-row">
-        <label for="{{ profile_form.account_name.id_for_label }}">PoE account name</label>
-        {{ profile_form.account_name }}
-        <p class="text-muted">Your full account name, including the #1234 discriminator (e.g. <code>AccountName#1234</code>).</p>
-        {% if profile_form.account_name.errors %}<ul class="field-errors">{% for error in profile_form.account_name.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
-      </div>
-      <div class="form-row">
-        <label for="{{ profile_form.main_character_name.id_for_label }}">Main character name</label>
-        {{ profile_form.main_character_name }}
-        {% if profile_form.main_character_name.errors %}<ul class="field-errors">{% for error in profile_form.main_character_name.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
-      </div>
-      <div class="form-row form-row--checkbox">
-        <label for="{{ profile_form.profile_public.id_for_label }}">{{ profile_form.profile_public }} Profile public</label>
-        {% if profile_form.profile_public.errors %}<ul class="field-errors">{% for error in profile_form.profile_public.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
-      </div>
-      <div class="form-row form-row--checkbox">
-        <label for="{{ profile_form.show_on_roster.id_for_label }}">{{ profile_form.show_on_roster }} Show me on the roster</label>
-        {% if profile_form.show_on_roster.errors %}<ul class="field-errors">{% for error in profile_form.show_on_roster.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        <label for="{{ pob_form.code.id_for_label }}">{{ pob_form.code.label }}</label>
+        {{ pob_form.code }}
+        {% if pob_form.code.errors %}<ul class="field-errors">{% for error in pob_form.code.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
       </div>
       <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Save roster profile</button>
+        <button type="submit" class="btn btn-primary">Save character from PoB</button>
       </div>
     </form>
-
-    <div class="empty-state empty-state--note">
-      <strong>To use auto lookup you must:</strong> set your account name above (with the
-      #1234 discriminator), tick &ldquo;Profile public&rdquo;, <em>and</em> unhide your
-      characters tab in your
-      <a href="https://www.pathofexile.com/my-account/privacy" target="_blank" rel="noopener">pathofexile.com privacy settings</a>.
-      This is the most common reason auto lookup fails &mdash; if any one of these is missed,
-      we can't see your character.
-    </div>
   </section>
 
   <section class="card">
@@ -62,7 +51,7 @@
       </ul>
       <p class="text-muted">via {{ snapshot.get_source_display }} &middot; updated {{ snapshot.fetched_at|timesince }} ago</p>
     {% else %}
-      <div class="empty-state">No character on file yet.</div>
+      <div class="empty-state">No character on file yet &mdash; paste a PoB code above.</div>
     {% endif %}
 
     {% if auto_ok %}
@@ -71,33 +60,50 @@
         <input type="hidden" name="next" value="{% url 'roster_settings' %}">
         <button type="submit" class="btn btn-sm">Refresh from PoE</button>
       </form>
-    {% else %}
-      <div class="empty-state empty-state--note">
-        Auto lookup isn't available for {{ active_league.name|default:"this league" }}
-        (Path of Exile 2 characters can't be looked up automatically yet). Use the
-        Path of Building paste below instead.
-      </div>
     {% endif %}
   </section>
 
   <section class="card">
-    <h2>Path of Building paste</h2>
-    <p class="text-muted">Paste your PoB export code (or a pobb.in / pastebin link) to set your character manually.</p>
-    {% if pob_form.non_field_errors %}
+    <h2>Roster visibility</h2>
+    {% if profile_form.non_field_errors %}
       <div class="form-errors">
-        <ul>{% for error in pob_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+        <ul>{% for error in profile_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
       </div>
     {% endif %}
-    <form method="post" class="card">
+    <form method="post">
       {% csrf_token %}
-      <input type="hidden" name="form_name" value="pob">
-      <div class="form-row">
-        <label for="{{ pob_form.code.id_for_label }}">{{ pob_form.code.label }}</label>
-        {{ pob_form.code }}
-        {% if pob_form.code.errors %}<ul class="field-errors">{% for error in pob_form.code.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+      <div class="form-row form-row--checkbox">
+        <label for="{{ profile_form.show_on_roster.id_for_label }}">{{ profile_form.show_on_roster }} Show me on the roster</label>
+        {% if profile_form.show_on_roster.errors %}<ul class="field-errors">{% for error in profile_form.show_on_roster.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
       </div>
+
+      <details class="roster-advanced">
+        <summary>PoE account (optional &mdash; automatic lookup)</summary>
+        <p class="text-muted">
+          Automatic character lookup is <strong>currently disabled</strong>: Path of
+          Exile blocks automated lookups from servers, so we can't fetch your character
+          for you. Use the Path of Building paste above instead. These fields are only
+          used if a future account-connect feature is enabled.
+        </p>
+        <div class="form-row">
+          <label for="{{ profile_form.account_name.id_for_label }}">PoE account name</label>
+          {{ profile_form.account_name }}
+          <p class="text-muted">Full account name incl. the #1234 discriminator (e.g. <code>AccountName#1234</code>).</p>
+          {% if profile_form.account_name.errors %}<ul class="field-errors">{% for error in profile_form.account_name.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div class="form-row">
+          <label for="{{ profile_form.main_character_name.id_for_label }}">Main character name</label>
+          {{ profile_form.main_character_name }}
+          {% if profile_form.main_character_name.errors %}<ul class="field-errors">{% for error in profile_form.main_character_name.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div class="form-row form-row--checkbox">
+          <label for="{{ profile_form.profile_public.id_for_label }}">{{ profile_form.profile_public }} Profile public</label>
+          {% if profile_form.profile_public.errors %}<ul class="field-errors">{% for error in profile_form.profile_public.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      </details>
+
       <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Save character from PoB</button>
+        <button type="submit" class="btn btn-primary">Save</button>
       </div>
     </form>
   </section>
