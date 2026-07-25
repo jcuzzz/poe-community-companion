@@ -89,9 +89,14 @@ def recalculate(achievement: Achievement | None = None) -> int:
                 )
 
         for award_type, attr in BONUS_RULES:
-            best_value = min(getattr(s, attr) for s in subs)
+            # Only submissions that actually recorded this stat compete for its
+            # medal; a blank /played can't win "lowest /played".
+            values = [getattr(s, attr) for s in subs if getattr(s, attr) is not None]
+            if not values:
+                continue
+            best_value = min(values)
             for sub in subs:
-                if getattr(sub, attr) == best_value:
+                if getattr(sub, attr) is not None and getattr(sub, attr) == best_value:
                     awards.append(
                         Award(
                             submission=sub,
@@ -228,8 +233,12 @@ def player_stats(player: User) -> dict:
         "lowest_played": counts[Award.Type.LOWEST_PLAYED],
         "fewest_kills": counts[Award.Type.FEWEST_KILLS],
         "lowest_level": counts[Award.Type.LOWEST_LEVEL],
-        "total_played_seconds": max((s.played_seconds for s in approved), default=0),
-        "total_kills": max((s.kill_count for s in approved), default=0),
-        "highest_level": max((s.character_level for s in approved), default=0),
+        "total_played_seconds": max(
+            (s.played_seconds for s in approved if s.played_seconds is not None), default=0
+        ),
+        "total_kills": max((s.kill_count for s in approved if s.kill_count is not None), default=0),
+        "highest_level": max(
+            (s.character_level for s in approved if s.character_level is not None), default=0
+        ),
         "characters": list(player.characters.all()),
     }

@@ -151,13 +151,14 @@ def submission_create(request: HttpRequest, slug: str | None = None) -> HttpResp
                     log_audit(submission, request.user, "created")
                     for proof in proofs:
                         log_audit(submission, request.user, "proof_added")
-                    if request.POST.get("action") == "send":
-                        submission.status = Submission.Status.PENDING
-                        submission.save(update_fields=["status"])
-                        log_audit(submission, request.user, "submitted")
-                        messages.success(request, "Submission sent for review.")
-                    else:
-                        messages.success(request, "Draft saved.")
+                    # Approvals are disabled: the entry counts immediately.
+                    submission.status = Submission.Status.APPROVED
+                    submission.reviewed_by = request.user
+                    submission.reviewed_at = timezone.now()
+                    submission.save(update_fields=["status", "reviewed_by", "reviewed_at"])
+                    log_audit(submission, request.user, "approved", "Auto-approved on submit.")
+                    scoring.recalculate(submission.achievement)
+                    messages.success(request, "Achievement logged.")
                     saved_pk = submission.pk
                 else:
                     # Roll the draft back so a bad proof never leaves an orphan row.
@@ -214,10 +215,8 @@ def submission_detail(request: HttpRequest, pk: int) -> HttpResponse:
 def submission_edit(request: HttpRequest, pk: int) -> HttpResponse:
     submission = get_object_or_404(Submission, pk=pk)
     is_owner = submission.user_id == request.user.pk
-    if not (request.user.is_staff or (is_owner and submission.is_editable_by_player)):
+    if not (request.user.is_staff or is_owner):
         raise Http404("Submission not found.")
-
-    was_approved = submission.status == Submission.Status.APPROVED
 
     if request.method == "POST":
         form = SubmissionForm(request.POST, user=submission.user, instance=submission)
@@ -227,17 +226,12 @@ def submission_edit(request: HttpRequest, pk: int) -> HttpResponse:
             with transaction.atomic():
                 submission = form.save()
                 formset.save()
-                if request.user.is_staff and was_approved and changed_fields:
-                    log_audit(
-                        submission,
-                        request.user,
-                        "corrected",
-                        detail=f"Changed fields: {', '.join(changed_fields)}",
-                    )
-                elif changed_fields:
-                    log_audit(submission, request.user, "updated")
-                if request.user.is_staff and was_approved:
-                    scoring.recalculate(submission.achievement)
+                if changed_fields:
+                    detail = f"Changed fields: {', '.join(changed_fields)}"
+                    action = "corrected" if request.user.is_staff and not is_owner else "updated"
+                    log_audit(submission, request.user, action, detail=detail)
+                # Any edit can change the medals, so rebuild this achievement.
+                scoring.recalculate(submission.achievement)
             messages.success(request, "Submission updated.")
             return redirect("submission_detail", pk=submission.pk)
     else:
@@ -258,13 +252,16 @@ def submission_edit(request: HttpRequest, pk: int) -> HttpResponse:
 @require_POST
 def submission_send(request: HttpRequest, pk: int) -> HttpResponse:
     submission = get_object_or_404(Submission, pk=pk, user=request.user)
-    if submission.status not in {Submission.Status.DRAFT, Submission.Status.REJECTED}:
-        messages.error(request, "Only drafts or rejected submissions can be sent for review.")
+    if submission.status == Submission.Status.APPROVED:
+        messages.info(request, "This achievement is already logged.")
         return redirect("submission_detail", pk=submission.pk)
-    submission.status = Submission.Status.PENDING
-    submission.save(update_fields=["status"])
-    log_audit(submission, request.user, "submitted")
-    messages.success(request, "Submission sent for review.")
+    submission.status = Submission.Status.APPROVED
+    submission.reviewed_by = request.user
+    submission.reviewed_at = timezone.now()
+    submission.save(update_fields=["status", "reviewed_by", "reviewed_at"])
+    log_audit(submission, request.user, "approved", "Logged by owner.")
+    scoring.recalculate(submission.achievement)
+    messages.success(request, "Achievement logged.")
     return redirect("submission_detail", pk=submission.pk)
 
 

@@ -12,7 +12,10 @@
         <div class="card">
           <div class="u-flex-between">
             <h3 class="u-mb-0">{{ character.character_name }}</h3>
-            {% if character.retired %}<span class="pill pill-not-submitted">Retired</span>{% endif %}
+            <span>
+              {% if character.is_default %}<span class="pill pill-approved">Default</span>{% endif %}
+              {% if character.retired %}<span class="pill pill-not-submitted">Retired</span>{% endif %}
+            </span>
           </div>
           <p class="text-muted">{{ character.class_name }} &middot; {{ character.league_name }}</p>
           <div class="card-actions">

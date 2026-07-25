@@ -15,11 +15,11 @@
       <dt class="text-muted">Character</dt>
       <dd><strong>{{ submission.character.character_name }}</strong> ({{ submission.character.class_name }})</dd>
       <dt class="text-muted">Level</dt>
-      <dd>{{ submission.character_level }}</dd>
+      <dd>{{ submission.character_level|default_if_none:"—" }}</dd>
       <dt class="text-muted">Played</dt>
       <dd>{{ submission.played_display }}</dd>
       <dt class="text-muted">Kills</dt>
-      <dd>{{ submission.kill_count }}</dd>
+      <dd>{{ submission.kill_count|default_if_none:"—" }}</dd>
       <dt class="text-muted">Obtained</dt>
       <dd>{{ submission.obtained_at|date:"D j M Y, H:i" }}</dd>
       <dt class="text-muted">Submitted</dt>

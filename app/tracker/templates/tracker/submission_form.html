@@ -26,7 +26,7 @@
         {% if form.achievement.errors %}<ul class="field-errors">{% for error in form.achievement.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
       </div>
       <div class="form-row">
-        <label for="{{ form.character.id_for_label }}">Character</label>
+        <label for="{{ form.character.id_for_label }}">Character (optional)</label>
         {{ form.character }}
         {% if form.character.errors %}<ul class="field-errors">{% for error in form.character.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
         <span class="hint">No character yet? <a href="{% url 'character_create' %}">Add one first</a>.</span>
@@ -39,14 +39,14 @@
     </fieldset>
 
     <fieldset>
-      <legend>Numbers</legend>
+      <legend>Numbers <span class="hint">— all optional, but they earn the efficiency medals</span></legend>
       <div class="form-row">
-        <label for="{{ form.character_level.id_for_label }}">Character level</label>
+        <label for="{{ form.character_level.id_for_label }}">Character level (optional)</label>
         {{ form.character_level }}
         {% if form.character_level.errors %}<ul class="field-errors">{% for error in form.character_level.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
       </div>
       <div class="form-row">
-        <label for="{{ form.played.id_for_label }}">Played time (/played)</label>
+        <label for="{{ form.played.id_for_label }}">Played time (/played, optional)</label>
         {{ form.played }}
         <input type="hidden" id="played-raw" data-preview-url="{% url 'played_preview' %}">
         {% if form.played.errors %}<ul class="field-errors">{% for error in form.played.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
@@ -54,15 +54,11 @@
         {% include "tracker/partials/played_preview.html" with played_seconds=None played_display=form.played.value error=None %}
       </div>
       <div class="form-row">
-        <label for="{{ form.kill_count.id_for_label }}">Kill count (/kills)</label>
+        <label for="{{ form.kill_count.id_for_label }}">Kill count (/kills, optional)</label>
         {{ form.kill_count }}
         {% if form.kill_count.errors %}<ul class="field-errors">{% for error in form.kill_count.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
       </div>
-      <div class="form-row">
-        <label for="{{ form.obtained_at.id_for_label }}">Obtained at</label>
-        {{ form.obtained_at }}
-        {% if form.obtained_at.errors %}<ul class="field-errors">{% for error in form.obtained_at.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
-      </div>
+      <p class="hint">The obtained time is recorded automatically when you save.</p>
     </fieldset>
 
     <fieldset>

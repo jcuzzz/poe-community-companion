@@ -145,6 +145,42 @@ class ScoringTests(TestCase):
         self.assertEqual(self.awards_for(mirror_sub), mirror_awards)
         self.assertTrue(self.awards_for(divine_sub))
 
+    def test_blank_stats_still_score_but_skip_those_medals(self):
+        # A player logs the achievement with no /played, /kills or level.
+        bare = make_submission(
+            self.jcuz, self.divine, played_hours=None, kills=None, level=None
+        )
+        full = make_submission(
+            self.bob, self.divine, hours_in=40, played_hours=10, kills=500, level=60
+        )
+        scoring.recalculate()
+
+        # Bare entry: completion (+2), and first if earliest — no efficiency medals.
+        bare_awards = self.awards_for(bare)
+        self.assertIn(Award.Type.COMPLETION, bare_awards)
+        self.assertNotIn(Award.Type.LOWEST_PLAYED, bare_awards)
+        self.assertNotIn(Award.Type.FEWEST_KILLS, bare_awards)
+        self.assertNotIn(Award.Type.LOWEST_LEVEL, bare_awards)
+        # The player who recorded stats wins all three efficiency medals uncontested.
+        full_awards = self.awards_for(full)
+        self.assertIn(Award.Type.LOWEST_PLAYED, full_awards)
+        self.assertIn(Award.Type.FEWEST_KILLS, full_awards)
+        self.assertIn(Award.Type.LOWEST_LEVEL, full_awards)
+
+    def test_all_blank_stats_award_no_efficiency_medals(self):
+        make_submission(self.jcuz, self.divine, played_hours=None, kills=None, level=None)
+        scoring.recalculate()
+        self.assertEqual(
+            Award.objects.filter(
+                award_type__in=[
+                    Award.Type.LOWEST_PLAYED,
+                    Award.Type.FEWEST_KILLS,
+                    Award.Type.LOWEST_LEVEL,
+                ]
+            ).count(),
+            0,
+        )
+
     def test_base_points_are_per_achievement(self):
         rare = make_achievement("First Mirror of Kalandra", slug="first-mirror", base_points=6)
         sub = make_submission(self.jcuz, rare)

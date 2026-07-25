@@ -7,7 +7,7 @@
   <span class="pill pill-{{ submission.status }}">{{ submission.get_status_display }}</span>
 </div>
 <div class="stat-line text-muted">
-  Level {{ submission.character_level }} &middot; {{ submission.played_display }} played &middot; {{ submission.kill_count }} kills
+  Level {{ submission.character_level|default_if_none:"—" }} &middot; {{ submission.played_display }} played &middot; {{ submission.kill_count|default_if_none:"—" }} kills
   &middot; submitted {{ submission.submitted_at|date:"M j, H:i" }}
 </div>
 {% include "tracker/partials/medals.html" with submission=submission %}

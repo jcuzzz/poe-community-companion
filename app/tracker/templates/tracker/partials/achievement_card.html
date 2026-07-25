@@ -14,8 +14,8 @@
       <span>Winner: <span class="winner-name">{{ card.winner.user.name }}</span></span>
       <span class="stat">Submitted {{ card.winner.submitted_at|date:"D j, H:i" }}</span>
       <span class="stat">Played: {{ card.winner.played_display }}</span>
-      <span class="stat">Kills: {{ card.winner.kill_count }}</span>
-      <span class="stat">Level: {{ card.winner.character_level }}</span>
+      <span class="stat">Kills: {{ card.winner.kill_count|default_if_none:"—" }}</span>
+      <span class="stat">Level: {{ card.winner.character_level|default_if_none:"—" }}</span>
       <a class="btn btn-sm" href="{% url 'submission_detail' card.winner.pk %}">View proof</a>
     </div>
   {% else %}
@@ -31,7 +31,7 @@
         {% if row.submission %}
           <span class="pill pill-{{ row.submission.status }}">{{ row.submission.get_status_display }}</span>
           <span class="stat-line">
-            Level {{ row.submission.character_level }} &middot; {{ row.submission.played_display }} &middot; {{ row.submission.kill_count }} kills
+            Level {{ row.submission.character_level|default_if_none:"—" }} &middot; {{ row.submission.played_display }} &middot; {{ row.submission.kill_count|default_if_none:"—" }} kills
           </span>
         {% else %}
           <span class="pill pill-not-submitted">Not submitted</span>

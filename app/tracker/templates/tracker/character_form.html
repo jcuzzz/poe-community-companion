@@ -27,6 +27,10 @@
       {% if form.league_name.errors %}<ul class="field-errors">{% for error in form.league_name.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
     </div>
     <div class="form-row checkbox-row">
+      {{ form.is_default }}
+      <label for="{{ form.is_default.id_for_label }}" class="u-mb-0">{{ form.is_default.label }}</label>
+    </div>
+    <div class="form-row checkbox-row">
       {{ form.retired }}
       <label for="{{ form.retired.id_for_label }}" class="u-mb-0">Retired</label>
     </div>

@@ -145,24 +145,28 @@ class SubmissionFlowTests(TestCase):
         data.update(overrides)
         return data
 
-    def test_create_as_draft_then_send(self):
+    def test_create_is_approved_immediately(self):
         response = self.client.post(reverse("submission_create"), self.post_data(), follow=True)
         self.assertEqual(response.status_code, 200)
 
         submission = Submission.objects.get()
-        self.assertEqual(submission.status, Submission.Status.DRAFT)
+        self.assertEqual(submission.status, Submission.Status.APPROVED)
         self.assertEqual(submission.user, self.player)
+        self.assertEqual(submission.reviewed_by, self.player)
+        self.assertIsNotNone(submission.reviewed_at)
         self.assertEqual(submission.played_seconds, 18 * 3600 + 42 * 60)
         self.assertTrue(submission.audit_entries.filter(action="created").exists())
+        self.assertTrue(submission.audit_entries.filter(action="approved").exists())
+        # Approving on submit must award points without any admin step.
+        self.assertTrue(Award.objects.filter(submission=submission).exists())
 
-        self.client.post(reverse("submission_send", args=[submission.pk]))
-        submission.refresh_from_db()
-        self.assertEqual(submission.status, Submission.Status.PENDING)
-        self.assertTrue(submission.audit_entries.filter(action="submitted").exists())
-
-    def test_create_and_send_in_one_step(self):
-        self.client.post(reverse("submission_create"), self.post_data(action="send"))
-        self.assertEqual(Submission.objects.get().status, Submission.Status.PENDING)
+    def test_obtained_at_is_taken_from_the_server(self):
+        before = timezone.now()
+        self.client.post(reverse("submission_create"), self.post_data())
+        submission = Submission.objects.get()
+        # Auto-stamped at save time, regardless of anything the client sent.
+        self.assertGreaterEqual(submission.obtained_at, before - timezone.timedelta(minutes=1))
+        self.assertLessEqual(submission.obtained_at, timezone.now() + timezone.timedelta(minutes=1))
 
     def test_submitted_at_is_server_generated(self):
         forged = timezone.now() - timezone.timedelta(days=99)
@@ -180,11 +184,21 @@ class SubmissionFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Submission.objects.count(), 0)
 
-    def test_obtained_at_cannot_be_in_the_future(self):
-        future = (timezone.localtime() + timezone.timedelta(days=2)).strftime("%Y-%m-%d %H:%M:%S")
-        response = self.client.post(reverse("submission_create"), self.post_data(obtained_at=future))
-        self.assertEqual(Submission.objects.count(), 0)
-        self.assertContains(response, "future")
+    def test_only_achievement_is_required(self):
+        # A bare claim — no character, level, played or kills — must still log.
+        data = {"achievement": self.achievement.pk, **formset_management()}
+        self.client.post(reverse("submission_create"), data)
+        submission = Submission.objects.get()
+        self.assertEqual(submission.status, Submission.Status.APPROVED)
+        self.assertIsNone(submission.character)
+        self.assertIsNone(submission.character_level)
+        self.assertIsNone(submission.played_seconds)
+        self.assertIsNone(submission.kill_count)
+
+    def test_default_character_is_preselected(self):
+        self.character.make_default()
+        response = self.client.get(reverse("submission_create"))
+        self.assertEqual(response.context["form"].initial.get("character"), self.character.pk)
 
     def test_unparseable_played_time_is_rejected(self):
         response = self.client.post(reverse("submission_create"), self.post_data(played="ages"))
@@ -231,12 +245,33 @@ class SubmissionFlowTests(TestCase):
             self.client.get(reverse("submission_detail", args=[theirs.pk])).status_code, 404
         )
 
-    def test_player_cannot_edit_an_approved_submission(self):
+    def test_player_can_edit_their_own_approved_submission(self):
         approved = make_submission(
             self.player, self.achievement, character=self.character, status=Submission.Status.APPROVED
         )
-        response = self.client.get(reverse("submission_edit", args=[approved.pk]))
-        self.assertIn(response.status_code, {302, 403, 404})
+        self.assertEqual(self.client.get(reverse("submission_edit", args=[approved.pk])).status_code, 200)
+
+        from tracker import scoring
+
+        scoring.recalculate()
+        self.client.post(
+            reverse("submission_edit", args=[approved.pk]),
+            {
+                "character": self.character.pk,
+                "achievement": self.achievement.pk,
+                "character_level": "42",
+                "played": "5h",
+                "kill_count": "100",
+                "notes": "",
+                **formset_management(),
+            },
+        )
+        approved.refresh_from_db()
+        self.assertEqual(approved.character_level, 42)
+        # Editing recalculates: the new low level should now hold that medal.
+        self.assertTrue(
+            approved.awards.filter(award_type=Award.Type.LOWEST_LEVEL).exists()
+        )
 
     def test_destructive_routes_reject_get(self):
         draft = make_submission(

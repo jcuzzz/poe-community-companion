@@ -25,7 +25,7 @@
           <span class="trophy-icon" aria-hidden="true">{{ sub.achievement.icon|default:"🏆" }}</span>
           <p class="trophy-label">{{ sub.achievement.label }}</p>
           <p class="trophy-holder"><a href="{% url 'player_profile' sub.user.username %}">{{ sub.user.name }}</a></p>
-          <p class="trophy-meta">{{ sub.played_display }} played &middot; {{ sub.kill_count }} kills &middot; level {{ sub.character_level }}</p>
+          <p class="trophy-meta">{{ sub.played_display }} played &middot; {{ sub.kill_count|default_if_none:"—" }} kills &middot; level {{ sub.character_level|default_if_none:"—" }}</p>
           <a class="btn btn-sm" href="{% url 'submission_detail' sub.pk %}">View proof</a>
         </div>
       {% endfor %}

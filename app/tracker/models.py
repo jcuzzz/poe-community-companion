@@ -101,17 +101,34 @@ class Character(models.Model):
     league_name = models.CharField(max_length=60, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     retired = models.BooleanField(default=False)
+    is_default = models.BooleanField(
+        default=False, help_text="Pre-selected on the submission form so it only has to be picked once."
+    )
 
     class Meta:
-        ordering = ["character_name"]
+        ordering = ["-is_default", "character_name"]
         constraints = [
             models.UniqueConstraint(
                 fields=["user", "character_name"], name="unique_character_name_per_user"
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(is_default=True),
+                name="one_default_character_per_user",
+            ),
         ]
 
     def __str__(self) -> str:
         return f"{self.character_name} ({self.user.name})"
+
+    def make_default(self) -> None:
+        """Promote this character to the user's default, demoting any other."""
+        Character.objects.filter(user=self.user, is_default=True).exclude(pk=self.pk).update(
+            is_default=False
+        )
+        if not self.is_default:
+            self.is_default = True
+            self.save(update_fields=["is_default"])
 
 
 class Achievement(models.Model):
@@ -180,7 +197,13 @@ class Submission(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="submissions"
     )
-    character = models.ForeignKey(Character, on_delete=models.PROTECT, related_name="submissions")
+    character = models.ForeignKey(
+        Character,
+        on_delete=models.PROTECT,
+        related_name="submissions",
+        null=True,
+        blank=True,
+    )
     achievement = models.ForeignKey(
         Achievement, on_delete=models.PROTECT, related_name="submissions"
     )
@@ -188,11 +211,17 @@ class Submission(models.Model):
     submitted_at = models.DateTimeField(
         default=timezone.now, editable=False, help_text="Server generated. Players cannot set this."
     )
-    obtained_at = models.DateTimeField(help_text="When the player claims they got it.")
+    obtained_at = models.DateTimeField(
+        default=timezone.now,
+        editable=False,
+        help_text="Taken automatically from the submission time.",
+    )
 
-    character_level = models.PositiveSmallIntegerField()
-    played_seconds = models.PositiveIntegerField(help_text="/played, stored as seconds.")
-    kill_count = models.PositiveIntegerField(help_text="/kills")
+    character_level = models.PositiveSmallIntegerField(null=True, blank=True)
+    played_seconds = models.PositiveIntegerField(
+        null=True, blank=True, help_text="/played, stored as seconds."
+    )
+    kill_count = models.PositiveIntegerField(null=True, blank=True, help_text="/kills")
     allowlist_item = models.ForeignKey(
         AllowlistItem,
         on_delete=models.SET_NULL,
@@ -230,10 +259,14 @@ class Submission(models.Model):
 
     @property
     def is_editable_by_player(self) -> bool:
-        return self.status in {self.Status.DRAFT, self.Status.REJECTED}
+        # Approvals are disabled: a player owns their own entry and may edit it
+        # at any time. Only other people's entries are off-limits.
+        return True
 
     @property
     def played_display(self) -> str:
+        if self.played_seconds is None:
+            return "—"
         return format_played(self.played_seconds)
 
     @property

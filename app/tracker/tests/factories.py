@@ -69,7 +69,7 @@ def make_submission(
         character=character or make_character(user),
         achievement=achievement,
         obtained_at=LEAGUE_START + timedelta(hours=hours_in),
-        played_seconds=int(played_hours * 3600),
+        played_seconds=None if played_hours is None else int(played_hours * 3600),
         kill_count=kills,
         character_level=level,
         status=status,

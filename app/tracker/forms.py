@@ -32,6 +32,8 @@ class PlayedTimeField(forms.CharField):
 
     def clean(self, value):
         text = super().clean(value)
+        if not text or not str(text).strip():
+            return None
         try:
             return utils.parse_played(text)
         except ValidationError:
@@ -41,7 +43,9 @@ class PlayedTimeField(forms.CharField):
 
 
 class SubmissionForm(forms.ModelForm):
-    played = PlayedTimeField(label="Played (/played)")
+    # Only the achievement is required. Everything else is optional so logging a
+    # claim never gets blocked; the obtained time is taken from the server clock.
+    played = PlayedTimeField(label="Played (/played)", required=False)
 
     class Meta:
         model = Submission
@@ -50,12 +54,10 @@ class SubmissionForm(forms.ModelForm):
             "achievement",
             "character_level",
             "kill_count",
-            "obtained_at",
             "allowlist_item",
             "notes",
         ]
         widgets = {
-            "obtained_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "notes": forms.Textarea(attrs={"rows": 3}),
         }
 
@@ -67,7 +69,15 @@ class SubmissionForm(forms.ModelForm):
         )
         self.fields["achievement"].queryset = Achievement.objects.filter(active=True)
         self.fields["allowlist_item"].queryset = AllowlistItem.objects.filter(active=True)
-        self.fields["allowlist_item"].required = False
+        for name in ("character", "character_level", "kill_count", "allowlist_item", "notes"):
+            self.fields[name].required = False
+        # Pre-select the player's default character so it only has to be picked once.
+        if not (self.instance and self.instance.pk) and not self.initial.get("character"):
+            default = self.fields["character"].queryset.filter(is_default=True).first()
+            if default is None:
+                default = self.fields["character"].queryset.first()
+            if default is not None:
+                self.initial["character"] = default.pk
         # Field order: put "played" right after character_level for the template.
         self.order_fields(
             [
@@ -76,46 +86,32 @@ class SubmissionForm(forms.ModelForm):
                 "character_level",
                 "played",
                 "kill_count",
-                "obtained_at",
                 "allowlist_item",
                 "notes",
             ]
         )
-        if self.instance and self.instance.pk:
+        if self.instance and self.instance.pk and self.instance.played_seconds is not None:
             self.fields["played"].initial = format_played(self.instance.played_seconds)
 
     def clean_character(self):
-        character = self.cleaned_data["character"]
-        if character.user_id != self.user.pk:
+        character = self.cleaned_data.get("character")
+        if character and character.user_id != self.user.pk:
             raise ValidationError("That character does not belong to you.")
         return character
 
-    def clean_obtained_at(self):
-        obtained_at = self.cleaned_data["obtained_at"]
-        if obtained_at and obtained_at > timezone.now():
-            raise ValidationError("Obtained time cannot be in the future.")
-        return obtained_at
-
     def clean_character_level(self):
-        level = self.cleaned_data["character_level"]
-        if not (1 <= level <= 100):
+        level = self.cleaned_data.get("character_level")
+        if level is not None and not (1 <= level <= 100):
             raise ValidationError("Character level must be between 1 and 100.")
         return level
-
-    def clean(self):
-        cleaned = super().clean()
-        achievement = cleaned.get("achievement")
-        allowlist_item = cleaned.get("allowlist_item")
-        if achievement and achievement.requires_allowlist and not allowlist_item:
-            self.add_error(
-                "allowlist_item", "This achievement requires selecting an allowlist item."
-            )
-        return cleaned
 
     def save(self, commit: bool = True):
         submission = super().save(commit=False)
         submission.user = self.user
-        submission.played_seconds = self.cleaned_data["played"]
+        submission.played_seconds = self.cleaned_data.get("played")
+        # Timestamp comes from the server, set once when the row is first created.
+        if submission._state.adding or submission.obtained_at is None:
+            submission.obtained_at = timezone.now()
         if commit:
             submission.save()
         return submission
@@ -177,9 +173,13 @@ ProofImageFormSet = inlineformset_factory(
 
 
 class CharacterForm(forms.ModelForm):
+    is_default = forms.BooleanField(
+        required=False, label="Use this as my default character on the submission form"
+    )
+
     class Meta:
         model = Character
-        fields = ["character_name", "class_name", "league_name", "retired"]
+        fields = ["character_name", "class_name", "league_name", "retired", "is_default"]
 
     def __init__(self, *args, user: User, **kwargs):
         self.user = user
@@ -199,8 +199,14 @@ class CharacterForm(forms.ModelForm):
     def save(self, commit: bool = True):
         character = super().save(commit=False)
         character.user = self.user
+        wants_default = self.cleaned_data.get("is_default")
+        # A player's first character becomes their default automatically.
+        first_character = not Character.objects.filter(user=self.user).exists()
+        character.is_default = False  # make_default() sets it once the row exists
         if commit:
             character.save()
+            if wants_default or first_character:
+                character.make_default()
         return character
 
 
