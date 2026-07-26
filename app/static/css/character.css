@@ -1,0 +1,169 @@
+/* character.css — poe.ninja / Path-of-Building-style character detail page.
+   Uses app.css tokens; PoE item rarity colours are the one intentional
+   non-token palette (they're a game convention players read instantly). */
+
+.char-back { margin-bottom: var(--space-3); font-size: var(--fs-sm); }
+.char-back a { color: var(--color-parchment-dim); text-decoration: none; }
+.char-back a:hover { color: var(--color-gold-bright); }
+
+/* ---- Header ---- */
+.character-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+.character-hero-body { flex: 1 1 16rem; min-width: 0; }
+.character-hero-body h1 { margin: 0.1em 0 0.2em; }
+.char-eyebrow {
+  font-size: var(--fs-xs);
+  font-variant: small-caps;
+  letter-spacing: 0.1em;
+  color: var(--color-gold);
+  font-weight: 700;
+}
+.char-subline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin: 0 0 var(--space-2);
+}
+.char-level { font-family: var(--font-display); font-size: var(--fs-md); color: var(--color-gold-bright); }
+.char-owner { margin: 0; font-size: var(--fs-sm); }
+.char-owner a { color: var(--color-parchment); }
+
+.char-import { flex: 0 0 auto; align-self: flex-start; }
+.char-import > summary { list-style: none; cursor: pointer; }
+.char-import > summary::-webkit-details-marker { display: none; }
+.char-import-form { margin-top: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); min-width: 16rem; }
+.char-import-form textarea { min-height: 4rem; font-family: var(--font-mono); font-size: var(--fs-xs); }
+
+/* ---- Two-column body ---- */
+.char-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+@media (min-width: 60rem) {
+  .char-grid { grid-template-columns: 1fr 1fr; }
+}
+.char-col { display: flex; flex-direction: column; gap: var(--space-5); }
+.char-col .card { margin-bottom: 0; }
+
+/* ---- Equipment ---- */
+.gear-list { list-style: none; margin: 0; padding: 0; }
+.gear-item {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  grid-template-areas: "slot name" "slot base";
+  gap: 0 var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.gear-item:last-child { border-bottom: none; }
+.gear-slot {
+  grid-area: slot;
+  align-self: center;
+  font-size: var(--fs-xs);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  color: var(--color-parchment-dim);
+}
+.gear-name { grid-area: name; font-weight: 600; overflow-wrap: anywhere; }
+.gear-base { grid-area: base; font-size: var(--fs-xs); color: var(--color-parchment-dim); }
+.gear-extra { margin: var(--space-3) 0 0; font-size: var(--fs-sm); }
+
+/* PoE rarity colours (dark theme) */
+.gear-item--normal .gear-name  { color: #d0d0d0; }
+.gear-item--magic .gear-name   { color: #8a8aff; }
+.gear-item--rare .gear-name    { color: #e6d15a; }
+.gear-item--unique .gear-name  { color: #c07a30; }
+
+/* ---- Skills ---- */
+.skill-groups { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
+@media (min-width: 30rem) { .skill-groups { grid-template-columns: 1fr 1fr; } }
+.skill-group {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+  padding: var(--space-3);
+  position: relative;
+}
+.skill-group--main {
+  border-color: var(--color-gold-dim);
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.15);
+}
+.skill-group-tag {
+  position: absolute;
+  top: -0.6em;
+  left: var(--space-3);
+  font-size: var(--fs-xs);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  background: var(--color-gold);
+  color: #1a1408;
+  padding: 0 0.5em;
+}
+.gem-list { list-style: none; margin: 0; padding: 0; }
+.gem {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0.2em 0;
+  font-size: var(--fs-sm);
+}
+.gem-name { color: var(--color-parchment); }
+.gem--support { padding-left: var(--space-3); }
+.gem--support .gem-name { color: var(--color-parchment-dim); font-size: var(--fs-xs); }
+.gem--off { opacity: 0.45; text-decoration: line-through; }
+.gem-meta { color: var(--color-parchment-dim); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---- Stats ---- */
+.stat-block { margin-bottom: var(--space-4); }
+.stat-block:last-child { margin-bottom: 0; }
+.stat-block-title {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-display);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--color-gold-bright);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-1);
+}
+.stat-lines { margin: 0; }
+.stat-line-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0.25em 0;
+}
+.stat-line-row dt { color: var(--color-parchment-dim); font-size: var(--fs-sm); margin: 0; }
+.stat-line-row dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-parchment);
+}
+/* Resistance rows read like PoE's element colours */
+.stat-lines--resistances .stat-line-row:nth-child(1) dd { color: #e06a5a; }
+.stat-lines--resistances .stat-line-row:nth-child(2) dd { color: #6ab0e0; }
+.stat-lines--resistances .stat-line-row:nth-child(3) dd { color: #e0cf5a; }
+.stat-lines--resistances .stat-line-row:nth-child(4) dd { color: #b06ad0; }
+
+/* ---- Passive tree ---- */
+.tree-points { margin: 0 0 var(--space-1); }
+.tree-points .value { font-family: var(--font-display); font-size: var(--fs-2xl); color: var(--color-gold-bright); }
+.tree-points .label { color: var(--color-parchment-dim); font-size: var(--fs-sm); }
+.char-tree .btn { margin-top: var(--space-3); }
+
+/* ---- Light theme: brighten rarity/element colours for contrast ---- */
+html[data-theme="light"] .gear-item--normal .gear-name { color: #4a4a4a; }
+html[data-theme="light"] .gear-item--magic .gear-name  { color: #3a3ac0; }
+html[data-theme="light"] .gear-item--rare .gear-name   { color: #8a6a10; }
+html[data-theme="light"] .gear-item--unique .gear-name { color: #9c5a1c; }
+html[data-theme="light"] .stat-lines--resistances .stat-line-row:nth-child(1) dd { color: #b23a2c; }
+html[data-theme="light"] .stat-lines--resistances .stat-line-row:nth-child(2) dd { color: #2c6a9c; }
+html[data-theme="light"] .stat-lines--resistances .stat-line-row:nth-child(3) dd { color: #8a6a10; }
+html[data-theme="light"] .stat-lines--resistances .stat-line-row:nth-child(4) dd { color: #7a3a9c; }
+html[data-theme="light"] .skill-group-tag { color: #1a1408; }

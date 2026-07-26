@@ -2,15 +2,19 @@
 
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
+from django.views.generic import RedirectView
 
 from . import views, views_roster
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
-    # Roster & character showcase
-    path("roster/", views_roster.roster, name="roster"),
+    # Characters (was "Roster") — grid index + per-character detail page.
+    path("characters/", views_roster.roster, name="roster"),
+    path("characters/<str:username>/", views_roster.character_detail, name="character_detail"),
     path("roster/settings/", views_roster.roster_settings, name="roster_settings"),
     path("roster/refresh/", views_roster.roster_refresh, name="roster_refresh"),
+    # Legacy /roster/ index → /characters/ (kept so old links/bookmarks resolve).
+    path("roster/", RedirectView.as_view(pattern_name="roster", permanent=True)),
     path("activity/", views.activity_feed, name="activity_feed"),
     path("achievements/", views.achievement_list, name="achievement_list"),
     path("achievements/<slug:slug>/", views.achievement_detail, name="achievement_detail"),
@@ -32,10 +36,10 @@ urlpatterns = [
         views.proof_delete,
         name="proof_delete",
     ),
-    # Characters
-    path("characters/", views.character_list, name="character_list"),
-    path("characters/new/", views.character_create, name="character_create"),
-    path("characters/<int:pk>/edit/", views.character_edit, name="character_edit"),
+    # Submission character-names (attribution only) — managed from account, not nav.
+    path("account/characters/", views.character_list, name="character_list"),
+    path("account/characters/new/", views.character_create, name="character_create"),
+    path("account/characters/<int:pk>/edit/", views.character_edit, name="character_edit"),
     # Review queue (staff)
     path("review/", views.review_queue, name="review_queue"),
     path("review/<int:pk>/", views.review_submission, name="review_submission"),

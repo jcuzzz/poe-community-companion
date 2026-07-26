@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="{% static 'css/crests.css' %}">
   <link rel="stylesheet" href="{% static 'css/boards.css' %}">
   <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'css/character.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -46,10 +47,9 @@
           <li><a href="{% url 'dashboard' %}"{% if cur == 'dashboard' %} aria-current="page"{% endif %}>Dashboard</a></li>
           <li><a href="{% url 'achievement_list' %}"{% if cur == 'achievement_list' or cur == 'achievement_detail' %} aria-current="page"{% endif %}>Achievements</a></li>
           <li><a href="{% url 'leaderboard' %}"{% if cur == 'leaderboard' %} aria-current="page"{% endif %}>Leaderboard</a></li>
-          <li><a href="{% url 'roster' %}"{% if cur == 'roster' %} aria-current="page"{% endif %}>Roster</a></li>
+          <li><a href="{% url 'roster' %}"{% if cur == 'roster' or cur == 'character_detail' %} aria-current="page"{% endif %}>Characters</a></li>
           {% if user.is_authenticated %}
             <li><a href="{% url 'activity_feed' %}"{% if cur == 'activity_feed' %} aria-current="page"{% endif %}>Activity</a></li>
-            <li><a href="{% url 'character_list' %}"{% if cur == 'character_list' %} aria-current="page"{% endif %}>My characters</a></li>
             <li><a href="{% url 'submission_create' %}"{% if cur == 'submission_create' %} aria-current="page"{% endif %}>Submit</a></li>
             {% if user.is_staff %}
               <li>
@@ -117,7 +117,9 @@
               <a href="{% url 'account_settings' %}">{{ user.name }} &#9662;</a>
               <div class="profile-menu-panel">
                 <a href="{% url 'account_settings' %}">Account</a>
-                <a href="{% url 'roster_settings' %}">Character / roster</a>
+                <a href="{% url 'character_detail' user.username %}">My character</a>
+                <a href="{% url 'roster_settings' %}">Roster &amp; PoB</a>
+                <a href="{% url 'character_list' %}">Submission names</a>
                 {% if user.is_staff %}<a href="{% url 'league_create' %}">New season</a>{% endif %}
                 <a href="{% url 'player_profile' user.username %}">My profile</a>
                 <form method="post" action="{% url 'logout' %}">

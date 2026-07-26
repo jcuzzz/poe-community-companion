@@ -14,7 +14,7 @@
     {% endif %}
 
     <div class="character-portrait-caption">
-      <h3><a href="{% url 'player_profile' member.username %}">{{ member.name }}</a></h3>
+      <h3><a href="{% url 'character_detail' member.username %}">{{ member.name }}</a></h3>
       {% if snapshot.display_class %}
         <span class="character-portrait-class">{{ snapshot.display_class }}</span>
       {% else %}
@@ -26,7 +26,7 @@
   {% if snapshot %}
     <div class="character-card-body">
       <div class="character-card-identity">
-        <h3><a href="{% url 'player_profile' member.username %}">{{ member.name }}</a></h3>
+        <h3><a href="{% url 'character_detail' member.username %}">{{ member.name }}</a></h3>
         {% if snapshot.display_class %}<span class="character-card-username">{{ snapshot.display_class }} &middot; Lv {{ snapshot.level }}</span>{% endif %}
       </div>
       <p class="character-name">{{ snapshot.character_name|default:"Unnamed character" }}</p>
@@ -46,6 +46,6 @@
   {% endif %}
 
   <div class="character-card-footer">
-    <a class="btn btn-sm btn-block" href="{% url 'player_profile' member.username %}">View profile</a>
+    <a class="btn btn-sm btn-block" href="{% url 'character_detail' member.username %}">View build</a>
   </div>
 </article>

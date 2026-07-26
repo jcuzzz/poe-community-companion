@@ -77,6 +77,62 @@ def roster(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
+def character_detail(request: HttpRequest, username: str) -> HttpResponse:
+    """poe.ninja / PoB-style character page for one member in the viewing league.
+
+    Renders the rich parse of the member's stored PoB code (stats, gear, skills,
+    passive tree). The owner can (re-)import a PoB code inline.
+    """
+    from django.shortcuts import get_object_or_404
+
+    member = get_object_or_404(User, username=username, is_active=True)
+    viewing = get_viewing_league(request)
+    active = get_active_league()
+    snapshot = _snapshot_for(member, viewing)
+    is_owner = request.user == member
+
+    # Owner PoB import (posts back to this page).
+    pob_form = PobPasteForm()
+    if request.method == "POST" and is_owner:
+        pob_form = PobPasteForm(request.POST)
+        if pob_form.is_valid():
+            if active is None:
+                messages.error(request, "No active league to attach a build to.")
+            else:
+                _snap, error = roster_service.save_pob_snapshot(
+                    request.user, active, pob_form.cleaned_data["code"]
+                )
+                if error:
+                    messages.error(request, error)
+                else:
+                    messages.success(request, "Character build imported.")
+                    return redirect("character_detail", username=member.username)
+
+    build = None
+    parse_error = ""
+    if snapshot and snapshot.raw and snapshot.source == CharacterSnapshot.Source.POB:
+        try:
+            build = roster_service.parse_pob_build(snapshot.raw)
+        except ValueError as exc:
+            parse_error = str(exc)
+
+    return render(
+        request,
+        "tracker/character_detail.html",
+        {
+            "member": member,
+            "snapshot": snapshot,
+            "build": build,
+            "parse_error": parse_error,
+            "is_owner": is_owner,
+            "pob_form": pob_form,
+            "viewing_league": viewing,
+            "can_import": is_owner and active is not None and viewing == active,
+        },
+    )
+
+
+@login_required
 def roster_settings(request: HttpRequest) -> HttpResponse:
     """Manage your own roster profile + paste a PoB code."""
     profile, _ = MemberProfile.objects.get_or_create(user=request.user)

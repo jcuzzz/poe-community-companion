@@ -1,0 +1,134 @@
+{% extends "tracker/base.html" %}
+{% load static %}
+{% block title %}{{ member.name }}'s character &middot; {{ brand_name }}{% endblock %}
+{% block content %}
+  <p class="char-back"><a href="{% url 'roster' %}">&laquo; Back to characters</a></p>
+
+  {# ---------------------------------------------------------------- #}
+  {# Header                                                            #}
+  {# ---------------------------------------------------------------- #}
+  <section class="card character-hero">
+    {% if snapshot.portrait %}
+      <span class="class-portrait class-portrait--lg" title="{{ snapshot.display_class }}">
+        <img src="{% static snapshot.portrait %}" alt="{{ snapshot.display_class }}">
+      </span>
+    {% else %}
+      {% include "tracker/partials/member_avatar.html" with member=member size="lg" %}
+    {% endif %}
+
+    <div class="character-hero-body">
+      <span class="char-eyebrow">{{ snapshot.league_text|default:viewing_league.name }}</span>
+      <h1>{{ snapshot.character_name|default:member.name }}</h1>
+      <p class="char-subline">
+        {% if snapshot.level %}<span class="char-level">Level {{ snapshot.level }}</span>{% endif %}
+        {% if snapshot.display_class %}<span class="pill pill-class">{{ snapshot.display_class }}</span>{% endif %}
+        {% if build.main_skill %}<span class="pill pill-league">{{ build.main_skill }}</span>{% endif %}
+      </p>
+      <p class="char-owner text-muted">
+        <a href="{% url 'player_profile' member.username %}">{{ member.name }}</a>
+        {% if snapshot %} &middot; via {{ snapshot.get_source_display }} &middot; updated {{ snapshot.fetched_at|timesince }} ago{% endif %}
+      </p>
+    </div>
+
+    {% if can_import %}
+      <details class="char-import"{% if not build %} open{% endif %}>
+        <summary class="btn btn-sm">Import PoB code</summary>
+        <form method="post" class="char-import-form">
+          {% csrf_token %}
+          {{ pob_form.code }}
+          {% if pob_form.code.errors %}<ul class="field-errors">{% for e in pob_form.code.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          <button type="submit" class="btn btn-primary btn-sm">Save build</button>
+        </form>
+      </details>
+    {% endif %}
+  </section>
+
+  {% if parse_error %}
+    <div class="messages"><li class="warning">Couldn't read the stored build: {{ parse_error }}</li></div>
+  {% endif %}
+
+  {% if not build %}
+    <div class="empty-state">
+      {% if is_owner %}
+        No build imported yet &mdash; paste your Path of Building code above to fill in gear, skills and stats.
+      {% else %}
+        {{ member.name }} hasn't imported a Path of Building character for this league yet.
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="char-grid">
+      {# --------------- Left: gear + skills --------------- #}
+      <div class="char-col">
+        {% if build.gear %}
+          <section class="card">
+            <div class="section-header"><h2 class="flourish">Equipment</h2></div>
+            <ul class="gear-list">
+              {% for item in build.gear %}
+                <li class="gear-item gear-item--{{ item.rarity|lower }}">
+                  <span class="gear-slot">{{ item.slot }}</span>
+                  <span class="gear-name">{{ item.name }}</span>
+                  {% if item.base and item.base != item.name %}<span class="gear-base">{{ item.base }}</span>{% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+            {% if build.jewels %}<p class="gear-extra text-muted">+ {{ build.jewels }} jewel{{ build.jewels|pluralize }} socketed</p>{% endif %}
+          </section>
+        {% endif %}
+
+        {% if build.skill_groups %}
+          <section class="card">
+            <div class="section-header"><h2 class="flourish">Skills</h2></div>
+            <div class="skill-groups">
+              {% for group in build.skill_groups %}
+                <div class="skill-group{% if group.is_main %} skill-group--main{% endif %}">
+                  {% if group.is_main %}<span class="skill-group-tag">Main</span>{% endif %}
+                  <ul class="gem-list">
+                    {% for gem in group.gems %}
+                      <li class="gem{% if gem.support %} gem--support{% endif %}{% if not gem.enabled %} gem--off{% endif %}">
+                        <span class="gem-name">{{ gem.name }}</span>
+                        <span class="gem-meta">{{ gem.level }}{% if gem.quality and gem.quality != "0" %} / {{ gem.quality }}%{% endif %}</span>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+      </div>
+
+      {# --------------- Right: stats + tree --------------- #}
+      <div class="char-col">
+        {% if build.stat_groups %}
+          <section class="card">
+            <div class="section-header"><h2 class="flourish">Stats</h2></div>
+            {% for group in build.stat_groups %}
+              <div class="stat-block">
+                <p class="stat-block-title">{{ group.title }}</p>
+                <dl class="stat-lines stat-lines--{{ group.title|lower }}">
+                  {% for row in group.rows %}
+                    <div class="stat-line-row">
+                      <dt>{{ row.label }}</dt>
+                      <dd>{{ row.value }}</dd>
+                    </div>
+                  {% endfor %}
+                </dl>
+              </div>
+            {% endfor %}
+          </section>
+        {% endif %}
+
+        {% if build.tree %}
+          <section class="card char-tree">
+            <div class="section-header"><h2 class="flourish">Passive tree</h2></div>
+            <p class="tree-points"><span class="value">{{ build.tree.points }}</span> <span class="label">points allocated</span></p>
+            {% if snapshot.display_class %}<p class="text-muted">{{ snapshot.display_class }}{% if build.tree.version %} &middot; tree {{ build.tree.version|cut:"_"|slice:":1" }}.{{ build.tree.version|slice:"2:" }}{% endif %}</p>{% endif %}
+            {% if build.tree.url %}
+              <a class="btn btn-sm" href="{{ build.tree.url }}" target="_blank" rel="noopener noreferrer">Open passive tree &nearr;</a>
+            {% endif %}
+          </section>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

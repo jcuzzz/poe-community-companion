@@ -71,21 +71,4 @@
       {% endif %}
     </section>
   </div>
-
-  <h2 class="flourish">Active achievements</h2>
-  {% if achievements %}
-    <ul class="player-status-list">
-      {% for achievement in achievements %}
-        <li class="player-status-row">
-          <span class="player-name">
-            {% include "tracker/partials/achievement_icon.html" with achievement=achievement size="sm" %}
-            <a href="{% url 'achievement_detail' achievement.slug %}">{{ achievement.name }}</a>
-          </span>
-          <span class="stat-line">{{ achievement.label }}</span>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <div class="empty-state">No active achievements.</div>
-  {% endif %}
 {% endblock %}

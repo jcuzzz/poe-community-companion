@@ -1270,6 +1270,39 @@ html[data-theme="light"] .hero-champion {
     linear-gradient(180deg, #fffdf7, #efe6cf);
 }
 
+/* App-shell chrome: give the sidebar + topbar a light parchment surface in
+   light mode instead of the hardcoded dark gradients (which otherwise leave a
+   dark rail on a light page). Nav text already flips via the token overrides. */
+html[data-theme="light"] .sidebar {
+  background: linear-gradient(180deg, #fffdf7, #f1e7cf);
+  border-right-color: var(--color-border-strong);
+  box-shadow: inset -1px 0 0 rgba(138, 97, 19, 0.12);
+}
+html[data-theme="light"] .topbar {
+  background: linear-gradient(180deg, #fffdf7, #f4ecd8);
+  border-bottom-color: var(--color-border-strong);
+}
+/* The brazier glow reads as smoke on a light bg — soften it right down. */
+html[data-theme="light"] .brazier { opacity: 0.5; }
+
+/* Medal chips (.medal base) use a hardcoded dark gradient — in light mode that
+   rendered as black bars. Give them a parchment surface with dark-gold ink. */
+html[data-theme="light"] .medal {
+  background: linear-gradient(180deg, #f6edd6, #efe6cf);
+  border-color: var(--color-gold-dim);
+  color: #5a4712;
+}
+
+/* Achievement medallion seal — its radial is authored dark; on a light page a
+   softly lit gold seal reads better than a black disc. */
+html[data-theme="light"] .medallion {
+  background: radial-gradient(circle at 50% 35%, #fbf4df 0%, #ecdcb4 60%, #d9c393 100%);
+  box-shadow:
+    0 0 0 3px var(--color-bg),
+    0 0 0 4px rgba(138, 97, 19, 0.4),
+    inset 0 1px 3px rgba(120, 90, 30, 0.35);
+}
+
 /* .gallery-large img's letterbox background (#0c0a07) is left as-is: it's a
    decorative backdrop behind object-fit:contain images, not UI chrome, and
    matches photo/screenshot letterboxing conventions in either theme. */

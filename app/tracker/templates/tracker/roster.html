@@ -1,14 +1,14 @@
 {% extends "tracker/base.html" %}
-{% block title %}Roster &middot; {{ brand_name }}{% endblock %}
+{% block title %}Characters &middot; {{ brand_name }}{% endblock %}
 {% block content %}
   <h1>
-    Roster
+    Characters
     {% if viewing_league %}<span class="brand-league">{{ viewing_league.name }}</span>{% endif %}
   </h1>
 
   <p class="text-muted">
-    The guild's exiles, at a glance. Add your own character by pasting a Path of Building code in
-    <a href="{% url 'roster_settings' %}">Character / roster</a>.
+    The guild's exiles, at a glance. Click a character for the full build, or
+    <a href="{% url 'character_detail' user.username %}">import your own</a> with a Path of Building code.
   </p>
 
   <form class="roster-filter-bar" method="get">

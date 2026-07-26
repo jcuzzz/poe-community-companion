@@ -10,7 +10,12 @@ from django.test import TestCase
 from django.urls import reverse
 
 from tracker.models import CharacterSnapshot, League, MemberProfile
-from tracker.roster import parse_pob_code, refresh_auto_snapshot, save_pob_snapshot
+from tracker.roster import (
+    parse_pob_build,
+    parse_pob_code,
+    refresh_auto_snapshot,
+    save_pob_snapshot,
+)
 
 from .factories import make_league, make_player
 
@@ -197,3 +202,119 @@ class RosterRefreshViewTests(TestCase):
         self.client.login(username="refreshmember2", password=PASSWORD)
         response = self.client.post(reverse("roster_refresh"))
         self.assertRedirects(response, reverse("roster_settings"))
+
+
+def build_rich_pob_code() -> str:
+    """A fuller PoB export with stats, gear, skills and a tree, for parse_pob_build."""
+    xml = """<PathOfBuilding>
+  <Build level="95" className="Ranger" ascendClassName="Deadeye" mainSocketGroup="1">
+    <PlayerStat stat="Life" value="4582"/>
+    <PlayerStat stat="EnergyShield" value="1234"/>
+    <PlayerStat stat="TotalDPS" value="2380000"/>
+    <PlayerStat stat="FireResist" value="76"/>
+    <PlayerStat stat="ColdResist" value="75"/>
+    <PlayerStat stat="LightningResist" value="78"/>
+    <PlayerStat stat="ChaosResist" value="-12"/>
+    <PlayerStat stat="Str" value="124"/>
+  </Build>
+  <Skills>
+    <SkillSet id="1">
+      <Skill mainActiveSkill="1">
+        <Gem nameSpec="Tornado Shot" level="21" quality="20" skillId="TornadoShot"/>
+        <Gem nameSpec="Added Cold Damage Support" level="20" quality="0" skillId="SupportColdDamage"/>
+      </Skill>
+      <Skill>
+        <Gem nameSpec="Grace" level="20" quality="0" skillId="Grace"/>
+      </Skill>
+    </SkillSet>
+  </Skills>
+  <Tree>
+    <Spec treeVersion="3_25" nodes="1,2,3,4,5">
+      <URL>https://www.pathofexile.com/passive-skill-tree/AAAA</URL>
+    </Spec>
+  </Tree>
+  <Items activeItemSet="1">
+    <Item id="1">Rarity: UNIQUE
+Windripper
+Imperial Bow</Item>
+    <Item id="2">Rarity: RARE
+Storm Cowl
+Hubris Circlet</Item>
+    <ItemSet id="1">
+      <Slot name="Weapon 1" itemId="1"/>
+      <Slot name="Helmet" itemId="2"/>
+    </ItemSet>
+  </Items>
+</PathOfBuilding>"""
+    compressed = zlib.compress(xml.encode("utf-8"))
+    return base64.urlsafe_b64encode(compressed).decode("ascii")
+
+
+class ParsePobBuildTests(TestCase):
+    def test_extracts_stats_gear_skills_tree(self):
+        build = parse_pob_build(build_rich_pob_code())
+        self.assertEqual(build["class_name"], "Ranger")
+        self.assertEqual(build["ascendancy"], "Deadeye")
+        self.assertEqual(build["main_skill"], "Tornado Shot")
+        # Stats grouped and formatted
+        titles = {g["title"] for g in build["stat_groups"]}
+        self.assertIn("Offence", titles)
+        self.assertIn("Resistances", titles)
+        # Gear resolved by slot with rarity
+        slots = {g["slot"]: g for g in build["gear"]}
+        self.assertEqual(slots["Weapon 1"]["name"], "Windripper")
+        self.assertEqual(slots["Weapon 1"]["rarity"], "Unique")
+        self.assertEqual(slots["Helmet"]["base"], "Hubris Circlet")
+        # Skills: main group flagged, support gem detected
+        self.assertTrue(build["skill_groups"][0]["is_main"])
+        gems = build["skill_groups"][0]["gems"]
+        self.assertTrue(any(g["support"] for g in gems))
+        # Tree
+        self.assertEqual(build["tree"]["points"], 5)
+        self.assertIn("passive-skill-tree", build["tree"]["url"])
+
+    def test_garbage_raises(self):
+        with self.assertRaises(ValueError):
+            parse_pob_build("nonsense")
+
+
+class CharacterDetailViewTests(TestCase):
+    def setUp(self):
+        self.league = make_active_league_or_get()
+        self.player = make_player("exile")
+        self.player.set_password(PASSWORD)
+        self.player.save()
+        MemberProfile.objects.get_or_create(user=self.player)
+        save_pob_snapshot(self.player, self.league, build_rich_pob_code())
+
+    def test_detail_renders_build(self):
+        self.client.login(username="exile", password=PASSWORD)
+        resp = self.client.get(reverse("character_detail", args=["exile"]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Windripper")
+        self.assertContains(resp, "Tornado Shot")
+        self.assertContains(resp, "Equipment")
+
+    def test_unknown_user_404s(self):
+        self.client.login(username="exile", password=PASSWORD)
+        resp = self.client.get(reverse("character_detail", args=["nobody"]))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_owner_can_import(self):
+        self.client.login(username="exile", password=PASSWORD)
+        resp = self.client.post(
+            reverse("character_detail", args=["exile"]),
+            {"code": build_rich_pob_code()},
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "imported")
+
+    def test_roster_url_redirects_to_characters(self):
+        resp = self.client.get("/roster/")
+        self.assertEqual(resp.status_code, 301)
+        self.assertTrue(resp["Location"].endswith("/characters/"))
+
+
+def make_active_league_or_get() -> League:
+    return League.get_active() or make_league()

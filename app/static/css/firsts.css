@@ -261,3 +261,29 @@ table.standings tbody tr:first-child a {
   margin: 0;
 }
 .first-tile .btn { margin-top: auto; }
+
+/* ==========================================================================
+   Light theme — the celebratory tiles/medals were authored as hardcoded dark
+   gradients; give them parchment equivalents so text stays legible in light
+   mode. Dark theme (above) is untouched.
+   ========================================================================== */
+
+html[data-theme="light"] .first-tile {
+  background:
+    radial-gradient(circle at top right, rgba(138, 97, 19, 0.14), transparent 60%),
+    linear-gradient(160deg, #fffdf7, #f1e7cf 60%);
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 1px rgba(138, 97, 19, 0.15) inset, var(--shadow-raised);
+}
+html[data-theme="light"] .medal-first {
+  background: linear-gradient(120deg, #f6e7c2, #e8c76c, #f6e7c2);
+  color: #4a340a;
+  border-color: var(--color-gold);
+  text-shadow: none;
+}
+html[data-theme="light"] .trophy-ribbon {
+  color: #3a2a08;
+}
+html[data-theme="light"] table.standings tbody tr:first-child {
+  background: linear-gradient(90deg, rgba(138, 97, 19, 0.12), transparent 80%);
+}
