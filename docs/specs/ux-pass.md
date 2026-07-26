@@ -1,4 +1,15 @@
-# UX pass — proposal (2026-07-26)
+# UX pass — proposal (2026-07-26) — APPLIED
+
+**Status: shipped 2026-07-26.** Greenlit decisions: all three tiers; "Not submitted"
+removed entirely; roster cards class/level only; art = user avatars + original CSS
+crests (no bundled GGG assets, per the open-source plan). Delivered via 3 parallel
+subagents (boards / dashboard / roster-profile) over a shared crest partial. 153 tests.
+**Remaining follow-up:** a deep light-theme audit of the *legacy* stylesheets
+(proofs.css / firsts.css / social.css) — the new UX CSS is theme-aware, but those
+older files still have hardcoded dark colours.
+
+---
+
 
 Driven by the four concept mockups in `Assets/Concept/` (esp. image 4, literally
 titled "POE Community Companion") + the explicit ask: **each achievement board should
