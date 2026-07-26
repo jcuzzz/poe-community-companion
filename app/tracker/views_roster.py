@@ -110,9 +110,14 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
 
     build = None
     parse_error = ""
+    tree_svg = ""
     if snapshot and snapshot.raw and snapshot.source == CharacterSnapshot.Source.POB:
         try:
             build = roster_service.parse_pob_build(snapshot.raw)
+            if build and build.get("tree") and build["tree"].get("node_ids"):
+                from .tree_render import render_tree_svg
+
+                tree_svg = render_tree_svg(build["tree"]["node_ids"])
         except ValueError as exc:
             parse_error = str(exc)
 
@@ -123,6 +128,7 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
             "member": member,
             "snapshot": snapshot,
             "build": build,
+            "tree_svg": tree_svg,
             "parse_error": parse_error,
             "is_owner": is_owner,
             "pob_form": pob_form,

@@ -322,3 +322,86 @@ class CharacterDetailViewTests(TestCase):
 
 def make_active_league_or_get() -> League:
     return League.get_active() or make_league()
+
+
+class TreeRenderTests(TestCase):
+    def _sample_ids(self, n=6):
+        from tracker.tree_render import _tree
+        return list(_tree().get("n", {}))[:n]
+
+    def test_bundle_loads(self):
+        from tracker.tree_render import _tree
+        data = _tree()
+        self.assertGreater(len(data.get("n", {})), 1000)
+        self.assertEqual(len(data.get("b", [])), 4)
+
+    def test_renders_svg_for_known_nodes(self):
+        from tracker.tree_render import render_tree_svg
+        ids = self._sample_ids(6)
+        svg = render_tree_svg(ids)
+        self.assertIn("<svg", svg)
+        self.assertIn("t-base", svg)   # dim skeleton always drawn
+        self.assertEqual(svg.count("<circle"), len(ids))  # one per allocated node
+
+    def test_unknown_ids_degrade_to_empty(self):
+        from tracker.tree_render import render_tree_svg
+        self.assertEqual(render_tree_svg(["999999999", "not-a-node"]), "")
+        self.assertEqual(render_tree_svg([]), "")
+
+    def test_raw_id_not_injected(self):
+        # A hostile "node id" must never reach the SVG output.
+        from tracker.tree_render import render_tree_svg
+        svg = render_tree_svg(['"><script>x</script>'] + self._sample_ids(2))
+        self.assertNotIn("<script>", svg)
+
+    def test_parse_build_returns_node_ids(self):
+        build = parse_pob_build(build_rich_pob_code())
+        self.assertEqual(build["tree"]["node_ids"], ["1", "2", "3", "4", "5"])
+
+    def test_childless_spec_still_parses(self):
+        # ElementTree gotcha: a childless <Spec/> is falsy — must not be dropped.
+        xml = ('<PathOfBuilding><Build level="90" className="Ranger"/>'
+               '<Tree><Spec treeVersion="3_25" nodes="1,2,3"/></Tree></PathOfBuilding>')
+        code = base64.urlsafe_b64encode(zlib.compress(xml.encode())).decode()
+        build = parse_pob_build(code)
+        self.assertIsNotNone(build["tree"])
+        self.assertEqual(build["tree"]["points"], 3)
+
+    def test_malicious_tree_url_is_rejected(self):
+        xml = ('<PathOfBuilding><Build level="90" className="Ranger"/>'
+               '<Tree><Spec treeVersion="3_25" nodes="1,2">'
+               '<URL>javascript:alert(document.cookie)</URL></Spec></Tree></PathOfBuilding>')
+        code = base64.urlsafe_b64encode(zlib.compress(xml.encode())).decode()
+        build = parse_pob_build(code)
+        self.assertEqual(build["tree"]["url"], "")
+
+    def test_valid_tree_url_is_kept(self):
+        xml = ('<PathOfBuilding><Build level="90" className="Ranger"/>'
+               '<Tree><Spec treeVersion="3_25" nodes="1,2">'
+               '<URL>https://www.pathofexile.com/passive-skill-tree/abc</URL></Spec></Tree></PathOfBuilding>')
+        code = base64.urlsafe_b64encode(zlib.compress(xml.encode())).decode()
+        build = parse_pob_build(code)
+        self.assertTrue(build["tree"]["url"].startswith("https://"))
+
+
+class CharacterDetailTreeViewTests(TestCase):
+    def setUp(self):
+        self.league = make_active_league_or_get()
+        self.player = make_player("treeexile")
+        MemberProfile.objects.get_or_create(user=self.player)
+
+    def test_view_embeds_tree_svg_for_real_nodes(self):
+        from tracker.tree_render import _tree
+        ids = list(_tree().get("n", {}))[:40]
+        xml = (
+            '<PathOfBuilding><Build level="90" className="Ranger" ascendClassName="Deadeye"/>'
+            '<Tree><Spec treeVersion="3_25" nodes="' + ",".join(ids) + '"/></Tree>'
+            "</PathOfBuilding>"
+        )
+        code = base64.urlsafe_b64encode(zlib.compress(xml.encode())).decode()
+        save_pob_snapshot(self.player, self.league, code)
+        self.client.login(username="treeexile", password=PASSWORD)
+        resp = self.client.get(reverse("character_detail", args=["treeexile"]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "tree-svg")
+        self.assertContains(resp, "Passive tree")

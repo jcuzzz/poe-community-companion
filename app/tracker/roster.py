@@ -238,7 +238,9 @@ def parse_pob_build(code: str) -> dict:
                 itemset = s
                 break
         if itemset is None:
-            itemset = items_el.find("ItemSet") or items_el
+            itemset = items_el.find("ItemSet")
+            if itemset is None:
+                itemset = items_el
         slot_map = {}
         for slot in itemset.findall("Slot"):
             sname = slot.get("name") or ""
@@ -295,18 +297,27 @@ def parse_pob_build(code: str) -> dict:
 
     # --- Passive tree ---
     tree = None
-    spec = root.find("./Tree/Spec") or root.find("./Tree/ActiveSpec")
+    # NB: don't use `a or b` on ElementTree Elements — a childless element is
+    # falsy, which would silently discard a valid <Spec/>. Use explicit None.
+    spec = root.find("./Tree/Spec")
+    if spec is None:
+        spec = root.find("./Tree/ActiveSpec")
     if spec is not None:
         nodes = (spec.get("nodes") or "").strip()
-        node_count = len([n for n in nodes.split(",") if n]) if nodes else 0
+        node_ids = [n for n in nodes.split(",") if n]
         url = ""
         url_el = spec.find("URL")
         if url_el is not None and url_el.text:
             url = url_el.text.strip()
         elif spec.text and "passive-skill-tree" in (spec.text or ""):
             url = spec.text.strip()
+        # The URL comes from the pasted PoB code and is rendered as an href, so
+        # only accept safe http(s) links — reject javascript:/data: etc. (XSS).
+        if not url.lower().startswith(("https://", "http://")):
+            url = ""
         tree = {
-            "points": node_count,
+            "points": len(node_ids),
+            "node_ids": node_ids,
             "url": url,
             "version": spec.get("treeVersion") or "",
         }

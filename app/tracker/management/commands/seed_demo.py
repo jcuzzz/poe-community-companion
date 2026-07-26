@@ -53,6 +53,32 @@ _BUILD_FLAVOUR = {
 }
 
 
+def _demo_tree_nodes(rng, count: int = 110) -> str:
+    """A connected blob of REAL passive-tree node ids (BFS from a random start)
+    so the demo character page renders a believable allocated tree."""
+    import collections
+    from tracker.tree_render import _tree
+
+    data = _tree()
+    nodes = data.get("n")
+    if not nodes:
+        return ""
+    adj = collections.defaultdict(set)
+    for a, b in data.get("e", []):
+        adj[a].add(b)
+        adj[b].add(a)
+    start = rng.choice(list(nodes))
+    seen = {start}
+    q = collections.deque([start])
+    while q and len(seen) < count:
+        cur = q.popleft()
+        for nb in adj[cur]:
+            if nb not in seen:
+                seen.add(nb)
+                q.append(nb)
+    return ",".join(seen)
+
+
 def _demo_pob_code(rng, ascendancy: str, class_name: str, level: int) -> str:
     """Build a small but valid PoB export code so the character-detail page and
     parser have real data to work with in the demo. Not a real game build."""
@@ -106,7 +132,7 @@ def _demo_pob_code(rng, ascendancy: str, class_name: str, level: int) -> str:
     </SkillSet>
   </Skills>
   <Tree>
-    <Spec treeVersion="3_25" nodes="{','.join(str(rng.randint(100, 65000)) for _ in range(rng.randint(95, 118)))}">
+    <Spec treeVersion="3_25" nodes="{_demo_tree_nodes(rng, rng.randint(95, 118))}">
       <URL>https://www.pathofexile.com/passive-skill-tree/AAAABgMADemo</URL>
     </Spec>
   </Tree>

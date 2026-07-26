@@ -125,6 +125,7 @@
         {% if build.tree %}
           <section class="card char-tree">
             <div class="section-header"><h2 class="flourish">Passive tree</h2></div>
+            {% if tree_svg %}<div class="tree-canvas">{{ tree_svg }}</div>{% endif %}
             <p class="tree-points"><span class="value">{{ build.tree.points }}</span> <span class="label">points allocated</span></p>
             {% if snapshot.display_class %}<p class="text-muted">{{ snapshot.display_class }}{% if build.tree.version %} &middot; tree {{ build.tree.version|cut:"_"|slice:":1" }}.{{ build.tree.version|slice:"2:" }}{% endif %}</p>{% endif %}
             {% if build.tree.url %}
