@@ -627,6 +627,13 @@ class CharacterSnapshot(models.Model):
     def display_class(self) -> str:
         return self.ascendancy or self.class_name
 
+    @property
+    def portrait(self) -> str:
+        """Static path to a bundled class portrait for this character, or ''."""
+        from .portraits import portrait_path
+
+        return portrait_path(self.ascendancy) or portrait_path(self.class_name)
+
 
 class ContestVote(models.Model):
     """A group vote on a contested submission. Majority informs resolution."""

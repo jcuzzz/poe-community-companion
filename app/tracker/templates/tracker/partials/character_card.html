@@ -1,7 +1,13 @@
 {% load static %}
 <article class="character-card">
   <div class="character-card-header">
-    {% include "tracker/partials/member_avatar.html" with member=member size="md" %}
+    {% if snapshot.portrait %}
+      <span class="class-portrait class-portrait--md" title="{{ snapshot.display_class }}">
+        <img src="{% static snapshot.portrait %}" alt="{{ snapshot.display_class }}" loading="lazy">
+      </span>
+    {% else %}
+      {% include "tracker/partials/member_avatar.html" with member=member size="md" %}
+    {% endif %}
     <div class="character-card-identity">
       <h3><a href="{% url 'player_profile' member.username %}">{{ member.name }}</a></h3>
       <span class="character-card-username">@{{ member.username }}</span>
