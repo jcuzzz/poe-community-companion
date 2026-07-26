@@ -11,12 +11,12 @@
   <p class="text-muted">Points combine verified completions with category medals &mdash; see who's hunting glory below.</p>
 
   <div class="board-tabs">
-    <input type="radio" name="board-tab" id="tab-standings" class="board-tab-input" checked>
-    <input type="radio" name="board-tab" id="tab-medals" class="board-tab-input">
+    <input type="radio" name="board-tab" id="tab-medals" class="board-tab-input" checked>
+    <input type="radio" name="board-tab" id="tab-standings" class="board-tab-input">
 
     <div class="board-tab-list" role="tablist">
-      <label class="board-tab-btn" for="tab-standings">Standings</label>
       <label class="board-tab-btn" for="tab-medals">Medals</label>
+      <label class="board-tab-btn" for="tab-standings">Standings</label>
     </div>
 
     <section class="board-tab-panel" id="panel-standings">
@@ -72,12 +72,15 @@
     </section>
   </div>
 
-  <h2>Active achievements</h2>
+  <h2 class="flourish">Active achievements</h2>
   {% if achievements %}
     <ul class="player-status-list">
       {% for achievement in achievements %}
         <li class="player-status-row">
-          <span class="player-name">{{ achievement.icon }} <a href="{% url 'achievement_detail' achievement.slug %}">{{ achievement.name }}</a></span>
+          <span class="player-name">
+            {% include "tracker/partials/achievement_icon.html" with achievement=achievement size="sm" %}
+            <a href="{% url 'achievement_detail' achievement.slug %}">{{ achievement.name }}</a>
+          </span>
           <span class="stat-line">{{ achievement.label }}</span>
         </li>
       {% endfor %}

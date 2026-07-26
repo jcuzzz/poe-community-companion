@@ -1,29 +1,36 @@
 {% load static %}
 <article class="character-card">
-  <div class="character-card-header">
+  <div class="character-portrait-media">
     {% if snapshot.portrait %}
-      <span class="class-portrait class-portrait--md" title="{{ snapshot.display_class }}">
-        <img src="{% static snapshot.portrait %}" alt="{{ snapshot.display_class }}" loading="lazy">
-      </span>
+      <img class="character-portrait-img" src="{% static snapshot.portrait %}" alt="{{ snapshot.display_class }}" loading="lazy">
     {% else %}
-      {% include "tracker/partials/member_avatar.html" with member=member size="md" %}
+      <span class="character-portrait-crest" style="--hue: {{ member.banner_hue|default:42 }};" aria-hidden="true">
+        {{ member.name|slice:":1"|upper }}
+      </span>
     {% endif %}
-    <div class="character-card-identity">
+
+    {% if snapshot.level %}
+      <span class="character-level-chip"><span class="stat-level">{{ snapshot.level }}</span></span>
+    {% endif %}
+
+    <div class="character-portrait-caption">
       <h3><a href="{% url 'player_profile' member.username %}">{{ member.name }}</a></h3>
-      <span class="character-card-username">@{{ member.username }}</span>
+      {% if snapshot.display_class %}
+        <span class="character-portrait-class">{{ snapshot.display_class }}</span>
+      {% else %}
+        <span class="character-portrait-class">@{{ member.username }}</span>
+      {% endif %}
     </div>
   </div>
 
   {% if snapshot %}
     <div class="character-card-body">
+      <div class="character-card-identity">
+        <h3><a href="{% url 'player_profile' member.username %}">{{ member.name }}</a></h3>
+        {% if snapshot.display_class %}<span class="character-card-username">{{ snapshot.display_class }} &middot; Lv {{ snapshot.level }}</span>{% endif %}
+      </div>
       <p class="character-name">{{ snapshot.character_name|default:"Unnamed character" }}</p>
       <div class="character-badges">
-        {% if snapshot.display_class %}
-          <span class="pill pill-class">{{ snapshot.display_class }}</span>
-        {% endif %}
-        {% if snapshot.level %}
-          <span class="pill pill-level"><span class="stat-level">Lv {{ snapshot.level }}</span></span>
-        {% endif %}
         {% if snapshot.league_text %}
           <span class="pill pill-league">{{ snapshot.league_text }}</span>
         {% endif %}
@@ -39,6 +46,6 @@
   {% endif %}
 
   <div class="character-card-footer">
-    <a class="btn btn-sm" href="{% url 'player_profile' member.username %}">View profile</a>
+    <a class="btn btn-sm btn-block" href="{% url 'player_profile' member.username %}">View profile</a>
   </div>
 </article>

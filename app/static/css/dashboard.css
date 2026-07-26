@@ -98,14 +98,52 @@
 }
 
 .activity-item {
-  margin-bottom: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-border);
 }
+.activity-item:last-child { border-bottom: none; }
 
 .activity-item .member-avatar {
   vertical-align: middle;
   margin-right: var(--space-2);
 }
+
+/* KPI row directly under the champion hero */
+.kpi-row { margin-bottom: var(--space-6); }
+
+/* Progress ring (right rail) — conic gradient donut, pure CSS */
+.progress-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.progress-ring {
+  --p: 0%;
+  flex: 0 0 auto;
+  width: 7.5rem;
+  height: 7.5rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(closest-side, var(--color-bg-card) 76%, transparent 77%),
+    conic-gradient(var(--color-gold) 0 var(--p), var(--color-border-strong) var(--p) 100%);
+}
+.progress-ring-value {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-gold-bright);
+}
+.progress-legend-title {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-display);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--color-gold-bright);
+}
+.progress-legend-meta { margin: 0; font-size: var(--fs-sm); color: var(--color-parchment-dim); }
+.progress-legend-meta strong { color: var(--color-parchment); }
 
 .activity-meta {
   margin: var(--space-1) 0 0;

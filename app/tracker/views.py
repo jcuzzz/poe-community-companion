@@ -190,6 +190,12 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         .distinct()
     )
     latest_first = firsts[0] if firsts else None
+    kpis = [
+        {"label": "Exiles", "value": len(standings)},
+        {"label": "Achievements", "value": len(achievement_cards)},
+        {"label": "Firsts claimed", "value": len(firsts)},
+        {"label": "Completions", "value": sum(row["completions"] for row in standings)},
+    ]
     context = {
         "champion": champion,
         "standings": standings,
@@ -197,6 +203,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "recent_submissions": recent_submissions,
         "latest_first": latest_first,
         "firsts": firsts,
+        "kpis": kpis,
     }
     return render(request, "tracker/dashboard.html", context)
 

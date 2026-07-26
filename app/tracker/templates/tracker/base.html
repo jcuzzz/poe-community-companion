@@ -27,105 +27,131 @@
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
 
-  <header class="site-header">
-    <div class="header-bar">
+  <div class="shell">
+    {# ---------------------------------------------------------------- #}
+    {# Left sidebar: brand, primary nav, brazier art, online footer      #}
+    {# ---------------------------------------------------------------- #}
+    <aside class="sidebar" id="site-nav" aria-label="Primary">
       <a class="brand" href="{% url 'dashboard' %}">
-        <span class="brand-name">{{ brand_name }}</span>
-        {% if league_name %}<span class="brand-league">{{ league_name }}</span>{% endif %}
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span class="brand-name">{{ brand_name }}</span>
+          {% if league_name %}<span class="brand-league">{{ league_name }}</span>{% endif %}
+        </span>
       </a>
 
-      {% if leagues|length > 1 %}
-        <form class="league-select" method="post" action="{% url 'set_league' %}">
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ request.get_full_path }}">
-          <label class="u-visually-hidden" for="league-picker">Viewing league</label>
-          <select id="league-picker" name="league" onchange="this.form.submit()" aria-label="Viewing league">
-            {% for lg in leagues %}
-              <option value="{{ lg.slug }}"{% if viewing_league and lg.pk == viewing_league.pk %} selected{% endif %}>
-                {{ lg.name }}{% if lg.is_active %} (active){% endif %}
-              </option>
-            {% endfor %}
-          </select>
-        </form>
-        {% if is_archived_view %}<span class="archived-badge" title="This league is archived and read-only">Archived</span>{% endif %}
+      <nav class="sidebar-nav" aria-label="Sections">
+        {% with cur=request.resolver_match.url_name %}
+        <ul class="nav-list">
+          <li><a href="{% url 'dashboard' %}"{% if cur == 'dashboard' %} aria-current="page"{% endif %}>Dashboard</a></li>
+          <li><a href="{% url 'achievement_list' %}"{% if cur == 'achievement_list' or cur == 'achievement_detail' %} aria-current="page"{% endif %}>Achievements</a></li>
+          <li><a href="{% url 'leaderboard' %}"{% if cur == 'leaderboard' %} aria-current="page"{% endif %}>Leaderboard</a></li>
+          <li><a href="{% url 'roster' %}"{% if cur == 'roster' %} aria-current="page"{% endif %}>Roster</a></li>
+          {% if user.is_authenticated %}
+            <li><a href="{% url 'activity_feed' %}"{% if cur == 'activity_feed' %} aria-current="page"{% endif %}>Activity</a></li>
+            <li><a href="{% url 'character_list' %}"{% if cur == 'character_list' %} aria-current="page"{% endif %}>My characters</a></li>
+            <li><a href="{% url 'submission_create' %}"{% if cur == 'submission_create' %} aria-current="page"{% endif %}>Submit</a></li>
+            {% if user.is_staff %}
+              <li>
+                <a href="{% url 'review_queue' %}"{% if cur == 'review_queue' %} aria-current="page"{% endif %}>
+                  Review
+                  {% if pending_review_count %}<span class="nav-badge">{{ pending_review_count }}</span>{% endif %}
+                </a>
+              </li>
+            {% endif %}
+          {% else %}
+            <li><a href="{% url 'login' %}">Log in</a></li>
+          {% endif %}
+        </ul>
+        {% endwith %}
+      </nav>
+
+      <div class="sidebar-foot">
+        <span class="brazier" aria-hidden="true"></span>
+        <span class="online-count">A private tracker for five friends</span>
+      </div>
+    </aside>
+
+    <div class="main-area">
+      {# -------------------------------------------------------------- #}
+      {# Top bar: league pill (left), clock, profile cluster (right)     #}
+      {# -------------------------------------------------------------- #}
+      <header class="topbar">
+        <button type="button" id="nav-toggle" class="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Toggle navigation">
+          <span></span><span></span><span></span>
+        </button>
+
+        <div class="topbar-league">
+          {% if leagues|length > 1 %}
+            <form class="league-select" method="post" action="{% url 'set_league' %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <label class="u-visually-hidden" for="league-picker">Viewing league</label>
+              <select id="league-picker" name="league" onchange="this.form.submit()" aria-label="Viewing league">
+                {% for lg in leagues %}
+                  <option value="{{ lg.slug }}"{% if viewing_league and lg.pk == viewing_league.pk %} selected{% endif %}>
+                    {{ lg.name }}{% if lg.is_active %} (active){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </form>
+            {% if is_archived_view %}<span class="archived-badge" title="This league is archived and read-only">Archived</span>{% endif %}
+          {% elif league_name %}
+            <span class="league-pill-static">{{ league_name }}</span>
+          {% endif %}
+          <span class="league-clock">
+            {% if league_elapsed_days is not None %}
+              Day <strong>{{ league_elapsed_days|add:1 }}</strong>
+              {% if league_days_remaining is not None and league_days_remaining >= 0 %}
+                &middot; <strong>{{ league_days_remaining }}</strong> day{{ league_days_remaining|pluralize }} left
+              {% endif %}
+            {% else %}
+              League not started
+            {% endif %}
+          </span>
+        </div>
+
+        <div class="topbar-actions">
+          {% if user.is_authenticated %}
+            <div class="profile-menu">
+              <a href="{% url 'account_settings' %}">{{ user.name }} &#9662;</a>
+              <div class="profile-menu-panel">
+                <a href="{% url 'account_settings' %}">Account</a>
+                <a href="{% url 'roster_settings' %}">Character / roster</a>
+                {% if user.is_staff %}<a href="{% url 'league_create' %}">New season</a>{% endif %}
+                <a href="{% url 'player_profile' user.username %}">My profile</a>
+                <form method="post" action="{% url 'logout' %}">
+                  {% csrf_token %}
+                  <button type="submit">Log out</button>
+                </form>
+              </div>
+            </div>
+          {% else %}
+            <a href="{% url 'login' %}">Log in</a>
+          {% endif %}
+        </div>
+      </header>
+
+      {% if messages %}
+        <ul class="messages">
+          {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
       {% endif %}
 
-      <span class="league-clock">
-        {% if league_elapsed_days is not None %}
-          Day <strong>{{ league_elapsed_days|add:1 }}</strong>
-          {% if league_days_remaining is not None and league_days_remaining >= 0 %}
-            &middot; <strong>{{ league_days_remaining }}</strong> day{{ league_days_remaining|pluralize }} left
-          {% endif %}
-        {% else %}
-          League not started
-        {% endif %}
-      </span>
+      <main id="main-content">
+        {% block content %}{% endblock %}
+      </main>
 
-      <button type="button" id="nav-toggle" class="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Toggle navigation">
-        <span></span><span></span><span></span>
-      </button>
+      <footer class="site-footer">
+        <p>{{ brand_name }} &middot; a private tracker for five friends. Item art &copy; Grinding Gear Games.</p>
+        <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle light and dark theme">
+          <span data-theme-label>Theme</span>
+        </button>
+      </footer>
     </div>
-
-    <nav class="site-nav" id="site-nav" aria-label="Primary">
-      <ul class="nav-list">
-        <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
-        <li><a href="{% url 'achievement_list' %}">Achievements</a></li>
-        <li><a href="{% url 'leaderboard' %}">Leaderboard</a></li>
-        <li><a href="{% url 'roster' %}">Roster</a></li>
-        {% if user.is_authenticated %}
-          <li><a href="{% url 'activity_feed' %}">Activity</a></li>
-          <li><a href="{% url 'character_list' %}">My characters</a></li>
-          <li><a href="{% url 'submission_create' %}">Submit</a></li>
-          {% if user.is_staff %}
-            <li>
-              <a href="{% url 'review_queue' %}">
-                Review
-                {% if pending_review_count %}
-                  <span class="nav-badge">{{ pending_review_count }}</span>
-                {% endif %}
-              </a>
-            </li>
-          {% endif %}
-          <li class="nav-spacer"></li>
-          <li class="profile-menu">
-            <a href="{% url 'account_settings' %}">{{ user.name }} &#9662;</a>
-            <div class="profile-menu-panel">
-              <a href="{% url 'account_settings' %}">Account</a>
-              <a href="{% url 'roster_settings' %}">Character / roster</a>
-              {% if user.is_staff %}<a href="{% url 'league_create' %}">New season</a>{% endif %}
-              <a href="{% url 'player_profile' user.username %}">My profile</a>
-              <form method="post" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button type="submit">Log out</button>
-              </form>
-            </div>
-          </li>
-        {% else %}
-          <li class="nav-spacer"></li>
-          <li><a href="{% url 'login' %}">Log in</a></li>
-        {% endif %}
-      </ul>
-    </nav>
-  </header>
-
-  {% if messages %}
-    <ul class="messages">
-      {% for message in messages %}
-        <li class="{{ message.tags }}">{{ message }}</li>
-      {% endfor %}
-    </ul>
-  {% endif %}
-
-  <main id="main-content">
-    {% block content %}{% endblock %}
-  </main>
-
-  <footer class="site-footer">
-    <p>{{ brand_name }} &middot; a private tracker for five friends. Item art &copy; Grinding Gear Games.</p>
-    <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle light and dark theme">
-      <span data-theme-label>Theme</span>
-    </button>
-  </footer>
+  </div>
 
   <script>
     (function () {

@@ -7,14 +7,11 @@
   {# ------------------------------------------------------------------ #}
   {% if champion %}
     <section class="hero-champion hero-champion--crowned" aria-label="League champion">
-      <span class="champion-laurel champion-laurel--left" aria-hidden="true">&#127807;</span>
       <a class="hero-champion-avatar" href="{% url 'player_profile' champion.player.username %}">
         {% include "tracker/partials/member_avatar.html" with member=champion.player size="lg" %}
       </a>
       <div class="hero-champion-body">
-        <span class="champion-eyebrow">
-          <span class="crown" aria-hidden="true">&#9819;</span> League Champion
-        </span>
+        <span class="champion-eyebrow">League Champion</span>
         <h2><a href="{% url 'player_profile' champion.player.username %}">{{ champion.player.name }}</a></h2>
         <p class="subtitle">
           <strong>{{ champion.points }}</strong> points
@@ -22,7 +19,6 @@
           &middot; {{ champion.completions }} completion{{ champion.completions|pluralize }}
         </p>
       </div>
-      <span class="champion-laurel champion-laurel--right" aria-hidden="true">&#127807;</span>
     </section>
   {% else %}
     <div class="empty-state hero-empty">
@@ -32,10 +28,22 @@
   {% endif %}
 
   {# ------------------------------------------------------------------ #}
+  {# A2. League KPI row                                                 #}
+  {# ------------------------------------------------------------------ #}
+  <div class="stat-grid kpi-row">
+    {% for kpi in kpis %}
+      <div class="stat-tile">
+        <span class="value">{{ kpi.value }}</span>
+        <span class="label">{{ kpi.label }}</span>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# ------------------------------------------------------------------ #}
   {# B. First Achievements trophy row                                   #}
   {# ------------------------------------------------------------------ #}
   <div class="section-header">
-    <h2>First Achievements</h2>
+    <h2 class="flourish">First Achievements</h2>
     <a class="section-link" href="{% url 'achievement_list' %}">View all achievements &raquo;</a>
   </div>
 
@@ -67,12 +75,12 @@
   <div class="dashboard-columns">
     <section class="dashboard-col dashboard-col--activity" aria-label="Recent activity">
       <div class="section-header">
-        <h2>Recent Activity</h2>
+        <h2 class="flourish">Recent Activity</h2>
       </div>
       {% if recent_submissions %}
         <ul class="activity-list">
           {% for submission in recent_submissions %}
-            <li class="card activity-item">
+            <li class="activity-item">
               <div class="u-flex-between">
                 <span>
                   {% include "tracker/partials/member_avatar.html" with member=submission.user size="sm" %}
@@ -92,8 +100,21 @@
     </section>
 
     <aside class="dashboard-col dashboard-col--standings" aria-label="Leaderboard standings">
+      {% if achievement_cards %}
+        <div class="card progress-card">
+          <div class="progress-ring" style="--p: {% widthratio firsts|length achievement_cards|length 100 %}%;" role="img"
+               aria-label="{{ firsts|length }} of {{ achievement_cards|length }} achievements claimed">
+            <span class="progress-ring-value">{% widthratio firsts|length achievement_cards|length 100 %}%</span>
+          </div>
+          <div class="progress-legend">
+            <p class="progress-legend-title">League progress</p>
+            <p class="progress-legend-meta"><strong>{{ firsts|length }}</strong> of {{ achievement_cards|length }} achievements claimed</p>
+          </div>
+        </div>
+      {% endif %}
+
       <div class="section-header">
-        <h2>Leaderboard</h2>
+        <h2 class="flourish">Leaderboard</h2>
         <a class="section-link" href="{% url 'leaderboard' %}">Full leaderboard &raquo;</a>
       </div>
       {% include "tracker/partials/leaderboard_table.html" with rows=standings|slice:":5" %}

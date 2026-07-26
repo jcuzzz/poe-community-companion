@@ -29,17 +29,22 @@
   flex-wrap: wrap;
 }
 
-.roster-grid--list .character-card-header {
+.roster-grid--list .character-portrait-media {
   flex: 0 0 auto;
+  width: 5rem;
+  aspect-ratio: 1;
 }
+.roster-grid--list .character-portrait-caption,
+.roster-grid--list .character-level-chip { display: none; }
+.roster-grid--list .character-portrait-media::after { display: none; }
+.roster-grid--list .character-portrait-crest { font-size: 2rem; }
 
 .roster-grid--list .character-card-body {
-  flex: 1 1 auto;
+  flex: 1 1 12rem;
 }
 
 .roster-grid--list .character-card-footer {
   margin-top: 0;
-  padding-top: 0;
   border-top: none;
   flex: 0 0 auto;
 }
@@ -132,24 +137,112 @@
 .character-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-3);
   background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-gold-dim);
   border-radius: 0;
   box-shadow: var(--shadow-card);
   max-width: 100%;
   min-width: 0;
+  overflow: hidden;
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
 .roster-grid .character-card:hover {
-  border-color: var(--color-gold-dim);
+  border-color: var(--color-gold);
+  transform: translateY(-2px);
+}
+
+/* Portrait media zone — large class art with a scrimmed name caption. */
+.character-portrait-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, #201a10, #100d09 75%);
+}
+.character-portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+}
+.character-portrait-crest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-display);
+  font-size: 4rem;
+  font-weight: 700;
+  color: hsl(var(--hue, 42) 70% 70%);
+  background: radial-gradient(circle at 50% 40%, hsl(var(--hue, 42) 40% 22%), #100d09 75%);
+}
+.character-portrait-media::after {
+  /* bottom scrim so caption text stays legible over art */
+  content: "";
+  position: absolute;
+  inset: 40% 0 0;
+  background: linear-gradient(transparent, rgba(8, 6, 4, 0.92));
+  pointer-events: none;
+}
+.character-level-chip {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: 2;
+  min-width: 2rem;
+  padding: 0.15em 0.5em;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  background: rgba(8, 6, 4, 0.82);
+  border: 1px solid var(--color-gold);
+  color: var(--color-gold-bright);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.character-portrait-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: var(--space-3);
+}
+.character-portrait-caption h3 {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.1;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+.character-portrait-caption h3 a { color: var(--color-gold-bright); text-decoration: none; }
+.character-portrait-class {
+  display: block;
+  font-size: var(--fs-xs);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--color-parchment);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+
+.character-card-body { padding: var(--space-3); }
+
+/* Body identity line is redundant with the portrait caption in grid view;
+   it only surfaces in list view where the caption is hidden. */
+.roster-grid:not(.roster-grid--list) .character-card-identity { display: none; }
+.character-card-identity h3 { margin: 0; font-size: var(--fs-base); }
+.character-card-identity h3 a { color: var(--color-gold-bright); text-decoration: none; }
+.character-card-username {
+  display: block;
+  font-size: var(--fs-xs);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  color: var(--color-parchment-dim);
 }
 
 .character-card-footer {
   margin-top: auto;
-  padding-top: var(--space-2);
+  padding: var(--space-3);
   border-top: 1px solid var(--color-border);
 }
 

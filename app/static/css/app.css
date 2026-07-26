@@ -5,9 +5,9 @@
 
 :root {
   /* Palette */
-  --color-bg: #14110d;
-  --color-bg-raised: #1c1812;
-  --color-bg-card: #211c15;
+  --color-bg: #0e0c09;
+  --color-bg-raised: #1a1610;
+  --color-bg-card: #1c1710;
   --color-parchment: #e7d8b8;
   --color-parchment-dim: #b8a888;
   --color-gold: #c9a24a;
@@ -74,7 +74,9 @@ body {
   overflow-x: hidden;
   background: var(--color-bg);
   background-image:
-    radial-gradient(ellipse at top, rgba(201, 162, 74, 0.06), transparent 60%);
+    radial-gradient(ellipse 120% 55% at 50% -8%, rgba(201, 162, 74, 0.08), transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 115%, rgba(0, 0, 0, 0.65), transparent 55%);
+  background-attachment: fixed;
   color: var(--color-parchment);
   font-family: var(--font-body);
   font-size: var(--fs-base);
@@ -91,10 +93,33 @@ h1, h2, h3, h4 {
   margin: 0 0 var(--space-3);
 }
 
-h1 { font-size: var(--fs-2xl); }
-h2 { font-size: var(--fs-xl); }
-h3 { font-size: var(--fs-lg); }
-h4 { font-size: var(--fs-md); }
+h1 { font-size: var(--fs-xl); letter-spacing: 0.02em; }
+h2 {
+  font-size: var(--fs-lg);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+h3 { font-size: var(--fs-md); letter-spacing: 0.02em; }
+h4 { font-size: var(--fs-base); }
+
+/* Section-title flourish: a short diamond-tipped gold rule under headings.
+   Opt-in via .flourish so it never disrupts headings inside flex headers. */
+.flourish {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+}
+.flourish::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background:
+    /* small diamond tip, then a fading rule */
+    linear-gradient(45deg, transparent 45%, var(--color-gold) 45% 55%, transparent 55%) left center / 9px 9px no-repeat,
+    linear-gradient(90deg, var(--color-gold-dim), transparent 78%) left center / 100% 1px no-repeat;
+}
 
 p { margin: 0 0 var(--space-3); }
 
@@ -142,40 +167,151 @@ ul, ol { padding-left: 1.25rem; }
    Layout shell
    ========================================================================== */
 
-.site-header {
-  background: linear-gradient(180deg, #1a1610, #14110d);
-  border-bottom: 1px solid var(--color-border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
+/* --------------------------------------------------------------------------
+   App shell: fixed left sidebar + scrolling main area (concept layout)
+   -------------------------------------------------------------------------- */
+.shell {
+  display: grid;
+  grid-template-columns: 16rem 1fr;
+  min-height: 100vh;
 }
 
-.header-bar {
+.sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: var(--space-4);
-  max-width: 72rem;
-  margin: 0 auto;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-5) 0 var(--space-4);
+  background:
+    linear-gradient(180deg, #18130c, #100d09 70%);
+  border-right: 1px solid var(--color-gold-dim);
+  box-shadow: inset -1px 0 0 rgba(201, 162, 74, 0.12);
+  z-index: 90;
 }
-.header-bar > * { min-width: 0; }
 
 .brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-4);
+  margin: 0 var(--space-4);
+  border-bottom: 1px solid var(--color-border);
   color: var(--color-gold-bright);
   text-decoration: none;
   font-family: var(--font-display);
 }
 .brand:hover { text-decoration: none; }
-
+.brand-mark {
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  background:
+    linear-gradient(135deg, var(--color-gold-bright), var(--color-gold-dim));
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  box-shadow: 0 0 8px rgba(201, 162, 74, 0.4);
+}
+.brand-text { display: flex; flex-direction: column; min-width: 0; }
 .brand-name {
   font-size: var(--fs-md);
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
+  line-height: 1.15;
 }
+.brand-league {
+  font-size: var(--fs-xs);
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  color: var(--color-parchment-dim);
+}
+
+.sidebar-nav { flex: 1 1 auto; overflow-y: auto; }
+
+.nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--space-3);
+}
+.nav-list a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-parchment);
+  text-decoration: none;
+  font-size: var(--fs-sm);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  padding: 0.6rem var(--space-3);
+  border-left: 3px solid transparent;
+}
+.nav-list a:hover {
+  color: var(--color-gold-bright);
+  background: rgba(201, 162, 74, 0.08);
+}
+.nav-list a[aria-current="page"] {
+  color: var(--color-gold-bright);
+  background: linear-gradient(90deg, rgba(201, 162, 74, 0.16), transparent 85%);
+  border-left-color: var(--color-gold);
+}
+
+.nav-badge {
+  margin-left: auto;
+  background: var(--color-crimson);
+  color: #fff;
+  font-size: var(--fs-xs);
+  line-height: 1;
+  padding: 0.15em 0.45em;
+  border-radius: 0;
+}
+
+.sidebar-foot {
+  padding: var(--space-4) var(--space-4) 0;
+  margin: 0 var(--space-4);
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+.brazier {
+  display: block;
+  width: 100%;
+  height: 3.5rem;
+  margin-bottom: var(--space-2);
+  background:
+    radial-gradient(ellipse 40% 90% at 50% 100%, rgba(232, 160, 60, 0.55), rgba(201, 90, 30, 0.25) 45%, transparent 70%),
+    radial-gradient(ellipse 22% 70% at 50% 100%, rgba(255, 220, 130, 0.8), transparent 65%);
+}
+.online-count {
+  font-size: var(--fs-xs);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--color-parchment-dim);
+}
+
+/* Top bar */
+.main-area { display: flex; flex-direction: column; min-width: 0; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  background: linear-gradient(180deg, #16120c, #100d09);
+  border-bottom: 1px solid var(--color-gold-dim);
+  position: sticky;
+  top: 0;
+  z-index: 80;
+}
+.topbar-league {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); }
 
 .league-clock {
   font-family: var(--font-body);
@@ -185,24 +321,21 @@ ul, ol { padding-left: 1.25rem; }
 }
 .league-clock strong { color: var(--color-gold); }
 
-.league-select {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  max-width: 100%;
-}
+.league-pill-static,
 .league-select select {
-  max-width: 100%;
-  min-width: 0;
   font-size: var(--fs-sm);
-  color: var(--color-parchment);
+  color: var(--color-gold-bright);
   background: var(--color-bg-raised);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-gold-dim);
   border-radius: var(--radius-sm);
-  padding: 0.3em 0.5em;
+  padding: 0.4em 0.8em;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
 }
+.league-select { display: flex; align-items: center; min-width: 0; max-width: 100%; }
+.league-select select { max-width: 100%; min-width: 0; }
 
-/* Nav toggle (JS-driven mobile menu button) */
+/* Nav toggle (JS-driven mobile drawer button) */
 .nav-toggle {
   display: none;
   flex-direction: column;
@@ -224,49 +357,6 @@ ul, ol { padding-left: 1.25rem; }
   background: var(--color-gold);
   border-radius: 1px;
 }
-
-.site-nav {
-  max-width: 72rem;
-  margin: 0 auto;
-  padding: 0 var(--space-4) var(--space-3);
-}
-
-.nav-list {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  flex-wrap: wrap;
-}
-
-.nav-list a {
-  color: var(--color-parchment);
-  text-decoration: none;
-  font-size: var(--fs-sm);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-}
-.nav-list a:hover,
-.nav-list a[aria-current="page"] {
-  color: var(--color-gold-bright);
-  background: rgba(201, 162, 74, 0.1);
-}
-
-.nav-badge {
-  display: inline-block;
-  margin-left: var(--space-1);
-  background: var(--color-crimson);
-  color: #fff;
-  font-size: var(--fs-xs);
-  line-height: 1;
-  padding: 0.15em 0.45em;
-  border-radius: 0;
-  vertical-align: middle;
-}
-
-.nav-spacer { flex: 1 1 auto; }
 
 .profile-menu { position: relative; }
 .profile-menu > a {
@@ -302,9 +392,11 @@ ul, ol { padding-left: 1.25rem; }
 }
 
 main {
-  max-width: 72rem;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 96rem;
   margin: 0 auto;
-  padding: var(--space-5) var(--space-4) var(--space-7);
+  padding: var(--space-6) var(--space-6) var(--space-7);
 }
 
 .site-footer {
@@ -317,10 +409,11 @@ main {
 
 /* Messages */
 .messages {
-  max-width: 72rem;
+  max-width: 96rem;
   margin: var(--space-4) auto 0;
-  padding: 0 var(--space-4);
+  padding: 0 var(--space-6);
   list-style: none;
+  width: 100%;
 }
 .messages li {
   padding: var(--space-3) var(--space-4);
@@ -337,36 +430,42 @@ main {
    Mobile nav collapse (< 40rem)
    ========================================================================== */
 
-@media (max-width: 39.99rem) {
+/* Collapse the sidebar into an off-canvas drawer on narrow screens. */
+@media (max-width: 63.99rem) {
+  .shell { grid-template-columns: 1fr; }
+
   .nav-toggle { display: flex; }
 
-  .site-nav { padding-top: 0; }
-
-  .nav-list {
-    display: none;
-    flex-direction: column;
-    align-items: stretch;
-    background: var(--color-bg-raised);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--space-2);
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 16rem;
+    max-width: 82vw;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--shadow-raised);
   }
-
-  .site-nav.is-open .nav-list {
-    display: flex;
+  @media (prefers-reduced-motion: reduce) {
+    .sidebar { transition: none; }
   }
+  .sidebar.is-open { transform: translateX(0); }
 
-  .nav-spacer { display: none; }
+  /* Dim scrim behind the open drawer */
+  .sidebar.is-open::before {
+    content: "";
+    position: fixed;
+    inset: 0 auto 0 16rem;
+    width: 100vw;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: -1;
+  }
+}
 
-  .header-bar { flex-wrap: wrap; }
-
-  .brand { min-width: 0; }
-  .brand-name,
-  .brand-league { overflow: hidden; text-overflow: ellipsis; }
-
-  .league-select { order: 1; flex: 1 1 auto; min-width: 0; }
-  .league-clock { order: 2; flex: 1 1 auto; }
-  .nav-toggle { order: 3; }
+@media (max-width: 40rem) {
+  main { padding: var(--space-5) var(--space-4) var(--space-6); }
+  .topbar { padding: var(--space-3) var(--space-4); }
+  .topbar-league { gap: var(--space-2); flex-wrap: wrap; }
 }
 
 /* ==========================================================================
@@ -426,13 +525,54 @@ form.inline-btn { display: inline; }
    ========================================================================== */
 
 .card {
-  background: var(--color-bg-card);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.015), transparent 40%),
+    var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
   box-shadow: var(--shadow-card);
   margin-bottom: var(--space-5);
 }
+
+/* ==========================================================================
+   Ornate framing — thin gold outer line, inset gutter, gold corner accents.
+   This "material" is what makes every panel read as PoE at a glance.
+   ========================================================================== */
+.card,
+.achievement-card,
+.trophy-card,
+.hero-champion,
+.stat-tile {
+  position: relative;
+  border-color: var(--color-gold-dim);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(232, 199, 108, 0.06);
+}
+.card::after,
+.achievement-card::after,
+.trophy-card::after,
+.hero-champion::after,
+.stat-tile::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  z-index: 1;
+  border: 1px solid rgba(201, 162, 74, 0.14);
+  /* Gold corner ticks drawn over the inset hairline */
+  background:
+    linear-gradient(var(--color-gold) 0 0) top left     / 14px 2px,
+    linear-gradient(var(--color-gold) 0 0) top left     / 2px 14px,
+    linear-gradient(var(--color-gold) 0 0) top right    / 14px 2px,
+    linear-gradient(var(--color-gold) 0 0) top right    / 2px 14px,
+    linear-gradient(var(--color-gold) 0 0) bottom left  / 14px 2px,
+    linear-gradient(var(--color-gold) 0 0) bottom left  / 2px 14px,
+    linear-gradient(var(--color-gold) 0 0) bottom right / 14px 2px,
+    linear-gradient(var(--color-gold) 0 0) bottom right / 2px 14px;
+  background-repeat: no-repeat;
+}
+/* Stat tiles are small; use tighter corner ticks and a little inset. */
+.stat-tile::after { inset: 3px; }
 
 .card-header {
   display: flex;
@@ -876,7 +1016,9 @@ input[type="radio"] {
 }
 .stat-tile .value {
   font-family: var(--font-display);
-  font-size: var(--fs-xl);
+  font-size: var(--fs-2xl);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
   color: var(--color-gold-bright);
   display: block;
 }
