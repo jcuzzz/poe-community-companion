@@ -8,8 +8,69 @@
       <a class="btn btn-sm" href="{% url 'leaderboard_export' 'json' %}">Export JSON</a>
     </span>
   </div>
-  <p class="text-muted">Points combine verified completions with category medals &mdash; see the breakdown per player below.</p>
-  {% include "tracker/partials/leaderboard_table.html" with rows=rows %}
+  <p class="text-muted">Points combine verified completions with category medals &mdash; see who's hunting glory below.</p>
+
+  <div class="board-tabs">
+    <input type="radio" name="board-tab" id="tab-standings" class="board-tab-input" checked>
+    <input type="radio" name="board-tab" id="tab-medals" class="board-tab-input">
+
+    <div class="board-tab-list" role="tablist">
+      <label class="board-tab-btn" for="tab-standings">Standings</label>
+      <label class="board-tab-btn" for="tab-medals">Medals</label>
+    </div>
+
+    <section class="board-tab-panel" id="panel-standings">
+      {% include "tracker/partials/leaderboard_table.html" with rows=rows %}
+    </section>
+
+    <section class="board-tab-panel" id="panel-medals">
+      {% if matrix.rows %}
+        <div class="matrix-wrap">
+          <table class="medals-matrix">
+            <caption class="u-visually-hidden">Medals matrix &mdash; every achievement at a glance</caption>
+            <thead>
+              <tr>
+                <th scope="col" class="matrix-player-col">Player</th>
+                {% for achievement in matrix.achievements %}
+                  <th scope="col" class="matrix-achv-col" title="{{ achievement.name }}">
+                    <span class="matrix-achv-icon" aria-hidden="true">{{ achievement.icon }}</span>
+                    <span class="matrix-achv-label">{{ achievement.label|default:achievement.name }}</span>
+                  </th>
+                {% endfor %}
+                <th scope="col" class="numeric matrix-total-col">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in matrix.rows %}
+                <tr {% if user == row.player %}class="is-self"{% endif %}>
+                  <td class="matrix-player-cell">
+                    {% include "tracker/partials/member_avatar.html" with member=row.player size="sm" %}
+                    <a href="{% url 'player_profile' row.player.username %}">{{ row.player.name }}</a>
+                  </td>
+                  {% for cell in row.cells %}
+                    <td class="matrix-cell">
+                      {% if cell.earned %}
+                        <span class="matrix-medal-icons" title="{{ cell.achievement.name }}">
+                          {% if cell.first %}<span class="matrix-icon matrix-icon-first" aria-label="First place">&#9819;</span>{% endif %}
+                          {% if cell.efficiency %}<span class="matrix-icon matrix-icon-efficiency" aria-label="Efficiency medal">&#9679;</span>{% endif %}
+                          {% if cell.completion %}<span class="matrix-icon matrix-icon-completion" aria-label="Completed">&#10003;</span>{% endif %}
+                        </span>
+                      {% else %}
+                        <span class="matrix-icon-empty" aria-hidden="true">&middot;</span>
+                      {% endif %}
+                    </td>
+                  {% endfor %}
+                  <td class="numeric matrix-total-cell"><strong>{{ row.total }}</strong></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">No medals awarded yet &mdash; be the first to claim glory.</div>
+      {% endif %}
+    </section>
+  </div>
 
   <h2>Active achievements</h2>
   {% if achievements %}

@@ -18,6 +18,113 @@
   }
 }
 
+/* List view: one column, cards laid out as compact rows. */
+.roster-grid.roster-grid--list {
+  grid-template-columns: 1fr;
+}
+
+.roster-grid--list .character-card {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.roster-grid--list .character-card-header {
+  flex: 0 0 auto;
+}
+
+.roster-grid--list .character-card-body {
+  flex: 1 1 auto;
+}
+
+.roster-grid--list .character-card-footer {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+  flex: 0 0 auto;
+}
+
+/* ==========================================================================
+   Roster filter bar (class / player selects + grid/list toggle)
+   ========================================================================== */
+
+.roster-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.roster-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 10rem;
+}
+
+.roster-filter-field label {
+  font-size: var(--fs-xs);
+  color: var(--color-parchment-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.roster-filter-field select {
+  background: var(--color-bg-raised);
+  color: var(--color-parchment);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--fs-sm);
+}
+
+.roster-filter-bar > .btn {
+  align-self: end;
+}
+
+.roster-view-toggle {
+  display: inline-flex;
+  gap: var(--space-1);
+  margin-left: auto;
+  align-self: end;
+}
+
+.roster-view-toggle input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.roster-view-toggle label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  color: var(--color-parchment-dim);
+  cursor: pointer;
+  font-size: var(--fs-md);
+}
+
+.roster-view-toggle input[type="radio"]:checked + label {
+  border-color: var(--color-gold);
+  color: var(--color-gold-bright);
+  background: var(--color-bg-raised);
+}
+
+.roster-view-toggle input[type="radio"]:focus-visible + label {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 1px;
+}
+
 /* ==========================================================================
    Character card
    ========================================================================== */
@@ -33,6 +140,21 @@
   box-shadow: var(--shadow-card);
   max-width: 100%;
   min-width: 0;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.roster-grid .character-card:hover {
+  border-color: var(--color-gold-dim);
+}
+
+.character-card-footer {
+  margin-top: auto;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.character-card--empty-self {
+  align-items: flex-start;
 }
 
 .character-card-header {

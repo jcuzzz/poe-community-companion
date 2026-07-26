@@ -2,98 +2,101 @@
 {% block title %}Dashboard &middot; {{ brand_name }}{% endblock %}
 {% block content %}
 
+  {# ------------------------------------------------------------------ #}
+  {# A. League Champion hero card                                       #}
+  {# ------------------------------------------------------------------ #}
   {% if champion %}
-    <section class="hero-champion hero-champion--crowned" aria-label="Current champion">
+    <section class="hero-champion hero-champion--crowned" aria-label="League champion">
       <span class="champion-laurel champion-laurel--left" aria-hidden="true">&#127807;</span>
-      <span class="crown" aria-hidden="true">&#9819;</span>
+      <a class="hero-champion-avatar" href="{% url 'player_profile' champion.player.username %}">
+        {% include "tracker/partials/member_avatar.html" with member=champion.player size="lg" %}
+      </a>
       <div class="hero-champion-body">
-        <span class="champion-eyebrow">Reigning Champion</span>
+        <span class="champion-eyebrow">
+          <span class="crown" aria-hidden="true">&#9819;</span> League Champion
+        </span>
         <h2><a href="{% url 'player_profile' champion.player.username %}">{{ champion.player.name }}</a></h2>
-        <p class="subtitle">{{ champion.points }} points &middot; {{ champion.completions }} completions &middot; {{ champion.firsts }} first{{ champion.firsts|pluralize }}</p>
+        <p class="subtitle">
+          <strong>{{ champion.points }}</strong> points
+          &middot; {{ champion.firsts }} first{{ champion.firsts|pluralize }}
+          &middot; {{ champion.completions }} completion{{ champion.completions|pluralize }}
+        </p>
       </div>
       <span class="champion-laurel champion-laurel--right" aria-hidden="true">&#127807;</span>
     </section>
   {% else %}
-    <div class="empty-state">
+    <div class="empty-state hero-empty">
       <span class="icon" aria-hidden="true">&#127942;</span>
-      No champion yet &mdash; be the first to get an achievement approved.
+      No champion crowned yet &mdash; be the first to get an achievement approved and claim the throne.
     </div>
   {% endif %}
 
+  {# ------------------------------------------------------------------ #}
+  {# B. First Achievements trophy row                                   #}
+  {# ------------------------------------------------------------------ #}
+  <div class="section-header">
+    <h2>First Achievements</h2>
+    <a class="section-link" href="{% url 'achievement_list' %}">View all achievements &raquo;</a>
+  </div>
+
   {% if firsts %}
-    <h2>Major firsts</h2>
     <div class="trophy-row">
       {% for sub in firsts %}
         <div class="trophy-card trophy-card--first">
           <span class="trophy-ribbon" aria-hidden="true">First</span>
           <span class="trophy-icon" aria-hidden="true">{{ sub.achievement.icon|default:"🏆" }}</span>
           <p class="trophy-label">{{ sub.achievement.label }}</p>
-          <p class="trophy-holder"><span class="trophy-holder-crown" aria-hidden="true">&#9819;</span> <a href="{% url 'player_profile' sub.user.username %}">{{ sub.user.name }}</a></p>
-          <p class="trophy-meta">
-            <span class="stat-level">Level {{ sub.character_level|default_if_none:"—" }}</span>
-            <span class="stat-sep" aria-hidden="true">&middot;</span>
-            <span class="stat-played">{{ sub.played_display }} played</span>
-            <span class="stat-sep" aria-hidden="true">&middot;</span>
-            <span class="stat-played">{{ sub.kill_count|default_if_none:"—" }} kills</span>
-          </p>
+          <div class="trophy-winner">
+            {% include "tracker/partials/member_avatar.html" with member=sub.user size="sm" %}
+            <span class="trophy-holder"><a href="{% url 'player_profile' sub.user.username %}">{{ sub.user.name }}</a></span>
+          </div>
           <a class="btn btn-sm" href="{% url 'submission_detail' sub.pk %}">View proof</a>
-          {% with proof=sub.proofs.all.0 %}
-            {% if proof %}
-              <a class="btn btn-sm" href="{{ proof.image.url }}" target="_blank" rel="noopener"
-                 data-lightbox-src="{{ proof.image.url }}"
-                 data-lightbox-alt="Proof for {{ sub.achievement.name }} by {{ sub.user.name }}">View screenshot</a>
-            {% endif %}
-          {% endwith %}
-          <a class="btn btn-sm" href="{% url 'share_card' sub.pk %}" target="_blank" rel="noopener">Share card</a>
         </div>
       {% endfor %}
     </div>
+  {% else %}
+    <div class="empty-state">
+      <span class="icon" aria-hidden="true">&#10024;</span>
+      No firsts claimed yet &mdash; every achievement is still up for grabs.
+    </div>
   {% endif %}
 
-  <div class="card-grid cols-2">
-    <section>
-      <h2>Achievement race</h2>
-      {% if achievement_cards %}
-        {% for card in achievement_cards %}
-          {% include "tracker/partials/achievement_card.html" with card=card %}
-        {% endfor %}
-      {% else %}
-        <div class="empty-state">No achievements have been configured yet.</div>
-      {% endif %}
-    </section>
-
-    <aside>
-      <h2>Standings</h2>
-      {% include "tracker/partials/leaderboard_table.html" with rows=standings %}
-
-      <h2>Recent submissions</h2>
+  {# ------------------------------------------------------------------ #}
+  {# C. Recent Activity + Leaderboard standings                         #}
+  {# ------------------------------------------------------------------ #}
+  <div class="dashboard-columns">
+    <section class="dashboard-col dashboard-col--activity" aria-label="Recent activity">
+      <div class="section-header">
+        <h2>Recent Activity</h2>
+      </div>
       {% if recent_submissions %}
-        <ul class="player-status-list">
+        <ul class="activity-list">
           {% for submission in recent_submissions %}
-            <li class="card" style="margin-bottom: var(--space-3); padding: var(--space-3);">
-              {% include "tracker/partials/submission_row.html" with submission=submission %}
-              {% with proof=submission.proofs.all.0 %}
-                {% if proof %}
-                  <a class="btn btn-sm" href="{{ proof.image.url }}" target="_blank" rel="noopener"
-                     data-lightbox-src="{{ proof.image.url }}"
-                     data-lightbox-alt="Proof for {{ submission.achievement.name }} by {{ submission.user.name }}">View screenshot</a>
-                {% endif %}
-              {% endwith %}
+            <li class="card activity-item">
+              <div class="u-flex-between">
+                <span>
+                  {% include "tracker/partials/member_avatar.html" with member=submission.user size="sm" %}
+                  <a href="{% url 'player_profile' submission.user.username %}">{{ submission.user.name }}</a>
+                  submitted
+                  <a href="{% url 'submission_detail' submission.pk %}">{{ submission.achievement.name }}</a>
+                </span>
+                <span class="pill pill-{{ submission.status }}">{{ submission.get_status_display }}</span>
+              </div>
+              <p class="activity-meta text-muted">{{ submission.submitted_at|timesince }} ago</p>
             </li>
           {% endfor %}
         </ul>
       {% else %}
-        <div class="empty-state">No submissions yet.</div>
+        <div class="empty-state">No activity yet &mdash; submissions will show up here the moment someone logs one.</div>
       {% endif %}
+    </section>
 
-      {% if latest_first %}
-        <h2>Latest first</h2>
-        <div class="card">
-          <p><strong>{{ latest_first.user.name }}</strong> claimed <strong>{{ latest_first.achievement.label }}</strong></p>
-          <p class="text-muted">{{ latest_first.submitted_at|date:"D j, H:i" }}</p>
-          <a class="btn btn-sm" href="{% url 'submission_detail' latest_first.pk %}">View proof</a>
-        </div>
-      {% endif %}
+    <aside class="dashboard-col dashboard-col--standings" aria-label="Leaderboard standings">
+      <div class="section-header">
+        <h2>Leaderboard</h2>
+        <a class="section-link" href="{% url 'leaderboard' %}">Full leaderboard &raquo;</a>
+      </div>
+      {% include "tracker/partials/leaderboard_table.html" with rows=standings|slice:":5" %}
     </aside>
   </div>
 {% endblock %}

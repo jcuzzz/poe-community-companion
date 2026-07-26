@@ -1,1 +1,134 @@
-/* dashboard.css — dashboard layout. Filled by UX pass. */
+/* ==========================================================================
+   dashboard.css — layout for the reorganized dashboard: League Champion
+   hero, First Achievements trophy row, Recent Activity + Leaderboard.
+   Base card/hero/trophy-card visuals live in app.css and firsts.css;
+   this file only adds dashboard-specific structure (avatars, section
+   headers, the two-column activity/standings split).
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Section headers ("First Achievements", "Recent Activity", "Leaderboard")
+   -------------------------------------------------------------------------- */
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.section-header h2 {
+  margin: 0;
+}
+
+.section-link {
+  font-size: var(--fs-sm);
+  color: var(--color-gold);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.section-link:hover {
+  text-decoration: underline;
+}
+
+/* --------------------------------------------------------------------------
+   Hero champion — avatar + body alignment
+   -------------------------------------------------------------------------- */
+
+.hero-champion-avatar {
+  flex-shrink: 0;
+  display: block;
+  line-height: 0;
+}
+
+.hero-champion-body {
+  flex: 1 1 auto;
+  min-width: 10rem;
+}
+
+.hero-empty {
+  margin-bottom: var(--space-6);
+}
+
+/* --------------------------------------------------------------------------
+   Trophy row — winner avatar row inside each first-achievement card
+   -------------------------------------------------------------------------- */
+
+.trophy-winner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 var(--space-3);
+}
+
+.trophy-winner .trophy-holder {
+  font-weight: 700;
+}
+
+.trophy-winner .trophy-holder a {
+  text-decoration: none;
+}
+.trophy-winner .trophy-holder a:hover {
+  text-decoration: underline;
+}
+
+/* --------------------------------------------------------------------------
+   Recent Activity + Leaderboard — side by side, stacking on mobile
+   -------------------------------------------------------------------------- */
+
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (min-width: 56rem) {
+  .dashboard-columns {
+    grid-template-columns: 3fr 2fr;
+  }
+}
+
+.dashboard-col--activity .activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.activity-item {
+  margin-bottom: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.activity-item .member-avatar {
+  vertical-align: middle;
+  margin-right: var(--space-2);
+}
+
+.activity-meta {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-sm);
+}
+
+.dashboard-col--standings .table-wrap {
+  margin-bottom: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Light theme — no overrides needed beyond app.css's shared tokens; the
+   `.section-link` gold accent and card/empty-state colors already flip
+   via the variables redefined under html[data-theme="light"] in app.css.
+   -------------------------------------------------------------------------- */
+
+@media (prefers-color-scheme: light) {
+  .section-link {
+    color: var(--color-gold-dim);
+  }
+}
+
+:root[data-theme="light"] .section-link,
+html[data-theme="light"] .section-link {
+  color: var(--color-gold-dim);
+}

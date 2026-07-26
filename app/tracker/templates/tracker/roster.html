@@ -7,12 +7,44 @@
   </h1>
 
   <p class="text-muted">
-    Add your character by pasting a Path of Building code in
+    The guild's exiles, at a glance. Add your own character by pasting a Path of Building code in
     <a href="{% url 'roster_settings' %}">Character / roster</a>.
   </p>
 
+  <form class="roster-filter-bar" method="get">
+    <div class="roster-filter-field">
+      <label for="roster-class-filter">Class</label>
+      <select id="roster-class-filter" name="class" onchange="this.form.submit()">
+        <option value="">All classes</option>
+        {% for cls in classes %}
+          <option value="{{ cls }}"{% if cls == class_filter %} selected{% endif %}>{{ cls }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="roster-filter-field">
+      <label for="roster-player-filter">Player</label>
+      <select id="roster-player-filter" name="player" onchange="this.form.submit()">
+        <option value="">All players</option>
+        {% for m in members %}
+          <option value="{{ m.username }}"{% if m.username == player_filter %} selected{% endif %}>{{ m.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <noscript><button type="submit" class="btn btn-sm">Apply</button></noscript>
+    {% if class_filter or player_filter %}
+      <a class="btn btn-sm" href="{% url 'roster' %}">Clear filters</a>
+    {% endif %}
+
+    <div class="roster-view-toggle" role="group" aria-label="Card layout">
+      <input type="radio" name="view" id="roster-view-grid" value="grid" checked>
+      <label for="roster-view-grid" title="Grid view">&#8862;</label>
+      <input type="radio" name="view" id="roster-view-list" value="list">
+      <label for="roster-view-list" title="List view">&#8801;</label>
+    </div>
+  </form>
+
   {% if cards %}
-    <div class="roster-grid">
+    <div class="roster-grid" id="roster-card-container">
       {% for card in cards %}
         {% include "tracker/partials/character_card.html" with member=card.member snapshot=card.snapshot %}
       {% endfor %}
@@ -20,7 +52,35 @@
   {% else %}
     <div class="empty-state">
       <span class="icon" aria-hidden="true">&#128101;</span>
-      No members on the roster yet.
+      {% if class_filter or player_filter %}
+        No exiles match that filter. <a href="{% url 'roster' %}">Clear filters</a> to see the full roster.
+      {% else %}
+        No members on the roster yet.
+      {% endif %}
     </div>
   {% endif %}
+
+  <script>
+    (function () {
+      var container = document.getElementById("roster-card-container");
+      var radios = document.querySelectorAll('input[name="view"]');
+      if (!container || !radios.length) return;
+      function apply(view) {
+        container.classList.toggle("roster-grid--list", view === "list");
+      }
+      var saved = null;
+      try { saved = localStorage.getItem("sa-roster-view"); } catch (e) {}
+      if (saved === "list" || saved === "grid") {
+        radios.forEach(function (r) { r.checked = (r.value === saved); });
+        apply(saved);
+      }
+      radios.forEach(function (r) {
+        r.addEventListener("change", function () {
+          if (!r.checked) return;
+          apply(r.value);
+          try { localStorage.setItem("sa-roster-view", r.value); } catch (e) {}
+        });
+      });
+    })();
+  </script>
 {% endblock %}

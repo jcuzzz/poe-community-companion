@@ -95,10 +95,12 @@ class ViewingLeagueTests(TestCase):
         )
         self.assertEqual(response["Location"], reverse("dashboard"))
 
-    def test_dashboard_only_shows_viewing_league_achievements(self):
+    def test_achievements_page_only_shows_viewing_league_achievements(self):
+        # The achievements list is scoped to the viewing league; the dashboard no
+        # longer enumerates every achievement (it shows the firsts trophy row).
         make_achievement("Only In Active", slug="only-active", league=self.active)
         make_achievement("Only In Archived", slug="only-archived", league=self.archived)
-        response = self.client.get(reverse("dashboard"))
+        response = self.client.get(reverse("achievement_list"))
         self.assertContains(response, "Only In Active")
         self.assertNotContains(response, "Only In Archived")
 

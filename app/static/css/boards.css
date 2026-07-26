@@ -1,1 +1,304 @@
-/* boards.css — leaderboard / achievement boards. Filled by UX pass. */
+/* boards.css — leaderboard / achievement boards UX pass.
+   Medals matrix, trophy cards, tabbed leaderboard. Theme-aware via existing
+   CSS vars (--color-*, --space-*, --fs-*, --radius-*, --shadow-*). */
+
+/* ---------------------------------------------------------------- tabs -- */
+
+.board-tabs {
+  margin: var(--space-5) 0 var(--space-6);
+}
+
+.board-tab-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.board-tab-list {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-4);
+}
+
+.board-tab-btn {
+  cursor: pointer;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--color-parchment-dim);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  user-select: none;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.board-tab-btn:hover { color: var(--color-parchment); }
+
+.board-tab-panel { display: none; }
+
+#tab-standings:checked ~ .board-tab-list label[for="tab-standings"],
+#tab-medals:checked ~ .board-tab-list label[for="tab-medals"] {
+  color: var(--color-gold-bright);
+  border-color: var(--color-gold);
+}
+
+#tab-standings:checked ~ #panel-standings,
+#tab-medals:checked ~ #panel-medals {
+  display: block;
+}
+
+/* -------------------------------------------------------- medals matrix -- */
+
+.matrix-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+table.medals-matrix {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 640px;
+  font-size: var(--fs-sm);
+}
+
+table.medals-matrix th,
+table.medals-matrix td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+table.medals-matrix thead th {
+  color: var(--color-gold);
+  font-weight: 700;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--color-bg-raised);
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+table.medals-matrix .matrix-player-col,
+table.medals-matrix .matrix-player-cell {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--color-bg-card);
+  z-index: 1;
+}
+
+table.medals-matrix thead .matrix-player-col {
+  background: var(--color-bg-raised);
+}
+
+.matrix-player-cell {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.matrix-player-cell .member-avatar {
+  vertical-align: middle;
+  margin-right: var(--space-2);
+}
+
+.matrix-achv-col {
+  min-width: 3.5rem;
+}
+
+.matrix-achv-icon {
+  display: block;
+  font-size: var(--fs-md);
+  line-height: 1.2;
+}
+
+.matrix-achv-label {
+  display: block;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.65rem;
+  color: var(--color-parchment-dim);
+  max-width: 4.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0 auto;
+}
+
+table.medals-matrix tbody tr:hover {
+  background: var(--color-bg-raised);
+}
+
+table.medals-matrix tbody tr:hover .matrix-player-cell {
+  background: var(--color-bg-raised);
+}
+
+table.medals-matrix tbody tr.is-self {
+  background: rgba(201, 162, 74, 0.08);
+}
+
+table.medals-matrix tbody tr.is-self .matrix-player-cell {
+  background: rgba(201, 162, 74, 0.08);
+}
+
+.matrix-total-col,
+.matrix-total-cell {
+  color: var(--color-gold-bright);
+  font-weight: 700;
+}
+
+.matrix-medal-icons {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2em;
+}
+
+.matrix-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-sm);
+}
+
+.matrix-icon-first { color: var(--color-gold-bright); }
+.matrix-icon-efficiency { color: var(--color-sage); font-size: 0.55rem; }
+.matrix-icon-completion { color: var(--color-parchment); }
+
+.matrix-icon-empty {
+  color: var(--color-border-strong);
+}
+
+/* -------------------------------------------------------- trophy card -- */
+
+.achievement-card-header {
+  position: relative;
+}
+
+.approved-count {
+  margin-left: auto;
+  align-self: flex-start;
+  font-size: var(--fs-xs);
+  color: var(--color-parchment-dim);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.15em 0.6em;
+}
+
+.trophy-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  background: linear-gradient(135deg, rgba(201, 162, 74, 0.14), rgba(201, 162, 74, 0.03));
+  border: 1px solid var(--color-gold-dim);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin: var(--space-3) 0;
+}
+
+.trophy-crown {
+  font-size: var(--fs-2xl);
+  color: var(--color-gold-bright);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.trophy-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.trophy-winner-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.trophy-name {
+  font-weight: 700;
+  font-size: var(--fs-md);
+  color: var(--color-gold-bright);
+}
+
+.trophy-tag {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-gold);
+  background: rgba(201, 162, 74, 0.15);
+  border: 1px solid var(--color-gold-dim);
+  border-radius: var(--radius-sm);
+  padding: 0.1em 0.5em;
+}
+
+.trophy-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--fs-sm);
+  color: var(--color-parchment-dim);
+}
+
+.trophy-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.winner-block.no-winner {
+  color: var(--color-parchment-dim);
+  font-style: italic;
+  padding: var(--space-2) var(--space-3);
+}
+
+/* ------------------------------------------------------------- medals -- */
+
+.medal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.medal-dot {
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.medal-first .medal-dot { display: none; }
+
+.medal-points {
+  color: var(--color-parchment-dim);
+  font-size: 0.9em;
+}
+
+/* --------------------------------------------------------- responsive -- */
+
+@media (max-width: 640px) {
+  .achievement-grid.cols-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .trophy-card {
+    flex-direction: column;
+  }
+
+  .trophy-actions {
+    flex-direction: row;
+  }
+
+  table.medals-matrix {
+    min-width: 480px;
+  }
+}

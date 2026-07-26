@@ -1,11 +1,7 @@
 {% load static %}
-<article class="character-card" style="--banner-hue: {{ member.banner_hue|default:210 }};">
+<article class="character-card">
   <div class="character-card-header">
-    {% if member.avatar %}
-      <img class="avatar avatar-sm" src="{{ member.avatar.url }}" alt="{{ member.name }}'s avatar">
-    {% else %}
-      <span class="avatar-fallback avatar-fallback-sm" aria-hidden="true" style="background: hsl({{ member.banner_hue|default:210 }} 60% 22%); border-color: hsl({{ member.banner_hue|default:210 }} 60% 50%);">{{ member.name|slice:":1" }}</span>
-    {% endif %}
+    {% include "tracker/partials/member_avatar.html" with member=member size="md" %}
     <div class="character-card-identity">
       <h3><a href="{% url 'player_profile' member.username %}">{{ member.name }}</a></h3>
       <span class="character-card-username">@{{ member.username }}</span>
@@ -32,7 +28,11 @@
     </div>
   {% else %}
     <div class="character-card-body">
-      <p class="empty-state empty-state--inline">No character yet</p>
+      <p class="empty-state empty-state--inline">No character yet &mdash; still leveling in Wraeclast.</p>
     </div>
   {% endif %}
+
+  <div class="character-card-footer">
+    <a class="btn btn-sm" href="{% url 'player_profile' member.username %}">View profile</a>
+  </div>
 </article>

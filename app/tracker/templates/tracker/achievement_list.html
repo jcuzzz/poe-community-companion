@@ -2,8 +2,9 @@
 {% block title %}Achievements &middot; {{ brand_name }}{% endblock %}
 {% block content %}
   <h1>Achievements</h1>
+  <p class="text-muted">Chase medals, claim firsts, and etch your name into the guild's history.</p>
   {% if cards %}
-    <div class="card-grid cols-2">
+    <div class="card-grid cols-2 achievement-grid">
       {% for card in cards %}
         {% include "tracker/partials/achievement_card.html" with card=card %}
       {% endfor %}
@@ -11,7 +12,7 @@
   {% else %}
     <div class="empty-state">
       <span class="icon" aria-hidden="true">&#128220;</span>
-      No achievements have been configured yet.
+      No achievements have been configured yet &mdash; check back soon.
     </div>
   {% endif %}
 {% endblock %}

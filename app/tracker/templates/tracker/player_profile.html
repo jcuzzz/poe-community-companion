@@ -19,7 +19,18 @@
 
   <section class="character-showcase">
     <h2>Character</h2>
-    {% include "tracker/partials/character_card.html" with member=stats.player snapshot=snapshot %}
+    {% if snapshot %}
+      {% include "tracker/partials/character_card.html" with member=stats.player snapshot=snapshot %}
+    {% elif is_self %}
+      <div class="character-card character-card--empty-self">
+        <p class="empty-state empty-state--note">
+          No character on record yet. Paste a Path of Building code in
+          <a href="{% url 'roster_settings' %}">Character / roster</a> to show it off here and on the roster.
+        </p>
+      </div>
+    {% else %}
+      {% include "tracker/partials/character_card.html" with member=stats.player snapshot=snapshot %}
+    {% endif %}
   </section>
 
   <div class="stat-grid">
