@@ -272,6 +272,10 @@ class ParsePobBuildTests(TestCase):
         # Tree
         self.assertEqual(build["tree"]["points"], 5)
         self.assertIn("passive-skill-tree", build["tree"]["url"])
+        # Item/gem art resolves to GGG's CDN (unique art for Windripper).
+        self.assertIn("web.poecdn.com", slots["Weapon 1"]["icon"])
+        self.assertIn("Eagle", slots["Weapon 1"]["icon"])  # Windripper's art file
+        self.assertTrue(all(g["icon"] for g in build["skill_groups"][0]["gems"]))
 
     def test_garbage_raises(self):
         with self.assertRaises(ValueError):

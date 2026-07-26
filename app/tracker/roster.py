@@ -249,9 +249,13 @@ def parse_pob_build(code: str) -> dict:
                     jewels += 1
                 elif sname.startswith("Flask"):
                     flasks.append(by_id[iid])
+        from .itemart import art_url
         for sname in _GEAR_SLOTS:
             if sname in slot_map:
-                gear.append({"slot": sname, **slot_map[sname]})
+                it = slot_map[sname]
+                # Unique art wins (match by unique name), else base-type art.
+                it["icon"] = art_url(it.get("name", ""), it.get("base", ""))
+                gear.append({"slot": sname, **it})
 
     # --- Skills (gem groups) ---
     main_group = 0
@@ -264,6 +268,7 @@ def parse_pob_build(code: str) -> dict:
     skill_groups = []
     for i, g in enumerate(groups, start=1):
         gems = []
+        from .itemart import art_url as _art_url
         for gem in g.findall("Gem"):
             nm = gem.get("nameSpec") or ""
             if not nm:
@@ -275,6 +280,7 @@ def parse_pob_build(code: str) -> dict:
                 "support": (gem.get("skillId") or "").startswith("Support")
                 or "Support" in (gem.get("gemId") or ""),
                 "enabled": (gem.get("enabled") or "true") != "false",
+                "icon": _art_url(nm),
             })
         if not gems:
             continue

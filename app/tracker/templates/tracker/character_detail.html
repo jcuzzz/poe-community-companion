@@ -66,6 +66,9 @@
               {% for item in build.gear %}
                 <li class="gear-item gear-item--{{ item.rarity|lower }}">
                   <span class="gear-slot">{{ item.slot }}</span>
+                  <span class="gear-icon">
+                    {% if item.icon %}<img src="{{ item.icon }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endif %}
+                  </span>
                   <span class="gear-name">{{ item.name }}</span>
                   {% if item.base and item.base != item.name %}<span class="gear-base">{{ item.base }}</span>{% endif %}
                 </li>
@@ -85,6 +88,7 @@
                   <ul class="gem-list">
                     {% for gem in group.gems %}
                       <li class="gem{% if gem.support %} gem--support{% endif %}{% if not gem.enabled %} gem--off{% endif %}">
+                        {% if gem.icon %}<img class="gem-icon" src="{{ gem.icon }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endif %}
                         <span class="gem-name">{{ gem.name }}</span>
                         <span class="gem-meta">{{ gem.level }}{% if gem.quality and gem.quality != "0" %} / {{ gem.quality }}%{% endif %}</span>
                       </li>

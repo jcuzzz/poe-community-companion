@@ -56,8 +56,9 @@
 .gear-list { list-style: none; margin: 0; padding: 0; }
 .gear-item {
   display: grid;
-  grid-template-columns: 7rem 1fr;
-  grid-template-areas: "slot name" "slot base";
+  grid-template-columns: 5.5rem 2.4rem 1fr;
+  grid-template-areas: "slot icon name" "slot icon base";
+  align-items: center;
   gap: 0 var(--space-3);
   padding: var(--space-2) 0;
   border-bottom: 1px solid var(--color-border);
@@ -71,8 +72,20 @@
   letter-spacing: 0.05em;
   color: var(--color-parchment-dim);
 }
-.gear-name { grid-area: name; font-weight: 600; overflow-wrap: anywhere; }
-.gear-base { grid-area: base; font-size: var(--fs-xs); color: var(--color-parchment-dim); }
+.gear-icon {
+  grid-area: icon;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid var(--color-border-strong);
+  background: radial-gradient(circle at 50% 35%, #201a10, #100d09 80%);
+}
+.gear-icon img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.gear-name { grid-area: name; align-self: end; font-weight: 600; overflow-wrap: anywhere; }
+.gear-base { grid-area: base; align-self: start; font-size: var(--fs-xs); color: var(--color-parchment-dim); }
+html[data-theme="light"] .gear-icon { background: radial-gradient(circle at 50% 35%, #efe6cf, #d9c393 90%); }
 .gear-extra { margin: var(--space-3) 0 0; font-size: var(--fs-sm); }
 
 /* PoE rarity colours (dark theme) */
@@ -108,16 +121,19 @@
 .gem-list { list-style: none; margin: 0; padding: 0; }
 .gem {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   gap: var(--space-2);
   padding: 0.2em 0;
   font-size: var(--fs-sm);
 }
+.gem-icon { width: 1.4rem; height: 1.4rem; object-fit: contain; flex: 0 0 auto; }
 .gem-name { color: var(--color-parchment); }
-.gem--support { padding-left: var(--space-3); }
+.gem-meta { margin-left: auto; color: var(--color-parchment-dim); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gem--support { padding-left: var(--space-4); }
+.gem--support .gem-icon { width: 1.1rem; height: 1.1rem; }
 .gem--support .gem-name { color: var(--color-parchment-dim); font-size: var(--fs-xs); }
-.gem--off { opacity: 0.45; text-decoration: line-through; }
-.gem-meta { color: var(--color-parchment-dim); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gem--off { opacity: 0.45; }
+.gem--off .gem-name { text-decoration: line-through; }
 
 /* ---- Stats ---- */
 .stat-block { margin-bottom: var(--space-4); }
