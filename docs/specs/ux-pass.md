@@ -10,6 +10,27 @@ older files still have hardcoded dark colours.
 
 ---
 
+## Round 2 — design direction change (2026-07-26)
+
+Feedback: the applied pass still looks "AI-made" (too soft) and underwhelming (sparse
+live data). New decisions:
+- **PoE artwork is now ALLOWED** (reversing plan.md's no-art rule), used the way
+  poe.ninja / Craft of Exile do: class/ascendancy **avatars** and **item icons**,
+  **hotlinked from GGG's CDN `web.poecdn.com`** (item icons come from the API `icon`
+  field). Nothing bundled in the repo → still OSS-clean. Update the footer's "No PoE
+  artwork used" line and plan.md accordingly during the redesign.
+- **Hard edges, not soft.** PoE's UI is angular/framed. Strip `border-radius`
+  (→ 0 / minimal) globally; move to sharp bordered panels. Biggest lever against the
+  generic look.
+- **Visual feedback loop:** Playwright MCP configured at `../.mcp.json` (workspace
+  root, not in the app repo). Requires a Claude Code restart + approval. Once live,
+  iterate on the redesign against screenshots of a LOCAL runserver seeded with
+  `manage.py seed_demo` (rich demo data: 5 players, 7 achievements, submissions,
+  awards, roster snapshots).
+- **Redesign scope (next, with sight):** global hard-edge theme + PoE art avatars/
+  icons, then re-judge dashboard / leaderboard / roster / cards against the concept
+  mockups. Also fold in the deferred legacy light-theme audit.
+
 
 Driven by the four concept mockups in `Assets/Concept/` (esp. image 4, literally
 titled "POE Community Companion") + the explicit ask: **each achievement board should
