@@ -39,7 +39,7 @@ def _auto_ok(league) -> bool:
 def roster(request: HttpRequest) -> HttpResponse:
     """Grid of guild members with their character showcase for the viewing league."""
     viewing = get_viewing_league(request)
-    members = (
+    members = list(
         User.objects.filter(is_player=True, is_active=True, member_profile__show_on_roster=True)
         .select_related("member_profile")
         .order_by("username")
@@ -49,10 +49,30 @@ def roster(request: HttpRequest) -> HttpResponse:
         for s in CharacterSnapshot.objects.filter(league=viewing, user__in=members)
     }
     cards = [{"member": m, "snapshot": snapshots.get(m.pk)} for m in members]
+
+    # Filters: by class (from the snapshot) and by player.
+    class_filter = request.GET.get("class", "").strip()
+    player_filter = request.GET.get("player", "").strip()
+    classes = sorted(
+        {s.display_class for s in snapshots.values() if s.display_class}
+    )
+    if class_filter:
+        cards = [c for c in cards if c["snapshot"] and c["snapshot"].display_class == class_filter]
+    if player_filter:
+        cards = [c for c in cards if c["member"].username == player_filter]
+
     return render(
         request,
         "tracker/roster.html",
-        {"cards": cards, "viewing_league": viewing, "auto_ok": _auto_ok(viewing)},
+        {
+            "cards": cards,
+            "viewing_league": viewing,
+            "auto_ok": _auto_ok(viewing),
+            "classes": classes,
+            "members": members,
+            "class_filter": class_filter,
+            "player_filter": player_filter,
+        },
     )
 
 

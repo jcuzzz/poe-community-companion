@@ -182,8 +182,8 @@ def champion(league: League | None = None):
 
 
 def achievement_standings(achievement: Achievement) -> dict:
-    """Everything one achievement card needs."""
-    players = list(User.objects.filter(is_player=True, is_active=True))
+    """Everything one achievement card needs. Only players with submissions appear
+    (small pool → boards stay compact, more categories visible)."""
     subs = list(
         Submission.objects.visible()
         .filter(achievement=achievement)
@@ -222,19 +222,57 @@ def achievement_standings(achievement: Achievement) -> dict:
     if winner is not None:
         entries = [e for e in entries if e.pk != winner.pk]
 
-    entered_user_ids = {sub.user_id for sub in approved_subs}
-    not_submitted = [player for player in players if player.pk not in entered_user_ids]
-    not_submitted.sort(key=lambda p: p.name.lower())
-
     return {
         "achievement": achievement,
         "winner": winner,
         "entries": entries,
-        "not_submitted": not_submitted,
         "submissions": subs,
-        "approved_count": sum(1 for s in subs if s.status == Submission.Status.APPROVED),
-        "player_count": len(players),
+        "approved_count": len(approved_subs),
     }
+
+
+def medals_matrix(league: League | None = None) -> dict:
+    """A compact players × achievements grid of medals earned, plus totals.
+
+    Rows are players who have earned at least one award in the league (small pool →
+    show only participants). Each cell records which medals that player holds for that
+    achievement. Serves the "see every category at once" leaderboard view.
+    """
+    achievements = list(
+        Achievement.objects.filter(active=True, league=league).order_by("sort_order", "name")
+    )
+    awards = Award.objects.select_related("submission", "submission__user")
+    if league is not None:
+        awards = awards.filter(submission__league=league)
+
+    efficiency_types = {Award.Type.LOWEST_PLAYED, Award.Type.FEWEST_KILLS, Award.Type.LOWEST_LEVEL}
+    cells: dict[int, dict[int, set]] = defaultdict(lambda: defaultdict(set))
+    totals: dict[int, int] = defaultdict(int)
+    players: dict[int, User] = {}
+    for award in awards:
+        user = award.submission.user
+        players[user.pk] = user
+        cells[user.pk][award.submission.achievement_id].add(award.award_type)
+        totals[user.pk] += award.points
+
+    rows = []
+    for uid, user in players.items():
+        row_cells = []
+        for ach in achievements:
+            types = cells[uid].get(ach.pk, set())
+            row_cells.append(
+                {
+                    "achievement": ach,
+                    "first": Award.Type.FIRST in types,
+                    "efficiency": bool(types & efficiency_types),
+                    "completion": Award.Type.COMPLETION in types,
+                    "earned": bool(types),
+                }
+            )
+        rows.append({"player": user, "cells": row_cells, "total": totals[uid]})
+
+    rows.sort(key=lambda r: (-r["total"], r["player"].name.lower()))
+    return {"achievements": achievements, "rows": rows}
 
 
 def player_stats(player: User, league: League | None = None) -> dict:

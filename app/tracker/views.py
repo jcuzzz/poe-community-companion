@@ -233,7 +233,12 @@ def leaderboard_view(request: HttpRequest) -> HttpResponse:
     viewing = get_viewing_league(request)
     rows = scoring.leaderboard(viewing)
     achievements = Achievement.objects.filter(active=True, league=viewing)
-    return render(request, "tracker/leaderboard.html", {"rows": rows, "achievements": achievements})
+    matrix = scoring.medals_matrix(viewing)
+    return render(
+        request,
+        "tracker/leaderboard.html",
+        {"rows": rows, "achievements": achievements, "matrix": matrix},
+    )
 
 
 @login_required

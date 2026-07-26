@@ -1,0 +1,46 @@
+/* Original member crest/avatar medallions — no PoE artwork.
+   Tinted by each member's --hue (banner_hue). Reused across roster, profiles,
+   dashboard highlights and leaderboard rows. */
+
+.member-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  background: radial-gradient(
+    circle at 30% 25%,
+    hsl(var(--hue, 42) 45% 30%),
+    hsl(var(--hue, 42) 40% 16%)
+  );
+  border: 2px solid hsl(var(--hue, 42) 55% 55% / 0.7);
+  box-shadow: inset 0 0 8px hsl(var(--hue, 42) 60% 8% / 0.8);
+  color: var(--color-parchment, #e7d8b8);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.member-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.member-crest {
+  font-family: var(--font-display, Georgia, serif);
+  letter-spacing: 0.02em;
+}
+
+/* Sizes */
+.member-avatar--sm { width: 2rem; height: 2rem; font-size: 0.85rem; }
+.member-avatar--md { width: 3rem; height: 3rem; font-size: 1.25rem; }
+.member-avatar--lg { width: 4.5rem; height: 4.5rem; font-size: 1.9rem; }
+
+:root[data-theme="light"] .member-avatar {
+  color: #2a2114;
+  background: radial-gradient(
+    circle at 30% 25%,
+    hsl(var(--hue, 42) 55% 78%),
+    hsl(var(--hue, 42) 45% 60%)
+  );
+}

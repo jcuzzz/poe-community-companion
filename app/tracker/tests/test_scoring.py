@@ -3,7 +3,7 @@
 from django.test import TestCase
 
 from tracker import scoring
-from tracker.models import Award, Submission
+from tracker.models import Award, League, Submission
 
 from .factories import make_achievement, make_character, make_player, make_submission
 
@@ -258,9 +258,9 @@ class AchievementStandingsTests(TestCase):
     def test_nobody_yet(self):
         card = scoring.achievement_standings(self.divine)
         self.assertIsNone(card["winner"])
-        self.assertEqual(card["player_count"], 2)
         self.assertEqual(card["entries"], [])
-        self.assertEqual(len(card["not_submitted"]), 2)
+        # Boards no longer carry a "not submitted" list — only participants show.
+        self.assertNotIn("not_submitted", card)
 
     def test_winner_and_rows(self):
         winner = make_submission(self.jcuz, self.divine, hours_in=10)
@@ -300,18 +300,42 @@ class AchievementStandingsTests(TestCase):
         self.assertIn(second, card["entries"])
         self.assertIn(other, card["entries"])
 
-    def test_not_submitted_excludes_players_with_any_approved_entry(self):
+    def test_only_participants_appear(self):
+        # Only players with an approved submission show anywhere on the board.
         make_submission(self.jcuz, self.divine, hours_in=10)
         scoring.recalculate()
 
         card = scoring.achievement_standings(self.divine)
-        self.assertNotIn(self.jcuz, card["not_submitted"])
-        self.assertIn(self.bob, card["not_submitted"])
+        shown = {card["winner"].user_id} | {e.user_id for e in card["entries"]}
+        self.assertIn(self.jcuz.pk, shown)
+        self.assertNotIn(self.bob.pk, shown)
 
-    def test_not_submitted_still_lists_player_with_only_pending_submission(self):
-        make_submission(self.jcuz, self.divine, status=Submission.Status.PENDING)
-        card = scoring.achievement_standings(self.divine)
-        self.assertIn(self.jcuz, card["not_submitted"])
+
+class MedalsMatrixTests(TestCase):
+    def setUp(self):
+        self.jcuz = make_player("jcuz")
+        self.bob = make_player("bob")
+        self.divine = make_achievement("First Divine Orb", slug="first-divine-orb")
+        self.mirror = make_achievement("Mirror Drop", slug="mirror-drop")
+
+    def test_matrix_only_lists_players_with_awards(self):
+        make_submission(self.jcuz, self.divine, hours_in=10)
+        scoring.recalculate()
+        matrix = scoring.medals_matrix(League.get_active())
+        player_ids = {row["player"].pk for row in matrix["rows"]}
+        self.assertIn(self.jcuz.pk, player_ids)
+        self.assertNotIn(self.bob.pk, player_ids)
+
+    def test_matrix_cells_flag_first_and_total(self):
+        make_submission(self.jcuz, self.divine, hours_in=10)
+        scoring.recalculate()
+        matrix = scoring.medals_matrix(League.get_active())
+        row = next(r for r in matrix["rows"] if r["player"].pk == self.jcuz.pk)
+        self.assertGreater(row["total"], 0)
+        divine_cell = next(c for c in row["cells"] if c["achievement"].pk == self.divine.pk)
+        self.assertTrue(divine_cell["first"])
+        mirror_cell = next(c for c in row["cells"] if c["achievement"].pk == self.mirror.pk)
+        self.assertFalse(mirror_cell["earned"])
 
     def test_winner_is_still_first_award_holder(self):
         winner = make_submission(self.jcuz, self.divine, hours_in=10)

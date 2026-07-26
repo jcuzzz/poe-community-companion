@@ -1,0 +1,12 @@
+{% comment %}
+Renders a member's avatar for cards/rows. Uses their uploaded image if set,
+otherwise an ORIGINAL crest medallion tinted by their banner_hue with their
+initial — no PoE artwork. Pass `member` (a User) and optional `size` ("sm"|"lg").
+{% endcomment %}
+<span class="member-avatar member-avatar--{{ size|default:'md' }}" style="--hue: {{ member.banner_hue|default:42 }};">
+  {% if member.avatar %}
+    <img class="member-avatar-img" src="{{ member.avatar.url }}" alt="{{ member.name }}">
+  {% else %}
+    <span class="member-crest" aria-hidden="true">{{ member.name|slice:":1"|upper }}</span>
+  {% endif %}
+</span>
