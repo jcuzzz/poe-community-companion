@@ -1,0 +1,9 @@
+{% comment %}
+Achievement icon: real PoE item art (hotlinked from GGG's CDN) when available,
+otherwise the emoji glyph. Pass `achievement` and optional `size` ("sm"|"md"|"lg").
+{% endcomment %}
+{% if achievement.art_url %}
+  <img class="achv-art achv-art--{{ size|default:'md' }}" src="{{ achievement.art_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">
+{% elif achievement.icon %}
+  <span class="achievement-icon achievement-icon--{{ size|default:'md' }}" aria-hidden="true">{{ achievement.icon }}</span>
+{% endif %}

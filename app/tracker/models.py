@@ -239,6 +239,27 @@ class Achievement(models.Model):
     def get_absolute_url(self) -> str:
         return reverse("achievement_detail", args=[self.slug])
 
+    # Real PoE item/currency art (hotlinked from GGG's CDN, like poe.ninja) for the
+    # achievements whose item has a stable poecdn path. Falls back to the emoji `icon`
+    # for abstract categories. An explicit `icon_url` on the row wins if set.
+    _POECDN_ART = {
+        "first-divine-orb": "Art/2DItems/Currency/CurrencyModValues.png",
+        "first-mirror-of-kalandra": "Art/2DItems/Currency/CurrencyDuplicate.png",
+        "first-hinekoras-lock": "Art/2DItems/Currency/HinekorasLock.png",
+        "first-ralakeshs-impatience": "Art/2DItems/Armours/Boots/RalakeshsImpatience.png",
+    }
+
+    icon_url = models.URLField(
+        blank=True, help_text="Optional image URL for the icon (overrides the emoji)."
+    )
+
+    @property
+    def art_url(self) -> str:
+        if self.icon_url:
+            return self.icon_url
+        path = self._POECDN_ART.get(self.slug)
+        return f"https://web.poecdn.com/image/{path}" if path else ""
+
 
 class AllowlistItem(models.Model):
     """Administrator-controlled list of items that count as T0 uniques."""

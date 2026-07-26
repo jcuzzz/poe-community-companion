@@ -1,6 +1,6 @@
 <article class="achievement-card" aria-labelledby="achv-{{ card.achievement.slug }}">
   <div class="achievement-card-header">
-    {% if card.achievement.icon %}<span class="achievement-icon" aria-hidden="true">{{ card.achievement.icon }}</span>{% endif %}
+    {% include "tracker/partials/achievement_icon.html" with achievement=card.achievement size="md" %}
     <div>
       <h3 id="achv-{{ card.achievement.slug }}">
         <a href="{% url 'achievement_detail' card.achievement.slug %}">{{ card.achievement.name }}</a>

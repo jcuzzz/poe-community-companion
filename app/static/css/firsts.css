@@ -77,7 +77,7 @@
    Major "firsts" trophy cards — the showpieces
    ========================================================================== */
 
-.trophy-card--first {
+.first-tile {
   background:
     radial-gradient(circle at top right, rgba(232, 199, 108, 0.22), transparent 60%),
     linear-gradient(160deg, #2f2716, #1c170f 60%);
@@ -109,16 +109,16 @@
   }
 }
 
-.trophy-card--first .trophy-holder-crown {
+.first-tile .trophy-holder-crown {
   color: var(--color-gold-bright);
 }
 
-.trophy-card--first .trophy-holder a {
+.first-tile .trophy-holder a {
   color: var(--color-gold-bright);
   text-decoration: none;
 }
 
-.trophy-card--first .trophy-holder a:hover { text-decoration: underline; }
+.first-tile .trophy-holder a:hover { text-decoration: underline; }
 
 /* ==========================================================================
    Achievement card winner block
@@ -232,3 +232,32 @@ table.standings tbody tr:first-child a {
   color: var(--color-gold);
   margin-bottom: 0.15em;
 }
+
+/* First Achievements tiles (dashboard) — self-contained vertical card so they
+   don't inherit the achievement-card winner-banner layout from boards.css. */
+.first-tile {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  padding-right: 2.5rem; /* clear the corner ribbon */
+  min-height: 8.5rem;
+}
+.first-tile .trophy-icon { display: inline-flex; }
+.first-tile .trophy-label {
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  color: var(--color-gold-bright);
+  margin: 0;
+  line-height: 1.15;
+}
+.first-tile .trophy-winner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+.first-tile .btn { margin-top: auto; }

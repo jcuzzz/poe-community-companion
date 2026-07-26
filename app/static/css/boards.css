@@ -53,7 +53,7 @@
 .matrix-wrap {
   overflow-x: auto;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: var(--color-bg-card);
   box-shadow: var(--shadow-card);
 }
@@ -186,7 +186,7 @@ table.medals-matrix tbody tr.is-self .matrix-player-cell {
   color: var(--color-parchment-dim);
   background: var(--color-bg-raised);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   padding: 0.15em 0.6em;
 }
 
@@ -196,7 +196,7 @@ table.medals-matrix tbody tr.is-self .matrix-player-cell {
   gap: var(--space-3);
   background: linear-gradient(135deg, rgba(201, 162, 74, 0.14), rgba(201, 162, 74, 0.03));
   border: 1px solid var(--color-gold-dim);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   padding: var(--space-3) var(--space-4);
   margin: var(--space-3) 0;
 }
@@ -234,7 +234,7 @@ table.medals-matrix tbody tr.is-self .matrix-player-cell {
   color: var(--color-gold);
   background: rgba(201, 162, 74, 0.15);
   border: 1px solid var(--color-gold-dim);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   padding: 0.1em 0.5em;
 }
 
@@ -270,7 +270,7 @@ table.medals-matrix tbody tr.is-self .matrix-player-cell {
 .medal-dot {
   width: 0.5em;
   height: 0.5em;
-  border-radius: 50%;
+  border-radius: 0;
   background: currentColor;
   opacity: 0.7;
   flex-shrink: 0;

@@ -33,7 +33,7 @@
                 <th scope="col" class="matrix-player-col">Player</th>
                 {% for achievement in matrix.achievements %}
                   <th scope="col" class="matrix-achv-col" title="{{ achievement.name }}">
-                    <span class="matrix-achv-icon" aria-hidden="true">{{ achievement.icon }}</span>
+                    <span class="matrix-achv-icon">{% include "tracker/partials/achievement_icon.html" with achievement=achievement size="sm" %}</span>
                     <span class="matrix-achv-label">{{ achievement.label|default:achievement.name }}</span>
                   </th>
                 {% endfor %}

@@ -42,9 +42,9 @@
   {% if firsts %}
     <div class="trophy-row">
       {% for sub in firsts %}
-        <div class="trophy-card trophy-card--first">
+        <div class="first-tile">
           <span class="trophy-ribbon" aria-hidden="true">First</span>
-          <span class="trophy-icon" aria-hidden="true">{{ sub.achievement.icon|default:"🏆" }}</span>
+          <span class="trophy-icon">{% include "tracker/partials/achievement_icon.html" with achievement=sub.achievement size="lg" %}</span>
           <p class="trophy-label">{{ sub.achievement.label }}</p>
           <div class="trophy-winner">
             {% include "tracker/partials/member_avatar.html" with member=sub.user size="sm" %}

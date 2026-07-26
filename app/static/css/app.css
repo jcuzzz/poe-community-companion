@@ -48,9 +48,11 @@
   --space-6: 2rem;
   --space-7: 3rem;
 
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 14px;
+  /* Hard edges — PoE UI is angular/framed, not soft. Kept as tokens so the whole
+     system stays sharp; a hair of radius (1px) only to avoid fuzzy AA on borders. */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
 
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.45);
   --shadow-raised: 0 6px 20px rgba(0, 0, 0, 0.55);
@@ -260,7 +262,7 @@ ul, ol { padding-left: 1.25rem; }
   font-size: var(--fs-xs);
   line-height: 1;
   padding: 0.15em 0.45em;
-  border-radius: 999px;
+  border-radius: 0;
   vertical-align: middle;
 }
 
@@ -601,7 +603,7 @@ form.inline-btn { display: inline; }
   font-size: var(--fs-xs);
   font-weight: 600;
   padding: 0.25em 0.7em;
-  border-radius: 999px;
+  border-radius: 0;
   border: 1px solid transparent;
   white-space: nowrap;
 }
@@ -835,7 +837,7 @@ input[type="radio"] {
 .player-banner .avatar {
   width: 5rem;
   height: 5rem;
-  border-radius: 50%;
+  border-radius: 0;
   object-fit: cover;
   border: 2px solid hsla(var(--banner-hue), 65%, 60%, 0.8);
   background: var(--color-bg-raised);
@@ -843,7 +845,7 @@ input[type="radio"] {
 .player-banner .avatar-fallback {
   width: 5rem;
   height: 5rem;
-  border-radius: 50%;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;

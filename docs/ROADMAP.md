@@ -18,7 +18,11 @@ The user-facing name is set via the `SITE_NAME` env var (default
 
 - **Private, small-group first.** Invite-only; no scraping; trust-based with proof.
 - **Self-hosted and simple.** Django + SQLite + HTMX; no heavy infra for ~5–20 users.
-- **No PoE artwork.** Original CSS; text/badges over game assets.
+- **PoE artwork is OK, hotlinked not bundled** (revised 2026-07-26). Item/currency
+  icons come from GGG's CDN (`web.poecdn.com`), like poe.ninja / Craft of Exile — never
+  committed to the repo, so forks stay clean. Original CSS for everything else; **hard
+  edges** (angular/framed), not soft. Member avatars are user uploads + original crests
+  (GGG ascendancy portraits have no stable hotlink path).
 - **Derived scoring stays derived.** Never hand-edit awards.
 
 Anything below that contradicts the original plan's "out of scope" list is called
