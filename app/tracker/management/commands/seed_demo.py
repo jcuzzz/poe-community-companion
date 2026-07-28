@@ -139,13 +139,23 @@ def _demo_pob_code(rng, ascendancy: str, class_name: str, level: int) -> str:
   <Items activeItemSet="1">
     <Item id="1">Rarity: RARE
 Storm Fang
-{weapon_base}</Item>
+{weapon_base}
+Adds 25 to 48 Physical Damage
+27% increased Attack Speed
++312 to Accuracy Rating
+Adds 40 to 75 Cold Damage</Item>
     <Item id="2">Rarity: UNIQUE
 {notable}
-Astral Plate</Item>
+Astral Plate
++120 to maximum Life
++18% to all Elemental Resistances
+{{crafted}}+1 to Level of Socketed Gems</Item>
     <Item id="3">Rarity: RARE
 Corpse Veil
-Hubris Circlet</Item>
+Hubris Circlet
++72 to maximum Energy Shield
++45% to Cold Resistance
++38 to Intelligence</Item>
     <Item id="4">Rarity: RARE
 Gale Grip
 Fingerless Silk Gloves</Item>

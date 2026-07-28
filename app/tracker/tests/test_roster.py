@@ -512,3 +512,36 @@ class DashboardCharPanelTests(TestCase):
         self.client.login(username="viewer", password=PASSWORD)
         resp = self.client.get(reverse("dashboard"))
         self.assertEqual(resp.content.decode().count('class="char-tile"'), 1)
+
+
+class GearModsTests(TestCase):
+    def test_item_mods_and_flags_parsed(self):
+        xml = (
+            '<PathOfBuilding><Build level="90" className="Ranger"/>'
+            '<Items activeItemSet="1">'
+            '<Item id="1">Rarity: RARE\nStorm Fang\nImperial Bow\nItem Level: 80\nImplicits: 0\n'
+            'Adds 25 to 48 Physical Damage\n{crafted}27% increased Attack Speed\nCorrupted</Item>'
+            '<ItemSet id="1"><Slot name="Weapon 1" itemId="1"/></ItemSet>'
+            '</Items></PathOfBuilding>'
+        )
+        code = base64.urlsafe_b64encode(zlib.compress(xml.encode())).decode()
+        gear = parse_pob_build(code)["gear"][0]
+        self.assertIn("Adds 25 to 48 Physical Damage", gear["mods"])
+        self.assertIn("27% increased Attack Speed", gear["mods"])   # {crafted} tag stripped
+        self.assertNotIn("Item Level: 80", gear["mods"])            # metadata dropped
+        self.assertIn("Corrupted", gear["flags"])
+
+
+class CharacterSyncNowTests(TestCase):
+    @patch("tracker.roster.fetch_pobbin_code")
+    def test_sync_now_refetches_from_pobbin(self, mock_fetch):
+        player = make_player("syncer")
+        league = League.get_active()
+        MemberProfile.objects.get_or_create(user=player)
+        mock_fetch.return_value = build_pob_code(level=90, ascend="Deadeye")
+        save_pob_snapshot(player, league, "https://pobb.in/u/x/y")
+        mock_fetch.return_value = build_pob_code(level=97, ascend="Deadeye")
+        self.client.login(username="syncer", password=PASSWORD)
+        resp = self.client.post(reverse("character_detail", args=["syncer"]), {"action": "sync"}, follow=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(CharacterSnapshot.objects.get(user=player, league=league).level, 97)

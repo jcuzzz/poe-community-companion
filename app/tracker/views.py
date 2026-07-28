@@ -208,6 +208,9 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         .order_by("-level")[:char_count]
     )
 
+    # Guild progression: cumulative verified completions over time → inline SVG.
+    progression = _progression_series(viewing)
+
     kpis = [
         {"label": "Exiles", "value": len(standings)},
         {"label": "Achievements", "value": len(achievement_cards)},
@@ -223,8 +226,52 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "firsts": firsts,
         "kpis": kpis,
         "top_characters": top_characters,
+        "progression": progression,
     }
     return render(request, "tracker/dashboard.html", context)
+
+
+def _progression_series(league) -> dict | None:
+    """Cumulative verified-completion count over time for a league, pre-scaled to
+    an SVG viewBox (600×160). Returns None when there's too little to plot."""
+    from collections import Counter
+
+    dates = [
+        d
+        for d in Submission.objects.approved()
+        .filter(league=league)
+        .values_list("obtained_at", flat=True)
+        if d
+    ]
+    if len(dates) < 2:
+        return None
+    per_day = Counter(d.date() for d in dates)
+    days = sorted(per_day)
+    if len(days) < 2:
+        return None
+    cum, running = [], 0
+    for day in days:
+        running += per_day[day]
+        cum.append((day, running))
+    w, h, pad = 600, 160, 12
+    peak = cum[-1][1] or 1
+    n = len(cum)
+    pts = []
+    for i, (_day, v) in enumerate(cum):
+        x = pad + (i / (n - 1)) * (w - 2 * pad)
+        y = (h - pad) - (v / peak) * (h - 2 * pad)
+        pts.append(f"{x:.1f},{y:.1f}")
+    line = "M" + " L".join(pts)
+    area = f"M{pad},{h - pad} L" + " L".join(pts) + f" L{w - pad},{h - pad} Z"
+    return {
+        "line": line,
+        "area": area,
+        "total": cum[-1][1],
+        "w": w,
+        "h": h,
+        "start": days[0],
+        "end": days[-1],
+    }
 
 
 @login_required

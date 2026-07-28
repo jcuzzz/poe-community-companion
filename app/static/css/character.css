@@ -138,6 +138,40 @@ html[data-theme="light"] .char-tile-name { color: #6e4c0c; background: linear-gr
 .gear-name { grid-area: name; align-self: end; font-weight: 600; overflow-wrap: anywhere; }
 .gear-base { grid-area: base; align-self: start; font-size: var(--fs-xs); color: var(--color-parchment-dim); }
 html[data-theme="light"] .gear-icon { background: radial-gradient(circle at 50% 35%, #efe6cf, #d9c393 90%); }
+
+/* Item mod tooltip (hover/focus) — shows the affixes parsed from the PoB text. */
+.gear-item--has-tip { cursor: help; }
+.gear-tip {
+  position: absolute;
+  z-index: 30;
+  left: 5.5rem;
+  top: 0;
+  width: 20rem;
+  max-width: min(20rem, 80vw);
+  display: none;
+  padding: var(--space-3);
+  background: #0c0a06;
+  border: 1px solid var(--color-gold-dim);
+  box-shadow: var(--shadow-raised);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+.gear-item { position: relative; }
+.gear-item--has-tip:hover .gear-tip,
+.gear-item--has-tip:focus .gear-tip,
+.gear-item--has-tip:focus-within .gear-tip { display: block; }
+.gear-tip-name { margin: 0 0 2px; font-weight: 700; }
+.gear-tip-name--rare { color: #e6d15a; }
+.gear-tip-name--unique { color: #c07a30; }
+.gear-tip-name--magic { color: #8a8aff; }
+.gear-tip-name--normal { color: #d0d0d0; }
+.gear-tip-base { margin: 0 0 var(--space-2); color: var(--color-parchment-dim); }
+.gear-tip-mods { list-style: none; margin: 0; padding: 0; }
+.gear-tip-mods li { color: #8aa7d8; padding: 1px 0; }
+.gear-tip-flag { margin: var(--space-2) 0 0; color: var(--color-crimson); font-weight: 600; }
+@media (max-width: 40rem) { .gear-tip { left: 0; top: 100%; } }
+html[data-theme="light"] .gear-tip { background: #fffdf7; }
+html[data-theme="light"] .gear-tip-mods li { color: #35507e; }
 .gear-extra { margin: var(--space-3) 0 0; font-size: var(--fs-sm); }
 
 /* PoE rarity colours (dark theme) */

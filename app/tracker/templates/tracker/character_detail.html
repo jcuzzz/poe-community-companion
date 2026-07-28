@@ -34,6 +34,13 @@
         <p class="char-actions">
           <a class="btn btn-sm" href="https://pob.cool/#build={{ snapshot.pob_url|urlencode }}" target="_blank" rel="noopener noreferrer">View full build &nearr;</a>
           <a class="btn btn-sm" href="{{ snapshot.pob_url }}" target="_blank" rel="noopener noreferrer">Open on pobb.in &nearr;</a>
+          {% if can_import %}
+            <form method="post" class="inline-btn">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="sync">
+              <button type="submit" class="btn btn-sm btn-primary">Sync now</button>
+            </form>
+          {% endif %}
         </p>
       {% endif %}
     </div>
@@ -72,13 +79,23 @@
             <div class="section-header"><h2 class="flourish">Equipment</h2></div>
             <ul class="gear-list">
               {% for item in build.gear %}
-                <li class="gear-item gear-item--{{ item.rarity|lower }}">
+                <li class="gear-item gear-item--{{ item.rarity|lower }}{% if item.mods %} gear-item--has-tip{% endif %}"{% if item.mods %} tabindex="0"{% endif %}>
                   <span class="gear-slot">{{ item.slot }}</span>
                   <span class="gear-icon">
                     {% if item.icon %}<img src="{{ item.icon }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endif %}
                   </span>
                   <span class="gear-name">{{ item.name }}</span>
                   {% if item.base and item.base != item.name %}<span class="gear-base">{{ item.base }}</span>{% endif %}
+                  {% if item.mods %}
+                    <div class="gear-tip" role="tooltip">
+                      <p class="gear-tip-name gear-tip-name--{{ item.rarity|lower }}">{{ item.name }}</p>
+                      {% if item.base and item.base != item.name %}<p class="gear-tip-base">{{ item.base }}</p>{% endif %}
+                      <ul class="gear-tip-mods">
+                        {% for mod in item.mods %}<li>{{ mod }}</li>{% endfor %}
+                      </ul>
+                      {% for flag in item.flags %}<p class="gear-tip-flag">{{ flag }}</p>{% endfor %}
+                    </div>
+                  {% endif %}
                 </li>
               {% endfor %}
             </ul>

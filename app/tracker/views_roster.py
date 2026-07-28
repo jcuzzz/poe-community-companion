@@ -91,6 +91,18 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
     snapshot = _snapshot_for(member, viewing)
     is_owner = request.user == member
 
+    # Owner "Sync now" — re-fetch the linked pobb.in build immediately.
+    if request.method == "POST" and is_owner and request.POST.get("action") == "sync":
+        if snapshot and snapshot.pob_url and active is not None:
+            _snap, error = roster_service.save_pob_snapshot(request.user, active, snapshot.pob_url)
+            if error:
+                messages.error(request, error)
+            else:
+                messages.success(request, "Synced the latest build from pobb.in.")
+        else:
+            messages.error(request, "No pobb.in link to sync from.")
+        return redirect("character_detail", username=member.username)
+
     # Owner PoB import (posts back to this page).
     pob_form = PobPasteForm()
     if request.method == "POST" and is_owner:

@@ -111,6 +111,23 @@
 /* KPI row directly under the champion hero */
 .kpi-row { margin-bottom: var(--space-6); }
 
+/* Guild progression trend (inline SVG, cumulative completions over time) */
+.progression-svg {
+  display: block;
+  width: 100%;
+  height: 9rem;
+}
+.prog-line {
+  fill: none;
+  stroke: var(--color-gold);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.prog-area { fill: rgba(201, 162, 74, 0.12); stroke: none; }
+.progression-meta { margin: var(--space-2) 0 0; font-size: var(--fs-sm); }
+.progression-meta strong { color: var(--color-gold-bright); }
+
 /* Progress ring (right rail) — conic gradient donut, pure CSS */
 .progress-card {
   display: flex;

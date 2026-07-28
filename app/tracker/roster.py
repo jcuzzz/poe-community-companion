@@ -182,24 +182,69 @@ def _fmt_stat(value: float, fmt: str) -> str:
     return f"{v:,.0f}"
 
 
+# Metadata / base-stat line prefixes in PoB item text that aren't affixes.
+_ITEM_META_PREFIXES = (
+    "unique id", "item level", "levelreq", "sockets", "quality:", "league:",
+    "source:", "implicits:", "requires", "talisman tier", "selected variant",
+    "has alt", "radius:", "limited to", "prefix:", "suffix:", "id:", "rarity:",
+    "armour:", "evasion:", "energy shield:", "ward:", "physical damage:",
+    "elemental damage:", "chaos damage:", "critical strike chance:",
+    "attacks per second:", "weapon range:", "block chance:", "chance to block:",
+    "map tier:", "stack size:", "note:",
+)
+_ITEM_FLAG_LINES = {"corrupted", "mirrored", "split", "fractured item", "synthesised item"}
+_BRACE_TAG_RE = re.compile(r"^\{[^}]*\}")
+
+
+def _clean_mod_line(line: str) -> str:
+    """Strip PoB's leading {crafted}/{variant:…}/{range:…} tags from a mod line."""
+    prev = None
+    out = line
+    while out != prev:
+        prev = out
+        out = _BRACE_TAG_RE.sub("", out).strip()
+    return out
+
+
 def _parse_item_text(text: str) -> dict:
-    """Pull a display name + rarity from a PoB <Item> blob."""
+    """Pull display name, rarity, affix mods and flags from a PoB <Item> blob."""
     lines = [ln.strip() for ln in (text or "").strip().splitlines() if ln.strip()]
     rarity = "NORMAL"
-    name = ""
-    base = ""
     body = []
     for ln in lines:
         if ln.lower().startswith("rarity:"):
             rarity = ln.split(":", 1)[1].strip().upper()
             continue
         body.append(ln)
+    name = base = ""
+    mod_start = 0
     if body:
         name = body[0]
+        mod_start = 1
         # Rare/unique items carry a distinct name then base; magic/normal don't.
         if rarity in {"RARE", "UNIQUE"} and len(body) > 1:
             base = body[1]
-    return {"name": name, "base": base, "rarity": rarity.capitalize()}
+            mod_start = 2
+
+    mods = []
+    flags = []
+    for ln in body[mod_start:]:
+        low = ln.lower()
+        if low in _ITEM_FLAG_LINES:
+            flags.append(ln.capitalize())
+            continue
+        if any(low.startswith(p) for p in _ITEM_META_PREFIXES):
+            continue
+        cleaned = _clean_mod_line(ln)
+        if cleaned:
+            mods.append(cleaned)
+    return {
+        "name": name,
+        "base": base,
+        "rarity": rarity.capitalize(),
+        "mods": mods,
+        "flags": flags,
+    }
 
 
 def parse_pob_build(code: str) -> dict:
