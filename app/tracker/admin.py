@@ -23,6 +23,7 @@ from .models import (
     Character,
     CharacterSnapshot,
     ContestVote,
+    DashboardConfig,
     InviteCode,
     League,
     MemberProfile,
@@ -32,6 +33,13 @@ from .models import (
     SubmissionReaction,
     User,
 )
+
+
+@admin.register(DashboardConfig)
+class DashboardConfigAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "updated_at", "updated_by")
+    autocomplete_fields = ("league",)
+    readonly_fields = ("updated_at", "updated_by")
 
 admin.site.register(SubmissionComment)
 admin.site.register(SubmissionReaction)

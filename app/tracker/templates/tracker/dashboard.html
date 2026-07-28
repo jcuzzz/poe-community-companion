@@ -3,165 +3,17 @@
 {% block title %}Dashboard &middot; {{ brand_name }}{% endblock %}
 {% block content %}
 
-  {# ------------------------------------------------------------------ #}
-  {# A. League Champion hero card                                       #}
-  {# ------------------------------------------------------------------ #}
-  {% if champion %}
-    <section class="hero-champion hero-champion--crowned" aria-label="League champion">
-      <a class="hero-champion-avatar" href="{% url 'player_profile' champion.player.username %}">
-        {% include "tracker/partials/member_avatar.html" with member=champion.player size="lg" %}
-      </a>
-      <div class="hero-champion-body">
-        <span class="champion-eyebrow">League Champion</span>
-        <h2><a href="{% url 'player_profile' champion.player.username %}">{{ champion.player.name }}</a></h2>
-        <p class="subtitle">
-          <strong>{{ champion.points }}</strong> points
-          &middot; {{ champion.firsts }} first{{ champion.firsts|pluralize }}
-          &middot; {{ champion.completions }} completion{{ champion.completions|pluralize }}
-        </p>
-      </div>
-    </section>
-  {% else %}
-    <div class="empty-state hero-empty">
-      <span class="icon" aria-hidden="true">&#127942;</span>
-      No champion crowned yet &mdash; be the first to get an achievement approved and claim the throne.
-    </div>
-  {% endif %}
-
-  {# ------------------------------------------------------------------ #}
-  {# A2. League KPI row                                                 #}
-  {# ------------------------------------------------------------------ #}
-  <div class="stat-grid kpi-row">
-    {% for kpi in kpis %}
-      <div class="stat-tile">
-        <span class="value">{{ kpi.value }}</span>
-        <span class="label">{{ kpi.label }}</span>
-      </div>
+  {# The dashboard is a config-driven 12-column reflowing grid of widgets,      #}
+  {# arranged per league by an admin (Manage → Dashboard). Each widget's data   #}
+  {# is prepared server-side in tracker.dashboard_widgets.resolve_widgets.      #}
+  <div class="dash-grid">
+    {% for w in widgets %}
+      <section class="dash-cell dash-w{{ w.w }} dash-widget--{{ w.type }}">
+        {% if w.card %}<div class="card">{% endif %}
+        {% include w.template with w=w %}
+        {% if w.card %}</div>{% endif %}
+      </section>
     {% endfor %}
   </div>
 
-  {# ------------------------------------------------------------------ #}
-  {# A3. Guild characters — top-levelled portrait strip                 #}
-  {# ------------------------------------------------------------------ #}
-  {% if top_characters %}
-    <div class="section-header">
-      <h2 class="flourish">Guild characters</h2>
-      <a class="section-link" href="{% url 'roster' %}">All characters &raquo;</a>
-    </div>
-    <div class="char-strip">
-      {% for snap in top_characters %}
-        <a class="char-tile" href="{% url 'character_detail' snap.user.username %}"
-           title="{{ snap.user.name }} — {{ snap.display_class }} · Level {{ snap.level }}">
-          <span class="char-tile-icon">
-            {% if snap.portrait %}
-              <img class="char-tile-art" src="{% static snap.portrait %}" alt="" loading="lazy">
-            {% else %}
-              <span class="char-tile-crest" style="--hue: {{ snap.user.banner_hue|default:42 }};" aria-hidden="true">{{ snap.user.name|slice:":1"|upper }}</span>
-            {% endif %}
-            {% if snap.level %}<span class="char-tile-level">{{ snap.level }}</span>{% endif %}
-          </span>
-          <span class="char-tile-name">{{ snap.user.name }}</span>
-          {% if snap.display_class %}<span class="char-tile-class">{{ snap.display_class }}</span>{% endif %}
-        </a>
-      {% endfor %}
-    </div>
-  {% endif %}
-
-  {# ------------------------------------------------------------------ #}
-  {# B. First Achievements trophy row                                   #}
-  {# ------------------------------------------------------------------ #}
-  <div class="section-header">
-    <h2 class="flourish">First Achievements</h2>
-    <a class="section-link" href="{% url 'achievement_list' %}">View all achievements &raquo;</a>
-  </div>
-
-  {% if firsts %}
-    <div class="trophy-row">
-      {% for sub in firsts %}
-        <div class="first-tile">
-          <span class="trophy-ribbon" aria-hidden="true">First</span>
-          <span class="trophy-icon">{% include "tracker/partials/achievement_icon.html" with achievement=sub.achievement size="lg" %}</span>
-          <p class="trophy-label">{{ sub.achievement.label }}</p>
-          <div class="trophy-winner">
-            {% include "tracker/partials/member_avatar.html" with member=sub.user size="sm" %}
-            <span class="trophy-holder"><a href="{% url 'player_profile' sub.user.username %}">{{ sub.user.name }}</a></span>
-          </div>
-          <a class="btn btn-sm" href="{% url 'submission_detail' sub.pk %}">View proof</a>
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="empty-state">
-      <span class="icon" aria-hidden="true">&#10024;</span>
-      No firsts claimed yet &mdash; every achievement is still up for grabs.
-    </div>
-  {% endif %}
-
-  {# ------------------------------------------------------------------ #}
-  {# C. Recent Activity + Leaderboard standings                         #}
-  {# ------------------------------------------------------------------ #}
-  <div class="dashboard-columns">
-    <section class="dashboard-col dashboard-col--activity" aria-label="Recent activity">
-      <div class="section-header">
-        <h2 class="flourish">Recent Activity</h2>
-      </div>
-      {% if recent_submissions %}
-        <ul class="activity-list">
-          {% for submission in recent_submissions %}
-            <li class="activity-item">
-              <div class="u-flex-between">
-                <span>
-                  {% include "tracker/partials/member_avatar.html" with member=submission.user size="sm" %}
-                  <a href="{% url 'player_profile' submission.user.username %}">{{ submission.user.name }}</a>
-                  submitted
-                  <a href="{% url 'submission_detail' submission.pk %}">{{ submission.achievement.name }}</a>
-                </span>
-                <span class="pill pill-{{ submission.status }}">{{ submission.get_status_display }}</span>
-              </div>
-              <p class="activity-meta text-muted">{{ submission.submitted_at|timesince }} ago</p>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="empty-state">No activity yet &mdash; submissions will show up here the moment someone logs one.</div>
-      {% endif %}
-    </section>
-
-    <aside class="dashboard-col dashboard-col--standings" aria-label="Leaderboard standings">
-      {% if achievement_cards %}
-        <div class="card progress-card">
-          <div class="progress-ring" style="--p: {% widthratio firsts|length achievement_cards|length 100 %}%;" role="img"
-               aria-label="{{ firsts|length }} of {{ achievement_cards|length }} achievements claimed">
-            <span class="progress-ring-value">{% widthratio firsts|length achievement_cards|length 100 %}%</span>
-          </div>
-          <div class="progress-legend">
-            <p class="progress-legend-title">League progress</p>
-            <p class="progress-legend-meta"><strong>{{ firsts|length }}</strong> of {{ achievement_cards|length }} achievements claimed</p>
-          </div>
-        </div>
-      {% endif %}
-
-      {% if progression %}
-        <section class="card progression-card">
-          <p class="progress-legend-title">Progression</p>
-          <svg class="progression-svg" viewBox="0 0 {{ progression.w }} {{ progression.h }}"
-               preserveAspectRatio="none" role="img"
-               aria-label="{{ progression.total }} verified completions over time">
-            <path class="prog-area" d="{{ progression.area }}"/>
-            <path class="prog-line" d="{{ progression.line }}"/>
-          </svg>
-          <p class="text-muted progression-meta">
-            <strong>{{ progression.total }}</strong> completion{{ progression.total|pluralize }}
-            &middot; {{ progression.start|date:"M j" }} &ndash; {{ progression.end|date:"M j" }}
-          </p>
-        </section>
-      {% endif %}
-
-      <div class="section-header">
-        <h2 class="flourish">Leaderboard</h2>
-        <a class="section-link" href="{% url 'leaderboard' %}">Full leaderboard &raquo;</a>
-      </div>
-      {% include "tracker/partials/leaderboard_table.html" with rows=standings|slice:":5" %}
-    </aside>
-  </div>
 {% endblock %}

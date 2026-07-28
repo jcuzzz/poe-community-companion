@@ -1,0 +1,24 @@
+{% load static %}
+{% with champion=w.ctx.champion %}
+  {% if champion %}
+    <section class="hero-champion hero-champion--crowned" aria-label="League champion">
+      <a class="hero-champion-avatar" href="{% url 'player_profile' champion.player.username %}">
+        {% include "tracker/partials/member_avatar.html" with member=champion.player size="lg" %}
+      </a>
+      <div class="hero-champion-body">
+        <span class="champion-eyebrow">League Champion</span>
+        <h2><a href="{% url 'player_profile' champion.player.username %}">{{ champion.player.name }}</a></h2>
+        <p class="subtitle">
+          <strong>{{ champion.points }}</strong> points
+          &middot; {{ champion.firsts }} first{{ champion.firsts|pluralize }}
+          &middot; {{ champion.completions }} completion{{ champion.completions|pluralize }}
+        </p>
+      </div>
+    </section>
+  {% else %}
+    <div class="empty-state hero-empty">
+      <span class="icon" aria-hidden="true">&#127942;</span>
+      No champion crowned yet &mdash; be the first to get an achievement approved and claim the throne.
+    </div>
+  {% endif %}
+{% endwith %}

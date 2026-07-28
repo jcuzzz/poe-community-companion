@@ -7,6 +7,53 @@
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
+   Config-driven widget grid — a 12-column reflowing layout. Each widget cell
+   spans .dash-wN columns; on narrow screens everything collapses to full width
+   so a low-data dashboard still reads as a tidy stack rather than a lopsided
+   two-column split.
+   -------------------------------------------------------------------------- */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+.dash-cell { min-width: 0; }
+.dash-w1  { grid-column: span 12; }
+.dash-w2  { grid-column: span 12; }
+.dash-w3  { grid-column: span 6; }
+.dash-w4  { grid-column: span 6; }
+.dash-w5  { grid-column: span 6; }
+.dash-w6  { grid-column: span 6; }
+.dash-w7  { grid-column: span 12; }
+.dash-w8  { grid-column: span 12; }
+.dash-w9  { grid-column: span 12; }
+.dash-w10 { grid-column: span 12; }
+.dash-w11 { grid-column: span 12; }
+.dash-w12 { grid-column: span 12; }
+
+/* Full 12-column mapping kicks in once there's room for it. */
+@media (min-width: 56rem) {
+  .dash-w1  { grid-column: span 1; }
+  .dash-w2  { grid-column: span 2; }
+  .dash-w3  { grid-column: span 3; }
+  .dash-w4  { grid-column: span 4; }
+  .dash-w5  { grid-column: span 5; }
+  .dash-w6  { grid-column: span 6; }
+  .dash-w7  { grid-column: span 7; }
+  .dash-w8  { grid-column: span 8; }
+  .dash-w9  { grid-column: span 9; }
+  .dash-w10 { grid-column: span 10; }
+  .dash-w11 { grid-column: span 11; }
+  .dash-w12 { grid-column: span 12; }
+}
+
+/* Widgets that carry their own section header shouldn't double the top gap. */
+.dash-cell .section-header { margin-top: 0; }
+.dash-cell .kpi-row { margin-bottom: 0; }
+.dash-cell .char-strip { margin-bottom: 0; }
+
+/* --------------------------------------------------------------------------
    Section headers ("First Achievements", "Recent Activity", "Leaderboard")
    -------------------------------------------------------------------------- */
 

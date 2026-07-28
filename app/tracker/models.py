@@ -684,3 +684,46 @@ class ContestVote(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_decision_display()} by {self.voter} on #{self.submission_id}"
+
+
+class DashboardConfig(models.Model):
+    """Admin-arranged layout of the shared guild dashboard, per league.
+
+    ``league`` null means the global default template used by any league that
+    hasn't been customised. ``widgets`` is the ordered list of
+    ``{type, w, options}`` entries consumed by tracker.dashboard_widgets.
+    """
+
+    from .dashboard_widgets import default_layout as _default_layout
+
+    league = models.OneToOneField(
+        "League",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="dashboard_config",
+        help_text="Leave blank for the global default layout.",
+    )
+    widgets = models.JSONField(default=_default_layout)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+
+    def __str__(self) -> str:
+        return f"Dashboard layout ({self.league or 'global default'})"
+
+    @classmethod
+    def layout_for(cls, league) -> list:
+        """Widget layout for a league: its own config, else the global default
+        config, else the built-in default."""
+        from .dashboard_widgets import DEFAULT_LAYOUT
+
+        if league is not None:
+            cfg = cls.objects.filter(league=league).first()
+            if cfg is not None:
+                return cfg.widgets
+        cfg = cls.objects.filter(league__isnull=True).first()
+        if cfg is not None:
+            return cfg.widgets
+        return DEFAULT_LAYOUT

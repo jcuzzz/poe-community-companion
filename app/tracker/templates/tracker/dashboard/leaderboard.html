@@ -1,0 +1,5 @@
+<div class="section-header">
+  <h2 class="flourish">Leaderboard</h2>
+  <a class="section-link" href="{% url 'leaderboard' %}">Full leaderboard &raquo;</a>
+</div>
+{% include "tracker/partials/leaderboard_table.html" with rows=w.ctx.standings %}

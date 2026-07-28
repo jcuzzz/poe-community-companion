@@ -1,0 +1,8 @@
+<div class="stat-grid kpi-row">
+  {% for kpi in w.ctx.kpis %}
+    <div class="stat-tile">
+      <span class="value">{{ kpi.value }}</span>
+      <span class="label">{{ kpi.label }}</span>
+    </div>
+  {% endfor %}
+</div>

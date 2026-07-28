@@ -511,10 +511,15 @@ class DashboardCharPanelTests(TestCase):
         # highest level appears before the lowest in the strip
         self.assertLess(body.index(">96<"), body.index(">80<"))
 
-    def test_count_preference_limits_tiles(self):
-        prof = MemberProfile.objects.get(user=self.viewer)
-        prof.dashboard_char_count = 1
-        prof.save()
+    def test_widget_count_limits_tiles(self):
+        # The character count is now controlled by the admin dashboard config's
+        # "characters" widget option, not a per-user preference.
+        from tracker.models import DashboardConfig
+
+        DashboardConfig.objects.create(
+            league=self.league,
+            widgets=[{"type": "characters", "w": 12, "options": {"count": 1}}],
+        )
         self.client.login(username="viewer", password=PASSWORD)
         resp = self.client.get(reverse("dashboard"))
         self.assertEqual(resp.content.decode().count('class="char-tile"'), 1)

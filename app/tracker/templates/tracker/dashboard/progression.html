@@ -1,0 +1,18 @@
+{% with progression=w.ctx.progression %}
+  {% if progression %}
+    <p class="progress-legend-title">Progression</p>
+    <svg class="progression-svg" viewBox="0 0 {{ progression.w }} {{ progression.h }}"
+         preserveAspectRatio="none" role="img"
+         aria-label="{{ progression.total }} verified completions over time">
+      <path class="prog-area" d="{{ progression.area }}"/>
+      <path class="prog-line" d="{{ progression.line }}"/>
+    </svg>
+    <p class="text-muted progression-meta">
+      <strong>{{ progression.total }}</strong> completion{{ progression.total|pluralize }}
+      &middot; {{ progression.start|date:"M j" }} &ndash; {{ progression.end|date:"M j" }}
+    </p>
+  {% else %}
+    <p class="progress-legend-title">Progression</p>
+    <div class="empty-state empty-state--inline">Not enough history to chart yet.</div>
+  {% endif %}
+{% endwith %}

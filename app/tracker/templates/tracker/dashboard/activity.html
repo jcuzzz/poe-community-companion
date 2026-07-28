@@ -1,0 +1,24 @@
+{% load static %}
+<div class="section-header">
+  <h2 class="flourish">Recent Activity</h2>
+</div>
+{% if w.ctx.recent_submissions %}
+  <ul class="activity-list">
+    {% for submission in w.ctx.recent_submissions %}
+      <li class="activity-item">
+        <div class="u-flex-between">
+          <span>
+            {% include "tracker/partials/member_avatar.html" with member=submission.user size="sm" %}
+            <a href="{% url 'player_profile' submission.user.username %}">{{ submission.user.name }}</a>
+            submitted
+            <a href="{% url 'submission_detail' submission.pk %}">{{ submission.achievement.name }}</a>
+          </span>
+          <span class="pill pill-{{ submission.status }}">{{ submission.get_status_display }}</span>
+        </div>
+        <p class="activity-meta text-muted">{{ submission.submitted_at|timesince }} ago</p>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="empty-state">No activity yet &mdash; submissions will show up here the moment someone logs one.</div>
+{% endif %}

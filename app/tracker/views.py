@@ -45,6 +45,7 @@ from .models import (
     Award,
     Character,
     CharacterSnapshot,
+    DashboardConfig,
     InviteCode,
     League,
     MemberProfile,
@@ -54,6 +55,7 @@ from .models import (
     format_played,
     log_audit,
 )
+from .dashboard_widgets import resolve_widgets
 from .utils import parse_played
 
 
@@ -182,7 +184,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         Submission.objects.visible()
         .filter(league=viewing)
         .select_related("user", "character", "achievement")
-        .prefetch_related("awards", "proofs")[:10]
+        .prefetch_related("awards", "proofs")[:40]
     )
     firsts = list(
         Submission.objects.approved()
@@ -194,18 +196,12 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     )
     latest_first = firsts[0] if firsts else None
 
-    # Top-levelled characters for the viewing league — a compact portrait strip
-    # (poe.ninja ascendancy-panel style). Count is per-user configurable.
-    char_count = 8
-    if request.user.is_authenticated:
-        prof = getattr(request.user, "member_profile", None)
-        if prof and prof.dashboard_char_count:
-            char_count = max(1, min(24, prof.dashboard_char_count))
+    # Top-levelled characters (widgets slice this to their configured count).
     top_characters = list(
         CharacterSnapshot.objects.filter(league=viewing, level__isnull=False)
         .exclude(level=0)
         .select_related("user")
-        .order_by("-level")[:char_count]
+        .order_by("-level")[:24]
     )
 
     # Guild progression: cumulative verified completions over time → inline SVG.
@@ -217,7 +213,10 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         {"label": "Firsts claimed", "value": len(firsts)},
         {"label": "Completions", "value": sum(row["completions"] for row in standings)},
     ]
-    context = {
+
+    # The dashboard is a config-driven grid of widgets (arranged per league by an
+    # admin). We compute the data once, then let the layout decide what shows.
+    data = {
         "champion": champion,
         "standings": standings,
         "achievement_cards": achievement_cards,
@@ -228,7 +227,9 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "top_characters": top_characters,
         "progression": progression,
     }
-    return render(request, "tracker/dashboard.html", context)
+    layout = DashboardConfig.layout_for(viewing)
+    widgets = resolve_widgets(layout, data)
+    return render(request, "tracker/dashboard.html", {"widgets": widgets})
 
 
 def _progression_series(league) -> dict | None:

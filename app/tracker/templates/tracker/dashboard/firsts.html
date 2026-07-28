@@ -1,0 +1,26 @@
+{% load static %}
+<div class="section-header">
+  <h2 class="flourish">First Achievements</h2>
+  <a class="section-link" href="{% url 'achievement_list' %}">View all achievements &raquo;</a>
+</div>
+{% if w.ctx.firsts %}
+  <div class="trophy-row">
+    {% for sub in w.ctx.firsts %}
+      <div class="first-tile">
+        <span class="trophy-ribbon" aria-hidden="true">First</span>
+        <span class="trophy-icon">{% include "tracker/partials/achievement_icon.html" with achievement=sub.achievement size="lg" %}</span>
+        <p class="trophy-label">{{ sub.achievement.label }}</p>
+        <div class="trophy-winner">
+          {% include "tracker/partials/member_avatar.html" with member=sub.user size="sm" %}
+          <span class="trophy-holder"><a href="{% url 'player_profile' sub.user.username %}">{{ sub.user.name }}</a></span>
+        </div>
+        <a class="btn btn-sm" href="{% url 'submission_detail' sub.pk %}">View proof</a>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state">
+    <span class="icon" aria-hidden="true">&#10024;</span>
+    No firsts claimed yet &mdash; every achievement is still up for grabs.
+  </div>
+{% endif %}
