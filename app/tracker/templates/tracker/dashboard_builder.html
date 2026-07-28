@@ -1,0 +1,48 @@
+{% extends "tracker/base.html" %}
+{% load static %}
+{% block title %}Dashboard layout &middot; {{ brand_name }}{% endblock %}
+{% block content %}
+
+  <div class="builder-head">
+    <div>
+      <h1 class="flourish">Dashboard layout</h1>
+      <p class="text-muted">Arrange the guild dashboard: drag to reorder, set each widget's width and count, remove what you don't want. Changes apply to everyone viewing this league.</p>
+    </div>
+    <form method="get" class="builder-league-form">
+      <label for="league-select">Editing</label>
+      <select id="league-select" name="league" onchange="this.form.submit()">
+        <option value="global" {% if target == 'global' %}selected{% endif %}>Global default (all leagues)</option>
+        {% for l in leagues %}
+          <option value="{{ l.slug }}" {% if target == l.slug %}selected{% endif %}>{{ l.name }}{% if l.is_active %} · active{% endif %}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+
+  <form method="post" id="builder-form">
+    {% csrf_token %}
+    <input type="hidden" name="league" value="{{ target }}">
+    <input type="hidden" name="layout" id="layout-field">
+
+    <div class="builder-shell">
+      <div class="builder-canvas dash-grid" id="builder-canvas" aria-label="Dashboard widgets">
+        {# widget cards injected by JS #}
+      </div>
+      <aside class="builder-palette">
+        <h2>Add a widget</h2>
+        <div id="builder-palette" class="builder-palette-list"></div>
+        <p class="text-muted builder-hint">Removed widgets reappear here.</p>
+      </aside>
+    </div>
+
+    <div class="builder-actions">
+      <button class="btn btn-primary" type="submit">Save layout</button>
+      <a class="btn" href="{% url 'dashboard' %}">View dashboard</a>
+    </div>
+  </form>
+
+  {{ layout|json_script:"layout-data" }}
+  {{ catalogue|json_script:"catalogue-data" }}
+  <script src="{% static 'js/dashboard_builder.js' %}"></script>
+
+{% endblock %}

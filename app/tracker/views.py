@@ -232,6 +232,52 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     return render(request, "tracker/dashboard.html", {"widgets": widgets})
 
 
+@login_required
+@user_passes_test(_is_staff)
+def dashboard_builder(request: HttpRequest) -> HttpResponse:
+    """Admin drag/drop builder for the guild dashboard layout, per league.
+
+    ``?league=<slug>`` targets a league's config; ``global`` (the default) edits
+    the fallback layout used by any league without its own config.
+    """
+    import json
+
+    from .dashboard_widgets import catalogue, sanitize_layout
+
+    leagues = list(League.objects.all().order_by("-is_active", "name"))
+    target = request.POST.get("league") or request.GET.get("league") or "global"
+    league = None if target == "global" else League.objects.filter(slug=target).first()
+    if target != "global" and league is None:
+        target = "global"
+
+    if request.method == "POST":
+        try:
+            posted = json.loads(request.POST.get("layout", "[]"))
+        except (ValueError, TypeError):
+            posted = []
+        clean = sanitize_layout(posted)
+        cfg, _ = DashboardConfig.objects.get_or_create(league=league)
+        cfg.widgets = clean
+        cfg.updated_by = request.user
+        cfg.save()
+        messages.success(
+            request,
+            f"Dashboard layout saved for {league.name if league else 'the global default'}.",
+        )
+        suffix = "" if league is None else f"?league={league.slug}"
+        return redirect(f"{reverse('dashboard_builder')}{suffix}")
+
+    layout = sanitize_layout(DashboardConfig.layout_for(league))
+    context = {
+        "leagues": leagues,
+        "target": target,
+        "target_league": league,
+        "layout": layout,
+        "catalogue": catalogue(),
+    }
+    return render(request, "tracker/dashboard_builder.html", context)
+
+
 def _progression_series(league) -> dict | None:
     """Cumulative verified-completion count over time for a league, pre-scaled to
     an SVG viewBox (600×160). Returns None when there's too little to plot."""

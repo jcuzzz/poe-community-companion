@@ -3,6 +3,12 @@
 {% block title %}Dashboard &middot; {{ brand_name }}{% endblock %}
 {% block content %}
 
+  {% if user.is_staff %}
+    <div class="dash-admin-bar">
+      <a class="btn btn-sm" href="{% url 'dashboard_builder' %}">Edit dashboard layout</a>
+    </div>
+  {% endif %}
+
   {# The dashboard is a config-driven 12-column reflowing grid of widgets,      #}
   {# arranged per league by an admin (Manage → Dashboard). Each widget's data   #}
   {# is prepared server-side in tracker.dashboard_widgets.resolve_widgets.      #}

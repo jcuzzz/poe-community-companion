@@ -8,7 +8,7 @@ from django.urls import reverse
 from tracker.dashboard_widgets import DEFAULT_LAYOUT, resolve_widgets
 from tracker.models import DashboardConfig, League
 
-from .factories import make_league, make_player
+from .factories import make_admin, make_league, make_player
 
 PASSWORD = "correct-horse-battery-42"
 
@@ -85,3 +85,53 @@ class DashboardViewTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertIn("widgets", resp.context)
         self.assertTrue(len(resp.context["widgets"]) > 0)
+
+
+class DashboardBuilderViewTests(TestCase):
+    def setUp(self):
+        self.admin = make_admin("layoutadmin")
+        self.player = make_player("plainplayer")
+
+    def test_builder_requires_staff(self):
+        self.client.login(username="plainplayer", password=PASSWORD)
+        resp = self.client.get(reverse("dashboard_builder"))
+        self.assertIn(resp.status_code, (302, 403))
+
+    def test_builder_loads_for_staff(self):
+        self.client.login(username="layoutadmin", password=PASSWORD)
+        resp = self.client.get(reverse("dashboard_builder"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("catalogue", resp.context)
+
+    def test_save_global_layout(self):
+        self.client.login(username="layoutadmin", password=PASSWORD)
+        payload = '[{"type": "kpis", "w": 12}, {"type": "leaderboard", "w": 6, "options": {"rows": 3}}]'
+        resp = self.client.post(
+            reverse("dashboard_builder"), {"league": "global", "layout": payload}
+        )
+        self.assertEqual(resp.status_code, 302)
+        cfg = DashboardConfig.objects.get(league__isnull=True)
+        self.assertEqual([w["type"] for w in cfg.widgets], ["kpis", "leaderboard"])
+        self.assertEqual(cfg.widgets[1]["options"]["rows"], 3)
+        self.assertEqual(cfg.updated_by, self.admin)
+
+    def test_save_per_league_layout(self):
+        league = make_league("Builder League", active=False)
+        self.client.login(username="layoutadmin", password=PASSWORD)
+        resp = self.client.post(
+            reverse("dashboard_builder"),
+            {"league": league.slug, "layout": '[{"type": "champion", "w": 12}]'},
+        )
+        self.assertEqual(resp.status_code, 302)
+        cfg = DashboardConfig.objects.get(league=league)
+        self.assertEqual([w["type"] for w in cfg.widgets], ["champion"])
+
+    def test_save_drops_unknown_widget(self):
+        self.client.login(username="layoutadmin", password=PASSWORD)
+        self.client.post(
+            reverse("dashboard_builder"),
+            {"league": "global", "layout": '[{"type": "evil"}, {"type": "kpis", "w": 99}]'},
+        )
+        cfg = DashboardConfig.objects.get(league__isnull=True)
+        self.assertEqual([w["type"] for w in cfg.widgets], ["kpis"])
+        self.assertEqual(cfg.widgets[0]["w"], 12)  # clamped from 99

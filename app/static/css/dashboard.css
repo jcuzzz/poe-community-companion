@@ -12,6 +12,11 @@
    so a low-data dashboard still reads as a tidy stack rather than a lopsided
    two-column split.
    -------------------------------------------------------------------------- */
+.dash-admin-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-3);
+}
 .dash-grid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);

@@ -8,6 +8,7 @@ from . import views, views_roster
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("manage/dashboard/", views.dashboard_builder, name="dashboard_builder"),
     # Characters (was "Roster") — grid index + per-character detail page.
     path("characters/", views_roster.roster, name="roster"),
     path("characters/<str:username>/", views_roster.character_detail, name="character_detail"),

@@ -1,0 +1,102 @@
+/* dashboard_builder.css — admin drag/drop layout builder. Reuses .dash-grid /
+   .dash-wN spans from dashboard.css so the canvas is a true-to-size preview. */
+
+.builder-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+.builder-head h1 { margin: 0 0 var(--space-1); }
+.builder-head p { margin: 0; max-width: 40rem; }
+
+.builder-league-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.builder-league-form label {
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  color: var(--color-parchment-dim);
+}
+
+.builder-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+@media (min-width: 60rem) {
+  .builder-shell { grid-template-columns: 1fr 15rem; }
+}
+
+/* Canvas — the widgets, laid out on the same 12-col grid as the real board. */
+.builder-canvas {
+  min-height: 8rem;
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border-strong);
+  background: rgba(255, 255, 255, 0.015);
+}
+.builder-card {
+  border: 1px solid var(--color-gold-dim);
+  background: var(--color-bg-card);
+  padding: var(--space-3);
+  cursor: grab;
+}
+.builder-card.is-dragging { opacity: 0.5; border-style: dashed; }
+.builder-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.builder-card-head strong { flex: 1 1 auto; color: var(--color-gold-bright); }
+.builder-drag { color: var(--color-parchment-dim); cursor: grab; }
+.builder-remove {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-parchment-dim);
+  width: 1.5rem; height: 1.5rem;
+  line-height: 1; cursor: pointer;
+}
+.builder-remove:hover { color: #e6a; border-color: #a44; }
+.builder-card-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  font-size: var(--fs-sm);
+}
+.builder-card-controls label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-parchment-dim);
+}
+.builder-card-controls select,
+.builder-card-controls input {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-parchment);
+  padding: 2px 4px;
+}
+.builder-card-controls input[type="number"] { width: 3.5rem; }
+
+/* Palette */
+.builder-palette {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  padding: var(--space-4);
+}
+.builder-palette h2 { margin: 0 0 var(--space-3); font-size: var(--fs-md); }
+.builder-palette-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.builder-add { text-align: left; }
+.builder-hint { margin-top: var(--space-3); font-size: var(--fs-xs); }
+
+.builder-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}

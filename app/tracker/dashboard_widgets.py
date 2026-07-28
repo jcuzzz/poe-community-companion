@@ -167,6 +167,47 @@ _BUILDERS = {
 }
 
 
+def catalogue() -> list[dict]:
+    """All widget types with their labels, default span and option schema —
+    consumed by the builder UI to render the palette and per-widget controls."""
+    return [
+        {
+            "type": key,
+            "label": meta["label"],
+            "default_w": meta["default_w"],
+            "options": dict(meta["option_defaults"]),
+        }
+        for key, meta in WIDGET_TYPES.items()
+    ]
+
+
+def sanitize_layout(raw) -> list[dict]:
+    """Validate a layout posted from the builder into a safe stored form:
+    drop unknown/malformed entries, clamp spans, coerce numeric options."""
+    if not isinstance(raw, list):
+        return default_layout()
+    out: list[dict] = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        wtype = entry.get("type")
+        meta = WIDGET_TYPES.get(wtype)
+        if meta is None:
+            continue
+        options = _resolve_options(wtype, entry.get("options"))
+        for key, default in list(options.items()):
+            if isinstance(default, int):
+                try:
+                    options[key] = max(0, min(99, int(options[key])))
+                except (TypeError, ValueError):
+                    options[key] = default
+        item = {"type": wtype, "w": _clamp_w(entry.get("w", meta["default_w"]))}
+        if options:
+            item["options"] = options
+        out.append(item)
+    return out
+
+
 def resolve_widgets(layout, data) -> list[dict]:
     """Turn a stored layout (list of {type,w,options}) into render-ready widgets.
 
