@@ -636,10 +636,24 @@ class CharacterSnapshot(models.Model):
 
     @property
     def portrait(self) -> str:
-        """Static path to a bundled class portrait for this character, or ''."""
+        """Static path to a bundled class portrait for this character, or ''.
+
+        Prefers the ascendancy banner; falls back to the base-class avatar for
+        characters who haven't ascended yet."""
         from .portraits import portrait_path
 
         return portrait_path(self.ascendancy) or portrait_path(self.class_name)
+
+    @property
+    def portrait_is_avatar(self) -> bool:
+        """True when the resolved portrait is a base-class square avatar rather
+        than a wide ascendancy banner (they crop differently)."""
+        from .portraits import is_base_avatar, portrait_path
+
+        # Only reaches the base-class avatar when no ascendancy banner matched.
+        if portrait_path(self.ascendancy):
+            return False
+        return is_base_avatar(self.class_name)
 
 
 class ContestVote(models.Model):

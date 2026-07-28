@@ -111,23 +111,17 @@
 /* KPI row directly under the champion hero */
 .kpi-row { margin-bottom: var(--space-6); }
 
-/* Guild progression trend — a slim inline sparkline, not a full panel.
-   Compact strip: label + tiny curve + count on one row, stacking on mobile. */
+/* Guild progression trend — a compact sparkline card that sits in the right
+   rail directly under the League-progress donut (same width). Title, tiny
+   curve, caption stacked vertically. */
 .progression-card {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  margin-bottom: var(--space-6);
+  margin-top: var(--space-5);
 }
-.progression-card .section-header { margin: 0; flex: 0 0 auto; }
-.progression-card .section-header h2 { font-size: var(--fs-md); }
 .progression-svg {
   display: block;
-  flex: 1 1 auto;
-  min-width: 6rem;
   width: 100%;
-  height: 2.75rem;
+  height: 3rem;
+  margin: var(--space-2) 0;
 }
 .prog-line {
   fill: none;
@@ -137,13 +131,8 @@
   vector-effect: non-scaling-stroke;
 }
 .prog-area { fill: rgba(201, 162, 74, 0.12); stroke: none; }
-.progression-meta { margin: 0; flex: 0 0 auto; font-size: var(--fs-sm); white-space: nowrap; }
+.progression-meta { margin: 0; font-size: var(--fs-sm); }
 .progression-meta strong { color: var(--color-gold-bright); }
-
-@media (max-width: 44rem) {
-  .progression-card { flex-wrap: wrap; }
-  .progression-svg { flex-basis: 100%; }
-}
 
 /* Progress ring (right rail) — conic gradient donut, pure CSS */
 .progress-card {

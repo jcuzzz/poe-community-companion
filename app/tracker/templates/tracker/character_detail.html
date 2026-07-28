@@ -10,7 +10,7 @@
   <section class="card character-hero">
     {% if snapshot.portrait %}
       <span class="class-portrait class-portrait--lg" title="{{ snapshot.display_class }}">
-        <img src="{% static snapshot.portrait %}" alt="{{ snapshot.display_class }}">
+        <img class="{% if snapshot.portrait_is_avatar %}is-avatar{% endif %}" src="{% static snapshot.portrait %}" alt="{{ snapshot.display_class }}">
       </span>
     {% else %}
       {% include "tracker/partials/member_avatar.html" with member=member size="lg" %}

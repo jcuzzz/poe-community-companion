@@ -53,7 +53,7 @@
         <a class="char-tile" href="{% url 'character_detail' snap.user.username %}"
            title="{{ snap.user.name }} — {{ snap.display_class }} · Level {{ snap.level }}">
           {% if snap.portrait %}
-            <img class="char-tile-art" src="{% static snap.portrait %}" alt="" loading="lazy">
+            <img class="char-tile-art{% if snap.portrait_is_avatar %} char-tile-art--avatar{% endif %}" src="{% static snap.portrait %}" alt="" loading="lazy">
           {% else %}
             <span class="char-tile-art char-tile-crest" style="--hue: {{ snap.user.banner_hue|default:42 }};" aria-hidden="true">{{ snap.user.name|slice:":1"|upper }}</span>
           {% endif %}
@@ -93,27 +93,6 @@
       <span class="icon" aria-hidden="true">&#10024;</span>
       No firsts claimed yet &mdash; every achievement is still up for grabs.
     </div>
-  {% endif %}
-
-  {# ------------------------------------------------------------------ #}
-  {# B2. Guild progression trend                                        #}
-  {# ------------------------------------------------------------------ #}
-  {% if progression %}
-    <section class="card progression-card">
-      <div class="section-header">
-        <h2 class="flourish">Progression</h2>
-      </div>
-      <svg class="progression-svg" viewBox="0 0 {{ progression.w }} {{ progression.h }}"
-           preserveAspectRatio="none" role="img"
-           aria-label="{{ progression.total }} verified completions over time">
-        <path class="prog-area" d="{{ progression.area }}"/>
-        <path class="prog-line" d="{{ progression.line }}"/>
-      </svg>
-      <p class="text-muted progression-meta">
-        <strong>{{ progression.total }}</strong> completion{{ progression.total|pluralize }}
-        &middot; {{ progression.start|date:"M j" }} &ndash; {{ progression.end|date:"M j" }}
-      </p>
-    </section>
   {% endif %}
 
   {# ------------------------------------------------------------------ #}
@@ -158,6 +137,22 @@
             <p class="progress-legend-meta"><strong>{{ firsts|length }}</strong> of {{ achievement_cards|length }} achievements claimed</p>
           </div>
         </div>
+      {% endif %}
+
+      {% if progression %}
+        <section class="card progression-card">
+          <p class="progress-legend-title">Progression</p>
+          <svg class="progression-svg" viewBox="0 0 {{ progression.w }} {{ progression.h }}"
+               preserveAspectRatio="none" role="img"
+               aria-label="{{ progression.total }} verified completions over time">
+            <path class="prog-area" d="{{ progression.area }}"/>
+            <path class="prog-line" d="{{ progression.line }}"/>
+          </svg>
+          <p class="text-muted progression-meta">
+            <strong>{{ progression.total }}</strong> completion{{ progression.total|pluralize }}
+            &middot; {{ progression.start|date:"M j" }} &ndash; {{ progression.end|date:"M j" }}
+          </p>
+        </section>
       {% endif %}
 
       <div class="section-header">

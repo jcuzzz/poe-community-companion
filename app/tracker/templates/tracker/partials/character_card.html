@@ -2,7 +2,7 @@
 <article class="character-card">
   <div class="character-portrait-media">
     {% if snapshot.portrait %}
-      <img class="character-portrait-img" src="{% static snapshot.portrait %}" alt="{{ snapshot.display_class }}" loading="lazy">
+      <img class="character-portrait-img{% if snapshot.portrait_is_avatar %} character-portrait-img--avatar{% endif %}" src="{% static snapshot.portrait %}" alt="{{ snapshot.display_class }}" loading="lazy">
     {% else %}
       <span class="character-portrait-crest" style="--hue: {{ member.banner_hue|default:42 }};" aria-hidden="true">
         {{ member.name|slice:":1"|upper }}

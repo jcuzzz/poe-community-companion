@@ -60,16 +60,20 @@ class RefreshAutoSnapshotTests(TestCase):
         self.league = League.get_active()
 
     def test_no_account_name_returns_error(self):
-        MemberProfile.objects.create(user=self.player, account_name="", profile_public=True)
+        profile = self.player.member_profile
+        profile.account_name = ""
+        profile.profile_public = True
+        profile.save()
         snapshot, error = refresh_auto_snapshot(self.player, self.league, force=True)
         self.assertFalse(snapshot)
         self.assertTrue(error)
         self.assertFalse(CharacterSnapshot.objects.filter(user=self.player).exists())
 
     def test_poe2_league_returns_error(self):
-        MemberProfile.objects.create(
-            user=self.player, account_name="Boomcuz#1234", profile_public=True
-        )
+        profile = self.player.member_profile
+        profile.account_name = "Boomcuz#1234"
+        profile.profile_public = True
+        profile.save()
         poe2 = make_league("PoE2 Roster Test", active=False, game=League.Game.POE2)
         snapshot, error = refresh_auto_snapshot(self.player, poe2, force=True)
         self.assertFalse(snapshot)
@@ -77,9 +81,10 @@ class RefreshAutoSnapshotTests(TestCase):
         self.assertFalse(CharacterSnapshot.objects.filter(user=self.player, league=poe2).exists())
 
     def test_private_profile_returns_error(self):
-        MemberProfile.objects.create(
-            user=self.player, account_name="Boomcuz#1234", profile_public=False
-        )
+        profile = self.player.member_profile
+        profile.account_name = "Boomcuz#1234"
+        profile.profile_public = False
+        profile.save()
         snapshot, error = refresh_auto_snapshot(self.player, self.league, force=True)
         self.assertFalse(snapshot)
         self.assertTrue(error)
@@ -87,9 +92,10 @@ class RefreshAutoSnapshotTests(TestCase):
 
     @patch("tracker.roster._http_get_json")
     def test_happy_path_creates_snapshot(self, mock_get_json):
-        MemberProfile.objects.create(
-            user=self.player, account_name="Boomcuz#1234", profile_public=True
-        )
+        profile = self.player.member_profile
+        profile.account_name = "Boomcuz#1234"
+        profile.profile_public = True
+        profile.save()
         mock_get_json.return_value = [
             {
                 "name": "Boomcuz",
@@ -149,9 +155,9 @@ class RosterViewTests(TestCase):
 
     def test_lists_visible_members_only(self):
         shown = make_player("shownmember")
-        MemberProfile.objects.create(user=shown, show_on_roster=True)
+        MemberProfile.objects.update_or_create(user=shown, defaults={"show_on_roster": True})
         hidden = make_player("hiddenmember")
-        MemberProfile.objects.create(user=hidden, show_on_roster=False)
+        MemberProfile.objects.update_or_create(user=hidden, defaults={"show_on_roster": False})
 
         self.client.login(username="shownmember", password=PASSWORD)
         response = self.client.get(reverse("roster"))
@@ -545,3 +551,31 @@ class CharacterSyncNowTests(TestCase):
         resp = self.client.post(reverse("character_detail", args=["syncer"]), {"action": "sync"}, follow=True)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(CharacterSnapshot.objects.get(user=player, league=league).level, 97)
+
+
+class MemberProfileSignalTests(TestCase):
+    def test_creating_user_creates_member_profile(self):
+        """Users made anywhere (incl. the admin) must get a MemberProfile so the
+        roster's inner join doesn't silently hide them."""
+        user = make_player("freshfriend")
+        self.assertTrue(MemberProfile.objects.filter(user=user).exists())
+
+
+class PortraitKindTests(TestCase):
+    def test_unascended_character_uses_base_class_avatar(self):
+        player = make_player("leveler")
+        snap = CharacterSnapshot.objects.create(
+            user=player, league=League.get_active(),
+            class_name="Ranger", ascendancy="", level=42,
+        )
+        self.assertTrue(snap.portrait.endswith("ranger.webp"))
+        self.assertTrue(snap.portrait_is_avatar)
+
+    def test_ascended_character_uses_banner_not_avatar(self):
+        player = make_player("ascended")
+        snap = CharacterSnapshot.objects.create(
+            user=player, league=League.get_active(),
+            class_name="Ranger", ascendancy="Deadeye", level=95,
+        )
+        self.assertTrue(snap.portrait.endswith("deadeye.webp"))
+        self.assertFalse(snap.portrait_is_avatar)

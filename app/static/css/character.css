@@ -21,7 +21,12 @@
   transition: border-color 0.12s ease, transform 0.12s ease;
 }
 .char-tile:hover { border-color: var(--color-gold); transform: translateY(-2px); }
-.char-tile-art { width: 100%; height: 100%; object-fit: cover; object-position: center 18%; display: block; }
+/* The bundled class banners are wide (≈530×245) with the character on the
+   left; a tall tile crops the width, so bias the focal point left to keep the
+   subject (not the blurred background) in frame. */
+.char-tile-art { width: 100%; height: 100%; object-fit: cover; object-position: 30% center; display: block; }
+/* Base-class avatars are small centred headshots — don't left-bias them. */
+.char-tile-art--avatar { object-fit: cover; object-position: center 30%; }
 .char-tile-crest {
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-display); font-size: 2rem; font-weight: 700;

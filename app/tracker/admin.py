@@ -55,7 +55,27 @@ class CharacterSnapshotAdmin(admin.ModelAdmin):
     autocomplete_fields = ("user", "league")
     actions = ["fetch_from_pob_url"]
 
-    @admin.action(description="Fetch / refresh build from the saved pobb.in URL")
+    def save_model(self, request, obj, form, change):
+        """Populate the build from pobb.in automatically on save.
+
+        Paste a user, league and pobb.in URL and hit Save — no second step. We
+        only fetch when the URL is new/changed or the row hasn't been populated
+        yet, so re-saving to tweak a field doesn't hit the network every time.
+        """
+        super().save_model(request, obj, form, change)
+        from . import roster
+
+        needs_fetch = obj.pob_url and (
+            "pob_url" in getattr(form, "changed_data", []) or not obj.level
+        )
+        if needs_fetch:
+            _, error = roster.save_pob_snapshot(obj.user, obj.league, obj.pob_url)
+            if error:
+                self.message_user(request, f"Could not sync build: {error}", level="error")
+            else:
+                self.message_user(request, "Build synced from pobb.in.")
+
+    @admin.action(description="Re-sync build from the saved pobb.in URL")
     def fetch_from_pob_url(self, request, queryset):
         from . import roster
 
@@ -72,7 +92,7 @@ class CharacterSnapshotAdmin(admin.ModelAdmin):
                 ok += 1
         self.message_user(
             request,
-            f"Fetched {ok} build(s); {skipped} had no pobb.in URL; {failed} failed.",
+            f"Re-synced {ok} build(s); {skipped} had no pobb.in URL; {failed} failed.",
         )
 
 

@@ -32,7 +32,21 @@ def _discover() -> dict[str, str]:
 
 AVAILABLE = _discover()
 
+# The seven base (core) classes ship as small square avatar headshots, whereas
+# ascendancies ship as wide landscape banners. They need different focal-point
+# cropping, so callers can ask which kind a resolved portrait is.
+_BASE_CLASSES = {
+    "marauder", "ranger", "witch", "duelist", "templar", "shadow", "scion",
+}
+
 
 def portrait_path(class_str: str) -> str:
     """Static-relative path to the class portrait, or '' if none is bundled."""
     return AVAILABLE.get(_slugify_class(class_str), "")
+
+
+def is_base_avatar(class_str: str) -> bool:
+    """True when the resolved portrait is a base-class square avatar (not a
+    wide ascendancy banner) — used to pick the right CSS crop."""
+    slug = _slugify_class(class_str)
+    return slug in _BASE_CLASSES and slug in AVAILABLE
