@@ -1,0 +1,12 @@
+[Unit]
+Description=Re-sync pobb.in-linked builds every few hours
+
+[Timer]
+# Every 3 hours; jittered so it doesn't collide with other jobs. pobb.in asks
+# for a descriptive User-Agent (set via POE_USER_AGENT) and polite cadence.
+OnCalendar=*-*-* 00/3:10:00
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

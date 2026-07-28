@@ -120,6 +120,8 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
                 tree_svg = render_tree_svg(build["tree"]["node_ids"])
         except ValueError as exc:
             parse_error = str(exc)
+        except Exception:  # noqa: BLE001 - a viewer-facing page must never 500 on stored data
+            parse_error = "Couldn't read the stored build."
 
     return render(
         request,

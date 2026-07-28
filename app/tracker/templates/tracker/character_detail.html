@@ -26,8 +26,16 @@
       </p>
       <p class="char-owner text-muted">
         <a href="{% url 'player_profile' member.username %}">{{ member.name }}</a>
-        {% if snapshot %} &middot; via {{ snapshot.get_source_display }} &middot; updated {{ snapshot.fetched_at|timesince }} ago{% endif %}
+        {% if snapshot %} &middot; via {{ snapshot.get_source_display }} &middot; updated {{ snapshot.fetched_at|timesince }} ago
+          {% if snapshot.pob_url %} &middot; <span class="char-autosync" title="Auto-synced from pobb.in">auto-syncs</span>{% endif %}
+        {% endif %}
       </p>
+      {% if snapshot.pob_url %}
+        <p class="char-actions">
+          <a class="btn btn-sm" href="https://pob.cool/#build={{ snapshot.pob_url|urlencode }}" target="_blank" rel="noopener noreferrer">View full build &nearr;</a>
+          <a class="btn btn-sm" href="{{ snapshot.pob_url }}" target="_blank" rel="noopener noreferrer">Open on pobb.in &nearr;</a>
+        </p>
+      {% endif %}
     </div>
 
     {% if can_import %}

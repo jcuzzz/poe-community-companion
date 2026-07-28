@@ -31,6 +31,10 @@ from .models import CharacterSnapshot, League
 
 logger = logging.getLogger(__name__)
 
+# Max inflated PoB XML size — bounds zlib decompression (bomb defence). Real
+# builds are a few hundred KB; 8 MB is a generous ceiling.
+_MAX_POB_XML_BYTES = 8 * 1024 * 1024
+
 
 # --- PoB export code parsing ---------------------------------------------
 
@@ -51,9 +55,19 @@ def _pob_root(code: str) -> "ET.Element":
     raw += "=" * (-len(raw) % 4)
     try:
         compressed = base64.b64decode(raw)
-        xml_bytes = zlib.decompress(compressed)
+        # Bounded inflate — a 1 MB zlib blob can expand to gigabytes, so cap the
+        # output to defend against decompression-bomb memory exhaustion. Real PoB
+        # XML is well under this.
+        dec = zlib.decompressobj()
+        xml_bytes = dec.decompress(compressed, _MAX_POB_XML_BYTES)
+        if dec.unconsumed_tail:
+            raise ValueError("That Path of Building code is unreasonably large.")
+    except ValueError:
+        raise
     except Exception as exc:  # noqa: BLE001 - any decode failure is a bad code
         raise ValueError("That doesn't look like a valid Path of Building code.") from exc
+    # xml.etree does not resolve external entities (no XXE); with the size bound
+    # above, entity-expansion amplification is also contained.
     try:
         return ET.fromstring(xml_bytes)
     except ET.ParseError as exc:
@@ -461,8 +475,91 @@ def refresh_auto_snapshot(user, league: League, *, force: bool = False) -> tuple
     return snapshot, ""
 
 
+# --- pobb.in build links (auto-update source) ---------------------------
+
+# Only these hosts may be fetched server-side — a strict allowlist so a pasted
+# "build URL" can't be turned into an SSRF against internal services.
+_POBBIN_HOSTS = {"pobb.in", "www.pobb.in"}
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Refuse to follow redirects — stops a pobb.in link 30x-ing to an internal
+    address (SSRF defence). A 3xx then surfaces as a non-200 we reject."""
+
+    def redirect_request(self, *args, **kwargs):  # noqa: D102
+        return None
+
+
+def canonical_pobbin_url(url: str) -> str:
+    """Normalise a pobb.in build URL to its https page form, or '' if not pobb.in."""
+    try:
+        p = urllib.parse.urlparse((url or "").strip())
+    except ValueError:
+        return ""
+    if p.scheme != "https" or p.netloc.lower() not in _POBBIN_HOSTS:
+        return ""
+    path = p.path.rstrip("/")
+    if path.endswith("/raw"):
+        path = path[:-4]
+    if not path or path == "/":
+        return ""
+    return f"https://pobb.in{path}"
+
+
+def fetch_pobbin_code(url: str) -> str:
+    """Fetch the raw PoB export code from a pobb.in build URL (SSRF-safe).
+
+    Only https pobb.in hosts are contacted, redirects are refused, and the body
+    size is bounded. Raises ValueError with a friendly message on any failure.
+    """
+    page = canonical_pobbin_url(url)
+    if not page:
+        raise ValueError("That isn't a pobb.in build link (expected https://pobb.in/…).")
+    raw_url = f"{page}/raw"
+    req = urllib.request.Request(
+        raw_url,
+        headers={
+            "User-Agent": getattr(
+                settings, "POE_USER_AGENT", "poe-community-companion/1.0 (self-hosted)"
+            ),
+            "Accept": "text/plain",
+        },
+    )
+    opener = urllib.request.build_opener(_NoRedirect)
+    timeout = float(getattr(settings, "POE_API_TIMEOUT", 8))
+    try:
+        with opener.open(req, timeout=timeout) as resp:  # noqa: S310 - host allowlisted above
+            if getattr(resp, "status", 200) != 200:
+                raise ValueError("Couldn't read that pobb.in build (unexpected response).")
+            data = resp.read(1_000_000).decode("utf-8", "replace").strip()
+    except ValueError:
+        raise
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            raise ValueError("That pobb.in build wasn't found.") from exc
+        raise ValueError("Couldn't fetch that pobb.in build right now.") from exc
+    except Exception as exc:  # noqa: BLE001 - URLError/timeout/OSError/InvalidURL → friendly
+        raise ValueError("Couldn't fetch that pobb.in build right now.") from exc
+    if not data:
+        raise ValueError("That pobb.in build was empty.")
+    return data
+
+
+# --- Snapshot save -------------------------------------------------------
+
+
 def save_pob_snapshot(user, league: League, code: str) -> tuple[CharacterSnapshot | None, str]:
-    """Parse a PoB code and store it as this member's snapshot. Returns (snapshot, error)."""
+    """Store a member's build snapshot from a raw PoB code OR a pobb.in build URL.
+
+    A pobb.in URL is fetched to its code and remembered (`pob_url`) so a scheduled
+    poll can auto-sync it later. Returns (snapshot, error)."""
+    text = (code or "").strip()
+    pob_url = canonical_pobbin_url(text)
+    if pob_url:
+        try:
+            code = fetch_pobbin_code(text)
+        except ValueError as exc:
+            return None, str(exc)
     try:
         parsed = parse_pob_code(code)
     except ValueError as exc:
@@ -480,6 +577,7 @@ def save_pob_snapshot(user, league: League, code: str) -> tuple[CharacterSnapsho
             # Store the full code (TextField, unlimited) so the character-detail
             # page can re-parse items/skills/stats. Cap generously to bound abuse.
             "raw": code.strip()[:200000],
+            "pob_url": pob_url,
         },
     )
     return snapshot, ""

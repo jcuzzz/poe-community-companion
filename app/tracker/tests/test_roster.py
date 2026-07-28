@@ -412,3 +412,72 @@ class CharacterDetailTreeViewTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "tree-svg")
         self.assertContains(resp, "Passive tree")
+
+
+class PobbinFetchTests(TestCase):
+    def test_canonical_url_accepts_pobbin_https(self):
+        from tracker.roster import canonical_pobbin_url
+        self.assertEqual(canonical_pobbin_url("https://pobb.in/abc123"), "https://pobb.in/abc123")
+        self.assertEqual(canonical_pobbin_url("https://pobb.in/u/dave/mybuild/"), "https://pobb.in/u/dave/mybuild")
+        self.assertEqual(canonical_pobbin_url("https://pobb.in/abc123/raw"), "https://pobb.in/abc123")
+
+    def test_canonical_url_rejects_non_pobbin_and_ssrf(self):
+        from tracker.roster import canonical_pobbin_url
+        for bad in [
+            "http://pobb.in/abc",              # not https
+            "https://evil.com/abc",            # wrong host
+            "https://pobb.in.evil.com/abc",    # lookalike host
+            "https://169.254.169.254/latest",  # cloud metadata (SSRF)
+            "https://localhost/x",
+            "https://pobb.in/",                 # no build id
+            "not a url",
+        ]:
+            self.assertEqual(canonical_pobbin_url(bad), "", bad)
+
+    @patch("tracker.roster.fetch_pobbin_code")
+    def test_save_from_pobbin_url_stores_url_and_code(self, mock_fetch):
+        mock_fetch.return_value = build_pob_code(level=97, class_name="Ranger", ascend="Deadeye")
+        player = make_player("pobbinner")
+        league = League.get_active()
+        snap, error = save_pob_snapshot(player, league, "https://pobb.in/u/dave/coolbuild")
+        self.assertEqual(error, "")
+        self.assertEqual(snap.pob_url, "https://pobb.in/u/dave/coolbuild")
+        self.assertEqual(snap.level, 97)
+        mock_fetch.assert_called_once()
+
+    def test_save_from_raw_code_leaves_pob_url_empty(self):
+        player = make_player("rawcoder")
+        league = League.get_active()
+        snap, error = save_pob_snapshot(player, league, build_pob_code(level=80))
+        self.assertEqual(error, "")
+        self.assertEqual(snap.pob_url, "")
+
+
+class PollPobBuildsCommandTests(TestCase):
+    @patch("tracker.roster.fetch_pobbin_code")
+    def test_polls_and_updates_linked_builds(self, mock_fetch):
+        from django.core.management import call_command
+        player = make_player("poller")
+        league = League.get_active()
+        # Seed a linked snapshot at level 90.
+        mock_fetch.return_value = build_pob_code(level=90, class_name="Ranger", ascend="Deadeye")
+        save_pob_snapshot(player, league, "https://pobb.in/abc123")
+        # pobb.in build now reports level 95; polling should refresh it.
+        mock_fetch.return_value = build_pob_code(level=95, class_name="Ranger", ascend="Deadeye")
+        call_command("poll_pob_builds", "--delay", "0")
+        snap = CharacterSnapshot.objects.get(user=player, league=league)
+        self.assertEqual(snap.level, 95)
+
+
+class PobSecurityHardeningTests(TestCase):
+    def test_decompression_bomb_is_rejected(self):
+        # ~30MB of zeros compresses tiny but must not inflate unbounded.
+        bomb = base64.urlsafe_b64encode(zlib.compress(b"\x00" * (30 * 1024 * 1024))).decode()
+        with self.assertRaises(ValueError):
+            parse_pob_code(bomb)
+
+    def test_pobbin_url_with_space_fails_friendly(self):
+        # A malformed URL must surface a ValueError, not a 500-level exception.
+        from tracker.roster import fetch_pobbin_code
+        with self.assertRaises(ValueError):
+            fetch_pobbin_code("https://pobb.in/my build")

@@ -612,6 +612,9 @@ class CharacterSnapshot(models.Model):
     source = models.CharField(max_length=4, choices=Source.choices, default=Source.API)
     # Last-known raw payload (API JSON or the PoB export code) for later re-parsing.
     raw = models.TextField(blank=True)
+    # Optional pobb.in build URL. When set, a scheduled poll re-fetches the latest
+    # code from it (the closest thing to "auto-update" GGG's restrictions allow).
+    pob_url = models.URLField(blank=True, help_text="pobb.in build URL to auto-sync from.")
     fetched_at = models.DateTimeField(auto_now=True)
 
     class Meta:

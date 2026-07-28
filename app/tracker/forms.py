@@ -350,11 +350,14 @@ class MemberProfileForm(forms.ModelForm):
 
 
 class PobPasteForm(forms.Form):
-    """A Path of Building export code (or a pobb.in / pastebin URL)."""
+    """A Path of Building export code, or a pobb.in build URL (auto-syncs)."""
 
     code = forms.CharField(
-        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Paste your Path of Building export code…"}),
-        label="Path of Building code",
+        widget=forms.Textarea(attrs={
+            "rows": 3,
+            "placeholder": "Paste a Path of Building code, or a pobb.in build link (https://pobb.in/…) to auto-sync",
+        }),
+        label="Path of Building code or pobb.in link",
     )
 
 
