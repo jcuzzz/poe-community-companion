@@ -93,8 +93,8 @@
   background: #100d09;
   box-shadow: inset 0 0 10px rgba(0,0,0,0.7);
 }
-.class-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: 30% center; }
-.class-portrait img.is-avatar { object-position: center 30%; }
+.class-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.class-portrait img.is-avatar { object-position: center; }
 .class-portrait--sm { width: 2rem; height: 2rem; }
 .class-portrait--md { width: 3rem; height: 3rem; }
 .class-portrait--lg { width: 4.5rem; height: 4.5rem; }

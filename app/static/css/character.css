@@ -2,62 +2,63 @@
    Uses app.css tokens; PoE item rarity colours are the one intentional
    non-token palette (they're a game convention players read instantly). */
 
-/* ---- Dashboard "Guild characters" strip (poe.ninja ascendancy-panel style) ---- */
+/* ---- Dashboard "Guild characters" strip (PoE class-select style) ----
+   A square face-portrait icon with a text caption below (name / class / level),
+   like the in-game class-select grid — the portrait is NOT stretched to fill a
+   rectangle; it sits as a framed square with the label beneath. */
 .char-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-3);
   margin-bottom: var(--space-6);
 }
 .char-tile {
-  position: relative;
   flex: 0 0 auto;
-  width: 6.75rem;
-  aspect-ratio: 3 / 4;
+  width: 5.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  text-decoration: none;
+}
+.char-tile-icon {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   border: 1px solid var(--color-gold-dim);
   background: #100d09;
-  text-decoration: none;
   transition: border-color 0.12s ease, transform 0.12s ease;
 }
-.char-tile:hover { border-color: var(--color-gold); transform: translateY(-2px); }
-/* The bundled class banners are wide (≈530×245) with the character on the
-   left; a tall tile crops the width, so bias the focal point left to keep the
-   subject (not the blurred background) in frame. */
-.char-tile-art { width: 100%; height: 100%; object-fit: cover; object-position: 30% center; display: block; }
-/* Base-class avatars are small centred headshots — don't left-bias them. */
-.char-tile-art--avatar { object-fit: cover; object-position: center 30%; }
+.char-tile:hover .char-tile-icon { border-color: var(--color-gold); transform: translateY(-2px); }
+.char-tile-art { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
 .char-tile-crest {
+  width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-display); font-size: 2rem; font-weight: 700;
   color: hsl(var(--hue, 42) 70% 72%);
   background: radial-gradient(circle at 50% 40%, hsl(var(--hue, 42) 40% 22%), #100d09 78%);
 }
-.char-tile::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(transparent 42%, rgba(8, 6, 4, 0.9));
+.char-tile-level {
+  position: absolute; bottom: 2px; right: 2px; z-index: 2;
+  min-width: 1.1rem; padding: 0 3px;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--fs-sm);
+  color: #fff; text-align: center;
+  background: rgba(8, 6, 4, 0.82); border: 1px solid var(--color-gold-dim);
+  text-shadow: 0 1px 2px #000;
 }
 .char-tile-name {
-  position: absolute; top: 0; left: 0; right: 0; z-index: 2;
-  padding: 3px 5px;
-  font-size: var(--fs-xs); font-weight: 600;
+  margin-top: 4px;
+  font-size: var(--fs-xs); font-weight: 600; line-height: 1.15;
   color: var(--color-gold-bright);
-  background: linear-gradient(rgba(8, 6, 4, 0.9), transparent);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .char-tile-class {
-  position: absolute; bottom: 3px; left: 5px; z-index: 2;
   font-size: 0.62rem; font-variant: small-caps; letter-spacing: 0.03em;
-  color: var(--color-parchment); text-shadow: 0 1px 3px #000;
-  max-width: 62%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--color-parchment-dim); line-height: 1.2;
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.char-tile-level {
-  position: absolute; bottom: 1px; right: 5px; z-index: 2;
-  font-family: var(--font-display); font-weight: 700; font-size: var(--fs-md);
-  color: #fff; text-shadow: 0 1px 3px #000;
-}
-html[data-theme="light"] .char-tile-name { color: #6e4c0c; background: linear-gradient(rgba(255,253,247,0.92), transparent); text-shadow: none; }
+html[data-theme="light"] .char-tile-name { color: #6e4c0c; }
 
 .char-back { margin-bottom: var(--space-3); font-size: var(--fs-sm); }
 .char-back a { color: var(--color-parchment-dim); text-decoration: none; }

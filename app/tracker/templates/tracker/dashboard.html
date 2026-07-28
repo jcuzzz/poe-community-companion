@@ -52,14 +52,16 @@
       {% for snap in top_characters %}
         <a class="char-tile" href="{% url 'character_detail' snap.user.username %}"
            title="{{ snap.user.name }} — {{ snap.display_class }} · Level {{ snap.level }}">
-          {% if snap.portrait %}
-            <img class="char-tile-art{% if snap.portrait_is_avatar %} char-tile-art--avatar{% endif %}" src="{% static snap.portrait %}" alt="" loading="lazy">
-          {% else %}
-            <span class="char-tile-art char-tile-crest" style="--hue: {{ snap.user.banner_hue|default:42 }};" aria-hidden="true">{{ snap.user.name|slice:":1"|upper }}</span>
-          {% endif %}
+          <span class="char-tile-icon">
+            {% if snap.portrait %}
+              <img class="char-tile-art" src="{% static snap.portrait %}" alt="" loading="lazy">
+            {% else %}
+              <span class="char-tile-crest" style="--hue: {{ snap.user.banner_hue|default:42 }};" aria-hidden="true">{{ snap.user.name|slice:":1"|upper }}</span>
+            {% endif %}
+            {% if snap.level %}<span class="char-tile-level">{{ snap.level }}</span>{% endif %}
+          </span>
           <span class="char-tile-name">{{ snap.user.name }}</span>
           {% if snap.display_class %}<span class="char-tile-class">{{ snap.display_class }}</span>{% endif %}
-          <span class="char-tile-level">{{ snap.level }}</span>
         </a>
       {% endfor %}
     </div>

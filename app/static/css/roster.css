@@ -164,11 +164,10 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* Wide ascendancy banners have the subject on the left — bias the crop. */
-  object-position: 30% center;
+  /* Square face portraits — centre the crop on the face. */
+  object-position: center 22%;
 }
-/* Base-class avatars are small centred headshots — keep them centred. */
-.character-portrait-img--avatar { object-position: center 30%; }
+.character-portrait-img--avatar { object-position: center 22%; }
 .character-portrait-crest {
   display: flex;
   align-items: center;
