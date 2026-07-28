@@ -250,12 +250,22 @@ def dashboard_builder(request: HttpRequest) -> HttpResponse:
     if target != "global" and league is None:
         target = "global"
 
+    suffix = "" if league is None else f"?league={target}"
     if request.method == "POST":
+        raw = request.POST.get("layout", "")
         try:
-            posted = json.loads(request.POST.get("layout", "[]"))
+            posted = json.loads(raw) if raw else None
         except (ValueError, TypeError):
-            posted = []
-        clean = sanitize_layout(posted)
+            posted = None
+        # Guard against a JS-less / failed submit: an empty or unreadable layout
+        # must NOT overwrite everyone's dashboard with a blank one.
+        clean = sanitize_layout(posted) if posted else []
+        if not clean:
+            messages.error(
+                request,
+                "Couldn't read the layout (is JavaScript enabled?). Nothing was saved.",
+            )
+            return redirect(f"{reverse('dashboard_builder')}{suffix}")
         cfg, _ = DashboardConfig.objects.get_or_create(league=league)
         cfg.widgets = clean
         cfg.updated_by = request.user
@@ -264,7 +274,6 @@ def dashboard_builder(request: HttpRequest) -> HttpResponse:
             request,
             f"Dashboard layout saved for {league.name if league else 'the global default'}.",
         )
-        suffix = "" if league is None else f"?league={league.slug}"
         return redirect(f"{reverse('dashboard_builder')}{suffix}")
 
     layout = sanitize_layout(DashboardConfig.layout_for(league))

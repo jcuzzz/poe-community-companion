@@ -55,6 +55,7 @@
 }
 .builder-card-head strong { flex: 1 1 auto; color: var(--color-gold-bright); }
 .builder-drag { color: var(--color-parchment-dim); cursor: grab; }
+.builder-move,
 .builder-remove {
   border: 1px solid var(--color-border);
   background: transparent;
@@ -62,6 +63,8 @@
   width: 1.5rem; height: 1.5rem;
   line-height: 1; cursor: pointer;
 }
+.builder-move:hover { color: var(--color-gold-bright); border-color: var(--color-gold-dim); }
+.builder-move:disabled { opacity: 0.35; cursor: default; }
 .builder-remove:hover { color: #e6a; border-color: #a44; }
 .builder-card-controls {
   display: flex;

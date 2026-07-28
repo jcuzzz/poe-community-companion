@@ -5,7 +5,7 @@ from __future__ import annotations
 from django.test import TestCase
 from django.urls import reverse
 
-from tracker.dashboard_widgets import DEFAULT_LAYOUT, resolve_widgets
+from tracker.dashboard_widgets import DEFAULT_LAYOUT, default_layout, resolve_widgets
 from tracker.models import DashboardConfig, League
 
 from .factories import make_admin, make_league, make_player
@@ -61,7 +61,7 @@ class LayoutResolutionTests(TestCase):
         self.league = League.get_active()
 
     def test_builtin_default_when_no_config(self):
-        self.assertEqual(DashboardConfig.layout_for(self.league), DEFAULT_LAYOUT)
+        self.assertEqual(DashboardConfig.layout_for(self.league), default_layout())
 
     def test_global_default_config_used_as_fallback(self):
         DashboardConfig.objects.create(league=None, widgets=[{"type": "kpis", "w": 12}])

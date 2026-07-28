@@ -1,12 +1,12 @@
-{% if w.ctx.achievement_cards %}
+{% if w.ctx.total %}
   <div class="progress-card">
-    <div class="progress-ring" style="--p: {% widthratio w.ctx.firsts|length w.ctx.achievement_cards|length 100 %}%;" role="img"
-         aria-label="{{ w.ctx.firsts|length }} of {{ w.ctx.achievement_cards|length }} achievements claimed">
-      <span class="progress-ring-value">{% widthratio w.ctx.firsts|length w.ctx.achievement_cards|length 100 %}%</span>
+    <div class="progress-ring" style="--p: {{ w.ctx.pct }}%;" role="img"
+         aria-label="{{ w.ctx.claimed }} of {{ w.ctx.total }} achievements claimed">
+      <span class="progress-ring-value">{{ w.ctx.pct }}%</span>
     </div>
     <div class="progress-legend">
       <p class="progress-legend-title">League progress</p>
-      <p class="progress-legend-meta"><strong>{{ w.ctx.firsts|length }}</strong> of {{ w.ctx.achievement_cards|length }} achievements claimed</p>
+      <p class="progress-legend-meta"><strong>{{ w.ctx.claimed }}</strong> of {{ w.ctx.total }} achievements claimed</p>
     </div>
   </div>
 {% endif %}

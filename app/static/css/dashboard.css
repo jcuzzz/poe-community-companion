@@ -127,27 +127,19 @@
 }
 
 /* --------------------------------------------------------------------------
-   Recent Activity + Leaderboard — side by side, stacking on mobile
+   Recent Activity + Leaderboard widgets
    -------------------------------------------------------------------------- */
 
-.dashboard-columns {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-5);
-  align-items: start;
-}
-
-@media (min-width: 56rem) {
-  .dashboard-columns {
-    grid-template-columns: 3fr 2fr;
-  }
-}
-
-.dashboard-col--activity .activity-list {
+.activity-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
+
+/* Leaderboard widget lives in a narrow grid cell; give the table a floor width
+   so it scrolls inside .table-wrap on mobile instead of squishing the Medals
+   column into tall, ragged rows. */
+.dash-widget--leaderboard .standings { min-width: 26rem; }
 
 .activity-item {
   padding: var(--space-3) var(--space-2);
@@ -225,23 +217,13 @@
   font-size: var(--fs-sm);
 }
 
-.dashboard-col--standings .table-wrap {
-  margin-bottom: 0;
-}
-
 /* --------------------------------------------------------------------------
-   Light theme — no overrides needed beyond app.css's shared tokens; the
-   `.section-link` gold accent and card/empty-state colors already flip
-   via the variables redefined under html[data-theme="light"] in app.css.
+   Light theme — the site theme is driven by data-theme (a manual toggle), so
+   only override on that, NOT on the OS-level prefers-color-scheme (which would
+   dim links even when a dark-OS user is viewing the site in light theme, and
+   vice-versa). Darkened for legible contrast on the parchment background.
    -------------------------------------------------------------------------- */
-
-@media (prefers-color-scheme: light) {
-  .section-link {
-    color: var(--color-gold-dim);
-  }
-}
-
 :root[data-theme="light"] .section-link,
 html[data-theme="light"] .section-link {
-  color: var(--color-gold-dim);
+  color: #6e4c0c;
 }

@@ -14,6 +14,8 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
+from . import dashboard_widgets
+
 
 class User(AbstractUser):
     display_name = models.CharField(max_length=40, blank=True)
@@ -694,8 +696,6 @@ class DashboardConfig(models.Model):
     ``{type, w, options}`` entries consumed by tracker.dashboard_widgets.
     """
 
-    from .dashboard_widgets import default_layout as _default_layout
-
     league = models.OneToOneField(
         "League",
         on_delete=models.CASCADE,
@@ -704,7 +704,7 @@ class DashboardConfig(models.Model):
         related_name="dashboard_config",
         help_text="Leave blank for the global default layout.",
     )
-    widgets = models.JSONField(default=_default_layout)
+    widgets = models.JSONField(default=dashboard_widgets.default_layout)
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
@@ -716,14 +716,15 @@ class DashboardConfig(models.Model):
     @classmethod
     def layout_for(cls, league) -> list:
         """Widget layout for a league: its own config, else the global default
-        config, else the built-in default."""
-        from .dashboard_widgets import DEFAULT_LAYOUT
+        config, else the built-in default. Always a deep copy so callers can't
+        mutate a stored config or the module-level default constant."""
+        import copy
 
         if league is not None:
             cfg = cls.objects.filter(league=league).first()
             if cfg is not None:
-                return cfg.widgets
+                return copy.deepcopy(cfg.widgets)
         cfg = cls.objects.filter(league__isnull=True).first()
         if cfg is not None:
-            return cfg.widgets
-        return DEFAULT_LAYOUT
+            return copy.deepcopy(cfg.widgets)
+        return dashboard_widgets.default_layout()

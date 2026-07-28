@@ -8,7 +8,16 @@
   var palette = document.getElementById("builder-palette");
   var field = document.getElementById("layout-field");
   var form = document.getElementById("builder-form");
+  var live = document.getElementById("builder-live");
   if (!canvas || !palette || !field || !form) return;
+
+  function announce(msg) {
+    if (live) live.textContent = msg;
+  }
+  function positionOf(card) {
+    var cards = Array.prototype.slice.call(canvas.querySelectorAll(".builder-card"));
+    return { index: cards.indexOf(card), total: cards.length };
+  }
 
   var layout = JSON.parse(document.getElementById("layout-data").textContent);
   var catalogue = JSON.parse(document.getElementById("catalogue-data").textContent);
@@ -48,6 +57,36 @@
     handle.textContent = "☰";
     var title = document.createElement("strong");
     title.textContent = meta.label;
+
+    // Keyboard/touch reorder: HTML5 drag alone excludes keyboard and touch
+    // users, so every card also carries explicit move buttons.
+    var up = document.createElement("button");
+    up.type = "button";
+    up.className = "builder-move";
+    up.setAttribute("aria-label", "Move " + meta.label + " up");
+    up.textContent = "↑";
+    up.addEventListener("click", function () {
+      if (card.previousElementSibling) {
+        canvas.insertBefore(card, card.previousElementSibling);
+        var p = positionOf(card);
+        announce(meta.label + " moved to position " + (p.index + 1) + " of " + p.total);
+        up.focus();
+      }
+    });
+    var down = document.createElement("button");
+    down.type = "button";
+    down.className = "builder-move";
+    down.setAttribute("aria-label", "Move " + meta.label + " down");
+    down.textContent = "↓";
+    down.addEventListener("click", function () {
+      if (card.nextElementSibling) {
+        canvas.insertBefore(card.nextElementSibling, card);
+        var p = positionOf(card);
+        announce(meta.label + " moved to position " + (p.index + 1) + " of " + p.total);
+        down.focus();
+      }
+    });
+
     var remove = document.createElement("button");
     remove.type = "button";
     remove.className = "builder-remove";
@@ -55,10 +94,13 @@
     remove.textContent = "✕";
     remove.addEventListener("click", function () {
       card.remove();
+      announce(meta.label + " removed");
       renderPalette();
     });
     head.appendChild(handle);
     head.appendChild(title);
+    head.appendChild(up);
+    head.appendChild(down);
     head.appendChild(remove);
     card.appendChild(head);
 
@@ -91,17 +133,25 @@
     controls.appendChild(wLabel);
 
     // Numeric options (count / rows).
+    var maxes = meta.option_max || {};
     Object.keys(meta.options).forEach(function (key) {
       if (typeof meta.options[key] !== "number") return;
+      var def = meta.options[key];
       var lab = document.createElement("label");
       lab.textContent = (key.charAt(0).toUpperCase() + key.slice(1)) + " ";
       var input = document.createElement("input");
       input.type = "number";
-      input.min = "0";
-      input.max = "24";
+      input.min = "1";
+      input.max = String(maxes[key] || 24);
       input.className = "builder-opt";
       input.dataset.key = key;
-      input.value = options[key] != null ? options[key] : meta.options[key];
+      input.dataset.default = def;
+      input.value = options[key] != null ? options[key] : def;
+      // A blank box shouldn't save a 0-count widget (renders empty); restore
+      // the widget's default instead.
+      input.addEventListener("blur", function () {
+        if (input.value === "" || parseInt(input.value, 10) < 1) input.value = def;
+      });
       lab.appendChild(input);
       controls.appendChild(lab);
     });
@@ -179,7 +229,9 @@
       var entry = { type: card.dataset.type, w: parseInt(card.dataset.w, 10) || 12 };
       var opts = {};
       Array.prototype.forEach.call(card.querySelectorAll(".builder-opt"), function (input) {
-        opts[input.dataset.key] = parseInt(input.value, 10) || 0;
+        var v = parseInt(input.value, 10);
+        if (isNaN(v) || v < 1) v = parseInt(input.dataset.default, 10) || 1;
+        opts[input.dataset.key] = v;
       });
       if (Object.keys(opts).length) entry.options = opts;
       out.push(entry);

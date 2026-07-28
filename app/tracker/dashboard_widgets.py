@@ -35,24 +35,28 @@ WIDGET_TYPES: dict[str, dict] = {
         "template": "tracker/dashboard/characters.html",
         "default_w": 12,
         "option_defaults": {"count": 8},
+        "option_max": {"count": 24},
     },
     "firsts": {
         "label": "First achievements",
         "template": "tracker/dashboard/firsts.html",
         "default_w": 8,
         "option_defaults": {"count": 6},
+        "option_max": {"count": 24},
     },
     "activity": {
         "label": "Recent activity",
         "template": "tracker/dashboard/activity.html",
         "default_w": 8,
         "option_defaults": {"count": 10},
+        "option_max": {"count": 40},
     },
     "leaderboard": {
         "label": "Leaderboard",
         "template": "tracker/dashboard/leaderboard.html",
         "default_w": 4,
         "option_defaults": {"rows": 5},
+        "option_max": {"rows": 24},
     },
     "progress_ring": {
         "label": "League progress ring",
@@ -148,7 +152,16 @@ def _ctx_leaderboard(data, o):
 
 
 def _ctx_progress_ring(data, o):
-    return {"firsts": data["firsts"], "achievement_cards": data["achievement_cards"]}
+    total = len(data["achievement_cards"])
+    # Distinct achievements that have a first — never exceeds the total, even if
+    # multiple firsts exist for one achievement or for now-inactive ones.
+    claimed_ids = {
+        getattr(s, "achievement_id", None) for s in data["firsts"]
+    }
+    claimed_ids.discard(None)
+    claimed = min(len(claimed_ids), total)
+    pct = int(round(100 * claimed / total)) if total else 0
+    return {"claimed": claimed, "total": total, "pct": pct}
 
 
 def _ctx_progression(data, o):
@@ -176,6 +189,7 @@ def catalogue() -> list[dict]:
             "label": meta["label"],
             "default_w": meta["default_w"],
             "options": dict(meta["option_defaults"]),
+            "option_max": dict(meta.get("option_max", {})),
         }
         for key, meta in WIDGET_TYPES.items()
     ]
