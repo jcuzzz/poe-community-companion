@@ -14,7 +14,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from . import roster as roster_service
-from .forms import MemberProfileForm, PobPasteForm
+from .forms import PobPasteForm
 from .leagues import get_active_league, get_viewing_league
 from .models import CharacterSnapshot, MemberProfile, User
 
@@ -140,45 +140,9 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
 
 @login_required
 def roster_settings(request: HttpRequest) -> HttpResponse:
-    """Manage your own roster profile + paste a PoB code."""
-    profile, _ = MemberProfile.objects.get_or_create(user=request.user)
-    active = get_active_league()
-
-    profile_form = MemberProfileForm(instance=profile)
-    pob_form = PobPasteForm()
-
-    if request.method == "POST" and request.POST.get("form_name") == "pob":
-        pob_form = PobPasteForm(request.POST)
-        if pob_form.is_valid():
-            if active is None:
-                messages.error(request, "No active league to attach a build to.")
-            else:
-                snap, error = roster_service.save_pob_snapshot(
-                    request.user, active, pob_form.cleaned_data["code"]
-                )
-                if error:
-                    messages.error(request, error)
-                else:
-                    messages.success(request, "Path of Building character saved.")
-                    return redirect("roster_settings")
-    elif request.method == "POST":
-        profile_form = MemberProfileForm(request.POST, instance=profile)
-        if profile_form.is_valid():
-            profile_form.save()
-            messages.success(request, "Roster profile updated.")
-            return redirect("roster_settings")
-
-    return render(
-        request,
-        "tracker/roster_settings.html",
-        {
-            "profile_form": profile_form,
-            "pob_form": pob_form,
-            "active_league": active,
-            "snapshot": _snapshot_for(request.user, active),
-            "auto_ok": _auto_ok(active),
-        },
-    )
+    """Retired: roster profile toggles moved to Account, PoB import to the
+    character page. Kept as a redirect so old links/bookmarks resolve."""
+    return redirect("account_settings")
 
 
 @login_required
@@ -188,17 +152,17 @@ def roster_refresh(request: HttpRequest) -> HttpResponse:
     active = get_active_league()
     if active is None:
         messages.error(request, "No active league.")
-        return redirect("roster_settings")
+        return redirect("account_settings")
     if not _auto_ok(active):
         messages.error(
             request,
             "Auto-lookup is turned off (GGG blocks server-side character lookups). "
             "Paste a Path of Building code instead.",
         )
-        return redirect("roster_settings")
+        return redirect("account_settings")
     _snap, error = roster_service.refresh_auto_snapshot(request.user, active)
     if error:
         messages.error(request, error)
     else:
         messages.success(request, "Character refreshed.")
-    return redirect(request.POST.get("next") or "roster_settings")
+    return redirect(request.POST.get("next") or "account_settings")

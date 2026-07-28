@@ -33,6 +33,7 @@ from .forms import (
     CharacterForm,
     InviteCreateForm,
     InviteRedeemForm,
+    MemberProfileForm,
     ProfileForm,
     ProofImageFormSet,
     ReviewForm,
@@ -45,6 +46,7 @@ from .models import (
     Character,
     InviteCode,
     League,
+    MemberProfile,
     ProofImage,
     Submission,
     User,
@@ -620,12 +622,15 @@ def account_settings(request: HttpRequest) -> HttpResponse:
     invites = InviteCode.objects.none()
     invite_form = None
     profile_form = None
+    member_form = None
+    profile, _ = MemberProfile.objects.get_or_create(user=request.user)
 
     if request.method == "POST" and request.POST.get("form_name") == "invite":
         if not request.user.is_staff:
             raise Http404("Not found.")
         invite_form = InviteCreateForm(request.POST)
         profile_form = ProfileForm(instance=request.user)
+        member_form = MemberProfileForm(instance=profile)
         if invite_form.is_valid():
             invite = invite_form.save(commit=False)
             invite.created_by = request.user
@@ -633,13 +638,17 @@ def account_settings(request: HttpRequest) -> HttpResponse:
             messages.success(request, "Invite created.")
             return redirect("account_settings")
     elif request.method == "POST":
+        # One submit saves both the User profile and the roster MemberProfile.
         profile_form = ProfileForm(request.POST, request.FILES, instance=request.user)
-        if profile_form.is_valid():
+        member_form = MemberProfileForm(request.POST, instance=profile)
+        if profile_form.is_valid() and member_form.is_valid():
             profile_form.save()
+            member_form.save()
             messages.success(request, "Profile updated.")
             return redirect("account_settings")
     else:
         profile_form = ProfileForm(instance=request.user)
+        member_form = MemberProfileForm(instance=profile)
 
     if request.user.is_staff:
         invites = InviteCode.objects.select_related("created_by", "used_by")
@@ -648,6 +657,7 @@ def account_settings(request: HttpRequest) -> HttpResponse:
 
     context = {
         "form": profile_form,
+        "member_form": member_form,
         "invites": invites,
         "invite_form": invite_form,
     }

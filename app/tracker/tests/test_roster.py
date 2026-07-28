@@ -160,19 +160,25 @@ class RosterViewTests(TestCase):
         self.assertNotContains(response, "hiddenmember")
 
 
-class RosterSettingsViewTests(TestCase):
+class RosterSettingsRedirectTests(TestCase):
+    """roster_settings was folded into Account; the old URL now redirects."""
+
     def setUp(self):
         self.player = make_player("settingsmember")
         self.client.login(username="settingsmember", password=PASSWORD)
 
-    def test_get_returns_200(self):
+    def test_redirects_to_account(self):
         response = self.client.get(reverse("roster_settings"))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response["Location"].endswith(reverse("account_settings")))
 
-    def test_post_updates_account_name(self):
+    def test_account_saves_roster_profile(self):
+        # The MemberProfile toggles now live on the account page (one submit).
         response = self.client.post(
-            reverse("roster_settings"),
+            reverse("account_settings"),
             {
+                "display_name": "Settings Member",
+                "banner_hue": "42",
                 "account_name": "NewName#5678",
                 "main_character_name": "",
                 "profile_public": "on",
@@ -182,6 +188,7 @@ class RosterSettingsViewTests(TestCase):
         self.assertIn(response.status_code, (200, 302))
         profile = MemberProfile.objects.get(user=self.player)
         self.assertEqual(profile.account_name, "NewName#5678")
+        self.assertTrue(profile.show_on_roster)
 
 
 class RosterRefreshViewTests(TestCase):
@@ -201,7 +208,7 @@ class RosterRefreshViewTests(TestCase):
         make_player("refreshmember2")
         self.client.login(username="refreshmember2", password=PASSWORD)
         response = self.client.post(reverse("roster_refresh"))
-        self.assertRedirects(response, reverse("roster_settings"))
+        self.assertRedirects(response, reverse("account_settings"))
 
 
 def build_rich_pob_code() -> str:

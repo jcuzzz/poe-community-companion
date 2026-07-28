@@ -118,7 +118,6 @@
               <div class="profile-menu-panel">
                 <a href="{% url 'account_settings' %}">Account</a>
                 <a href="{% url 'character_detail' user.username %}">My character</a>
-                <a href="{% url 'roster_settings' %}">Roster &amp; PoB</a>
                 <a href="{% url 'character_list' %}">Submission names</a>
                 {% if user.is_staff %}<a href="{% url 'league_create' %}">New season</a>{% endif %}
                 <a href="{% url 'player_profile' user.username %}">My profile</a>
