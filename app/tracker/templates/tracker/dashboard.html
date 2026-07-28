@@ -101,7 +101,7 @@
   {% if progression %}
     <section class="card progression-card">
       <div class="section-header">
-        <h2 class="flourish">Guild progression</h2>
+        <h2 class="flourish">Progression</h2>
       </div>
       <svg class="progression-svg" viewBox="0 0 {{ progression.w }} {{ progression.h }}"
            preserveAspectRatio="none" role="img"
@@ -110,7 +110,7 @@
         <path class="prog-line" d="{{ progression.line }}"/>
       </svg>
       <p class="text-muted progression-meta">
-        <strong>{{ progression.total }}</strong> verified completion{{ progression.total|pluralize }}
+        <strong>{{ progression.total }}</strong> completion{{ progression.total|pluralize }}
         &middot; {{ progression.start|date:"M j" }} &ndash; {{ progression.end|date:"M j" }}
       </p>
     </section>

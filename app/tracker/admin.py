@@ -48,10 +48,32 @@ class MemberProfileAdmin(admin.ModelAdmin):
 
 @admin.register(CharacterSnapshot)
 class CharacterSnapshotAdmin(admin.ModelAdmin):
-    list_display = ("user", "league", "character_name", "class_name", "level", "source", "fetched_at")
+    list_display = ("user", "league", "character_name", "class_name", "level", "source", "pob_url", "fetched_at")
     list_filter = ("source", "league")
     search_fields = ("user__username", "character_name")
     readonly_fields = ("fetched_at",)
+    autocomplete_fields = ("user", "league")
+    actions = ["fetch_from_pob_url"]
+
+    @admin.action(description="Fetch / refresh build from the saved pobb.in URL")
+    def fetch_from_pob_url(self, request, queryset):
+        from . import roster
+
+        ok = failed = skipped = 0
+        for snap in queryset:
+            if not snap.pob_url:
+                skipped += 1
+                continue
+            _, error = roster.save_pob_snapshot(snap.user, snap.league, snap.pob_url)
+            if error:
+                failed += 1
+                self.message_user(request, f"{snap.user}: {error}", level="error")
+            else:
+                ok += 1
+        self.message_user(
+            request,
+            f"Fetched {ok} build(s); {skipped} had no pobb.in URL; {failed} failed.",
+        )
 
 
 @admin.register(League)

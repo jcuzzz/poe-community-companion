@@ -58,6 +58,7 @@
                   {% if pending_review_count %}<span class="nav-badge">{{ pending_review_count }}</span>{% endif %}
                 </a>
               </li>
+              <li><a href="{% url 'admin:index' %}">Manage</a></li>
             {% endif %}
           {% else %}
             <li><a href="{% url 'login' %}">Log in</a></li>
