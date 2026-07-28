@@ -47,6 +47,11 @@
         <div class="form-row form-row--checkbox">
           <label>{{ member_form.profile_public }} Make my profile public</label>
         </div>
+        <div class="form-row">
+          <label for="{{ member_form.dashboard_char_count.id_for_label }}">Characters shown on my dashboard (1–24)</label>
+          {{ member_form.dashboard_char_count }}
+          {% if member_form.dashboard_char_count.errors %}<ul class="field-errors">{% for e in member_form.dashboard_char_count.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
       </fieldset>
     {% endif %}
 

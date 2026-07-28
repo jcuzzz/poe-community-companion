@@ -2,6 +2,58 @@
    Uses app.css tokens; PoE item rarity colours are the one intentional
    non-token palette (they're a game convention players read instantly). */
 
+/* ---- Dashboard "Guild characters" strip (poe.ninja ascendancy-panel style) ---- */
+.char-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+.char-tile {
+  position: relative;
+  flex: 0 0 auto;
+  width: 6.75rem;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border: 1px solid var(--color-gold-dim);
+  background: #100d09;
+  text-decoration: none;
+  transition: border-color 0.12s ease, transform 0.12s ease;
+}
+.char-tile:hover { border-color: var(--color-gold); transform: translateY(-2px); }
+.char-tile-art { width: 100%; height: 100%; object-fit: cover; object-position: center 18%; display: block; }
+.char-tile-crest {
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+  color: hsl(var(--hue, 42) 70% 72%);
+  background: radial-gradient(circle at 50% 40%, hsl(var(--hue, 42) 40% 22%), #100d09 78%);
+}
+.char-tile::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(transparent 42%, rgba(8, 6, 4, 0.9));
+}
+.char-tile-name {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+  padding: 3px 5px;
+  font-size: var(--fs-xs); font-weight: 600;
+  color: var(--color-gold-bright);
+  background: linear-gradient(rgba(8, 6, 4, 0.9), transparent);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+.char-tile-class {
+  position: absolute; bottom: 3px; left: 5px; z-index: 2;
+  font-size: 0.62rem; font-variant: small-caps; letter-spacing: 0.03em;
+  color: var(--color-parchment); text-shadow: 0 1px 3px #000;
+  max-width: 62%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.char-tile-level {
+  position: absolute; bottom: 1px; right: 5px; z-index: 2;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--fs-md);
+  color: #fff; text-shadow: 0 1px 3px #000;
+}
+html[data-theme="light"] .char-tile-name { color: #6e4c0c; background: linear-gradient(rgba(255,253,247,0.92), transparent); text-shadow: none; }
+
 .char-back { margin-bottom: var(--space-3); font-size: var(--fs-sm); }
 .char-back a { color: var(--color-parchment-dim); text-decoration: none; }
 .char-back a:hover { color: var(--color-gold-bright); }

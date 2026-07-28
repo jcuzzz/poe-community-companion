@@ -44,6 +44,7 @@ from .models import (
     AuditEntry,
     Award,
     Character,
+    CharacterSnapshot,
     InviteCode,
     League,
     MemberProfile,
@@ -192,6 +193,21 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         .distinct()
     )
     latest_first = firsts[0] if firsts else None
+
+    # Top-levelled characters for the viewing league — a compact portrait strip
+    # (poe.ninja ascendancy-panel style). Count is per-user configurable.
+    char_count = 8
+    if request.user.is_authenticated:
+        prof = getattr(request.user, "member_profile", None)
+        if prof and prof.dashboard_char_count:
+            char_count = max(1, min(24, prof.dashboard_char_count))
+    top_characters = list(
+        CharacterSnapshot.objects.filter(league=viewing, level__isnull=False)
+        .exclude(level=0)
+        .select_related("user")
+        .order_by("-level")[:char_count]
+    )
+
     kpis = [
         {"label": "Exiles", "value": len(standings)},
         {"label": "Achievements", "value": len(achievement_cards)},
@@ -206,6 +222,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "latest_first": latest_first,
         "firsts": firsts,
         "kpis": kpis,
+        "top_characters": top_characters,
     }
     return render(request, "tracker/dashboard.html", context)
 

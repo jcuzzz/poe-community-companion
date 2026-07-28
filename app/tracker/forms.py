@@ -341,12 +341,24 @@ class InviteRedeemForm(forms.Form):
 class MemberProfileForm(forms.ModelForm):
     """Roster settings: PoE account, featured character, visibility."""
 
+    dashboard_char_count = forms.IntegerField(
+        required=False, min_value=1, max_value=24, initial=8,
+        widget=forms.NumberInput(attrs={"min": 1, "max": 24}),
+    )
+
     class Meta:
         model = MemberProfile
-        fields = ["account_name", "main_character_name", "profile_public", "show_on_roster"]
+        fields = [
+            "account_name", "main_character_name", "profile_public",
+            "show_on_roster", "dashboard_char_count",
+        ]
         widgets = {
             "account_name": forms.TextInput(attrs={"placeholder": "AccountName#1234"}),
         }
+
+    def clean_dashboard_char_count(self):
+        n = self.cleaned_data.get("dashboard_char_count") or 8
+        return max(1, min(24, n))
 
 
 class PobPasteForm(forms.Form):

@@ -481,3 +481,34 @@ class PobSecurityHardeningTests(TestCase):
         from tracker.roster import fetch_pobbin_code
         with self.assertRaises(ValueError):
             fetch_pobbin_code("https://pobb.in/my build")
+
+
+class DashboardCharPanelTests(TestCase):
+    def setUp(self):
+        self.league = make_active_league_or_get()
+        self.viewer = make_player("viewer")
+        MemberProfile.objects.get_or_create(user=self.viewer)
+        for name, lvl in [("hi", 96), ("mid", 90), ("lo", 80)]:
+            p = make_player(name)
+            prof, _ = MemberProfile.objects.get_or_create(user=p)
+            prof.show_on_roster = True
+            prof.save()
+            save_pob_snapshot(p, self.league, build_pob_code(level=lvl, ascend="Deadeye"))
+
+    def test_panel_shows_characters_high_to_low(self):
+        self.client.login(username="viewer", password=PASSWORD)
+        resp = self.client.get(reverse("dashboard"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Guild characters")
+        self.assertContains(resp, "char-tile")
+        body = resp.content.decode()
+        # highest level appears before the lowest in the strip
+        self.assertLess(body.index(">96<"), body.index(">80<"))
+
+    def test_count_preference_limits_tiles(self):
+        prof = MemberProfile.objects.get(user=self.viewer)
+        prof.dashboard_char_count = 1
+        prof.save()
+        self.client.login(username="viewer", password=PASSWORD)
+        resp = self.client.get(reverse("dashboard"))
+        self.assertEqual(resp.content.decode().count('class="char-tile"'), 1)

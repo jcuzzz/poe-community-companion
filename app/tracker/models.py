@@ -579,6 +579,10 @@ class MemberProfile(models.Model):
         "(auto-lookup needs a public profile — PoE 1 only).",
     )
     show_on_roster = models.BooleanField(default=True)
+    dashboard_char_count = models.PositiveSmallIntegerField(
+        default=8,
+        help_text="How many top-levelled characters to show on your dashboard (1–24).",
+    )
 
     class Meta:
         ordering = ["user__username"]
