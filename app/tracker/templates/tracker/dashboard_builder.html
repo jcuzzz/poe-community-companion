@@ -10,7 +10,7 @@
     </div>
     <form method="get" class="builder-league-form">
       <label for="league-select">Editing</label>
-      <select id="league-select" name="league" onchange="this.form.submit()">
+      <select id="league-select" name="league">
         <option value="global" {% if target == 'global' %}selected{% endif %}>Global default (all leagues)</option>
         {% for l in leagues %}
           <option value="{{ l.slug }}" {% if target == l.slug %}selected{% endif %}>{{ l.name }}{% if l.is_active %} · active{% endif %}</option>
@@ -39,12 +39,14 @@
 
     <div class="builder-actions">
       <button class="btn btn-primary" type="submit">Save layout</button>
+      <button class="btn" type="button" id="builder-reset">Reset to default</button>
       <a class="btn" href="{% url 'dashboard' %}">View dashboard</a>
     </div>
   </form>
 
   {{ layout|json_script:"layout-data" }}
   {{ catalogue|json_script:"catalogue-data" }}
+  {{ default_layout|json_script:"default-data" }}
   <script src="{% static 'js/dashboard_builder.js' %}"></script>
 
 {% endblock %}

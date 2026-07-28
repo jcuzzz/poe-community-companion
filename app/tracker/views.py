@@ -178,6 +178,14 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     viewing = get_viewing_league(request)
     standings = scoring.leaderboard(viewing)
     champion = standings[0] if standings and standings[0]["points"] > 0 else None
+    if champion:
+        # Prefer the champion's own character portrait over a plain initial tile.
+        champion["character"] = (
+            CharacterSnapshot.objects.filter(user=champion["player"], league=viewing)
+            .exclude(level=0)
+            .order_by("-level")
+            .first()
+        )
     achievements = Achievement.objects.filter(active=True, league=viewing)
     achievement_cards = [scoring.achievement_standings(a) for a in achievements]
     recent_submissions = list(
@@ -242,7 +250,7 @@ def dashboard_builder(request: HttpRequest) -> HttpResponse:
     """
     import json
 
-    from .dashboard_widgets import catalogue, sanitize_layout
+    from .dashboard_widgets import catalogue, default_layout, sanitize_layout
 
     leagues = list(League.objects.all().order_by("-is_active", "name"))
     target = request.POST.get("league") or request.GET.get("league") or "global"
@@ -283,6 +291,7 @@ def dashboard_builder(request: HttpRequest) -> HttpResponse:
         "target_league": league,
         "layout": layout,
         "catalogue": catalogue(),
+        "default_layout": default_layout(),
     }
     return render(request, "tracker/dashboard_builder.html", context)
 

@@ -3,7 +3,13 @@
   {% if champion %}
     <section class="hero-champion hero-champion--crowned" aria-label="League champion">
       <a class="hero-champion-avatar" href="{% url 'player_profile' champion.player.username %}">
-        {% include "tracker/partials/member_avatar.html" with member=champion.player size="lg" %}
+        {% if champion.character.portrait %}
+          <span class="class-portrait class-portrait--lg" title="{{ champion.character.display_class }}">
+            <img class="{% if champion.character.portrait_is_avatar %}is-avatar{% endif %}" src="{% static champion.character.portrait %}" alt="{{ champion.character.display_class }}">
+          </span>
+        {% else %}
+          {% include "tracker/partials/member_avatar.html" with member=champion.player size="lg" %}
+        {% endif %}
       </a>
       <div class="hero-champion-body">
         <span class="champion-eyebrow">League Champion</span>

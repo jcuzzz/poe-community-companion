@@ -21,8 +21,14 @@
 
   var layout = JSON.parse(document.getElementById("layout-data").textContent);
   var catalogue = JSON.parse(document.getElementById("catalogue-data").textContent);
+  var defaultLayout = JSON.parse(document.getElementById("default-data").textContent);
   var META = {};
   catalogue.forEach(function (c) { META[c.type] = c; });
+
+  // Unsaved-changes tracking: warn before leaving / switching league.
+  var dirty = false;
+  var saving = false;
+  function markDirty() { dirty = true; }
 
   // Width presets (12-column grid). Any stored width not listed is added.
   var WIDTHS = [
@@ -70,6 +76,7 @@
         canvas.insertBefore(card, card.previousElementSibling);
         var p = positionOf(card);
         announce(meta.label + " moved to position " + (p.index + 1) + " of " + p.total);
+        markDirty();
         up.focus();
       }
     });
@@ -83,6 +90,7 @@
         canvas.insertBefore(card.nextElementSibling, card);
         var p = positionOf(card);
         announce(meta.label + " moved to position " + (p.index + 1) + " of " + p.total);
+        markDirty();
         down.focus();
       }
     });
@@ -95,6 +103,7 @@
     remove.addEventListener("click", function () {
       card.remove();
       announce(meta.label + " removed");
+      markDirty();
       renderPalette();
     });
     head.appendChild(handle);
@@ -128,6 +137,7 @@
       var nv = parseInt(wSel.value, 10) || 12;
       card.className = "builder-card dash-w" + nv;
       card.dataset.w = nv;
+      markDirty();
     });
     wLabel.appendChild(wSel);
     controls.appendChild(wLabel);
@@ -149,6 +159,7 @@
       input.value = options[key] != null ? options[key] : def;
       // A blank box shouldn't save a 0-count widget (renders empty); restore
       // the widget's default instead.
+      input.addEventListener("change", markDirty);
       input.addEventListener("blur", function () {
         if (input.value === "" || parseInt(input.value, 10) < 1) input.value = def;
       });
@@ -210,6 +221,7 @@
       btn.addEventListener("click", function () {
         var card = makeCard({ type: c.type, w: c.default_w, options: c.options });
         if (card) canvas.appendChild(card);
+        markDirty();
         renderPalette();
       });
       palette.appendChild(btn);
@@ -237,7 +249,42 @@
       out.push(entry);
     });
     field.value = JSON.stringify(out);
+    saving = true; // an intentional save must not trip the unsaved-changes guard
   });
+
+  // --- Reset to default ----------------------------------------------------
+  var resetBtn = document.getElementById("builder-reset");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", function () {
+      if (!window.confirm("Reset this dashboard to the default layout? Unsaved changes are lost.")) return;
+      canvas.innerHTML = "";
+      defaultLayout.forEach(function (entry) {
+        var card = makeCard(entry);
+        if (card) canvas.appendChild(card);
+      });
+      markDirty();
+      renderPalette();
+      announce("Layout reset to default");
+    });
+  }
+
+  // --- Unsaved-changes guards ----------------------------------------------
+  window.addEventListener("beforeunload", function (e) {
+    if (dirty && !saving) { e.preventDefault(); e.returnValue = ""; }
+  });
+  // The league selector is a GET form; switching would discard edits.
+  var leagueSelect = document.getElementById("league-select");
+  if (leagueSelect) {
+    var current = leagueSelect.value;
+    leagueSelect.addEventListener("change", function () {
+      if (dirty && !window.confirm("Switch league and discard unsaved changes?")) {
+        leagueSelect.value = current;
+        return;
+      }
+      saving = true; // allow the GET navigation without a second prompt
+      leagueSelect.form.submit();
+    });
+  }
 
   // --- Boot ----------------------------------------------------------------
   layout.forEach(function (entry) {

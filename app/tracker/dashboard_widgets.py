@@ -81,7 +81,9 @@ DEFAULT_LAYOUT: list[dict] = [
     {"type": "champion", "w": 12},
     {"type": "kpis", "w": 12},
     {"type": "characters", "w": 12, "options": {"count": 8}},
-    {"type": "firsts", "w": 8, "options": {"count": 6}},
+    # firsts (w8) sits beside the progress ring (w4); cap it to one row of
+    # tiles so a low-data guild doesn't leave the ring stranded in dead space.
+    {"type": "firsts", "w": 8, "options": {"count": 3}},
     {"type": "progress_ring", "w": 4},
     {"type": "activity", "w": 8, "options": {"count": 10}},
     {"type": "leaderboard", "w": 4, "options": {"rows": 5}},
