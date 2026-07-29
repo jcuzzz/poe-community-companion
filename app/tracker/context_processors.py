@@ -40,5 +40,8 @@ def league(request):
         "league_end": end,
         "league_elapsed_days": (now - start).days if start and start <= now else None,
         "league_days_remaining": (end - now).days if end and end > now else None,
+        # Only meaningful when a start date is set AND is in the future — used to
+        # distinguish "hasn't started yet" from "no start date configured".
+        "league_starts_in_days": (start - now).days if start and start > now else None,
         "pending_review_count": pending,
     }

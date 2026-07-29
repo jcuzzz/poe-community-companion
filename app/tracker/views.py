@@ -253,7 +253,12 @@ def dashboard_builder(request: HttpRequest) -> HttpResponse:
     from .dashboard_widgets import catalogue, default_layout, sanitize_layout
 
     leagues = list(League.objects.all().order_by("-is_active", "name"))
-    target = request.POST.get("league") or request.GET.get("league") or "global"
+    # Default to the active league — that's the dashboard people actually see, so
+    # edits apply immediately. "global" edits the fallback for leagues without a
+    # config of their own (and a per-league config always wins over it).
+    active = get_active_league()
+    default_target = active.slug if active else "global"
+    target = request.POST.get("league") or request.GET.get("league") or default_target
     league = None if target == "global" else League.objects.filter(slug=target).first()
     if target != "global" and league is None:
         target = "global"

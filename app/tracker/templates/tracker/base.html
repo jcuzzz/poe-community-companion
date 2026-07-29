@@ -61,7 +61,6 @@
 
       <div class="sidebar-foot">
         <span class="brazier" aria-hidden="true"></span>
-        <span class="online-count">A private tracker for five friends</span>
       </div>
     </aside>
 
@@ -98,8 +97,8 @@
               {% if league_days_remaining is not None and league_days_remaining >= 0 %}
                 &middot; <strong>{{ league_days_remaining }}</strong> day{{ league_days_remaining|pluralize }} left
               {% endif %}
-            {% else %}
-              League not started
+            {% elif league_starts_in_days is not None %}
+              Starts in <strong>{{ league_starts_in_days }}</strong> day{{ league_starts_in_days|pluralize }}
             {% endif %}
           </span>
         </div>
@@ -139,7 +138,7 @@
       </main>
 
       <footer class="site-footer">
-        <p>{{ brand_name }} &middot; a private tracker for five friends. Item art &copy; Grinding Gear Games.</p>
+        <p>{{ brand_name }} &middot; Item art &copy; Grinding Gear Games.</p>
       </footer>
     </div>
   </div>
