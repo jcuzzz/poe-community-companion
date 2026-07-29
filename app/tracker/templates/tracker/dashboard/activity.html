@@ -1,21 +1,27 @@
 {% load static %}
-<div class="section-header">
-  <h2 class="flourish">Recent Activity</h2>
-</div>
+{% comment %}
+Recent activity. One DOM, three presentations chosen by the CELL's width via
+@container in dashboard.css (.act-*):
+  compact  <340px   player + achievement, two lines, no avatar or status pill
+  standard 340px    avatar, one line per submission, status and time below
+  expanded >=640px  status and time become their own columns
+{% endcomment %}
+{% url 'activity_feed' as activity_url %}
+{% include "tracker/dashboard/_head.html" with title="Recent Activity" link_url=activity_url link_label="All activity" %}
 {% if w.ctx.recent_submissions %}
-  <ul class="activity-list">
+  <ul class="act">
     {% for submission in w.ctx.recent_submissions %}
-      <li class="activity-item">
-        <div class="u-flex-between">
-          <span>
-            {% include "tracker/partials/member_avatar.html" with member=submission.user size="sm" %}
-            <a href="{% url 'player_profile' submission.user.username %}">{{ submission.user.name }}</a>
-            submitted
-            <a href="{% url 'submission_detail' submission.pk %}">{{ submission.achievement.name }}</a>
-          </span>
-          <span class="pill pill-{{ submission.status }}">{{ submission.get_status_display }}</span>
-        </div>
-        <p class="activity-meta text-muted">{{ submission.submitted_at|timesince }} ago</p>
+      <li class="act-item">
+        <span class="act-avatar">
+          {% include "tracker/partials/member_avatar.html" with member=submission.user size="sm" %}
+        </span>
+        <span class="act-body">
+          <a class="act-player" href="{% url 'player_profile' submission.user.username %}">{{ submission.user.name }}</a>
+          <span class="act-verb">submitted</span>
+          <a class="act-target" href="{% url 'submission_detail' submission.pk %}">{{ submission.achievement.name }}</a>
+        </span>
+        <span class="pill pill-{{ submission.status }} act-status">{{ submission.get_status_display }}</span>
+        <span class="act-time">{{ submission.submitted_at|timesince }} ago</span>
       </li>
     {% endfor %}
   </ul>

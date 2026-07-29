@@ -671,3 +671,60 @@
   .lb-medal-full { display: inline; }
   .lb .medal { font-size: var(--fs-sm); }
 }
+
+/* ==========================================================================
+   WIDGET: activity (Recent activity) — tiers by container width
+     compact   <340px   player + achievement over two lines; no avatar, no pill
+     standard  340px    avatar and one line per submission, time underneath
+     expanded  >=640px  status and time get their own columns
+   ========================================================================== */
+
+.act {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.act-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.act-item:last-child { border-bottom: none; }
+.act-avatar { grid-row: span 2; align-self: center; }
+.act-avatar .member-avatar { vertical-align: middle; }
+.act-body { min-width: 0; }
+.act-player { font-weight: 600; }
+.act-verb { color: var(--color-parchment-dim); }
+.act-status { justify-self: start; }
+.act-time {
+  grid-column: 2;
+  font-size: var(--fs-sm);
+  color: var(--color-parchment-dim);
+  white-space: nowrap;
+}
+
+/* compact — the avatar and status pill are the first things to go; who did
+   what to which achievement is the whole message. */
+@container widget (max-width: 339px) {
+  .act-avatar,
+  .act-status { display: none; }
+  .act-item { grid-template-columns: minmax(0, 1fr); }
+  .act-time { grid-column: 1; font-size: var(--fs-xs); }
+  .act-item:nth-child(n + 7) { display: none; }
+}
+
+/* expanded — status and time stop stacking under the sentence and become
+   right-hand columns, so the list reads as a table of events. */
+@container widget (min-width: 640px) {
+  .act-item {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-2);
+  }
+  .act-avatar { grid-row: auto; }
+  .act-time { grid-column: auto; text-align: right; }
+}
