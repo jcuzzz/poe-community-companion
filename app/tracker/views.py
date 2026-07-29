@@ -784,11 +784,15 @@ def account_settings(request: HttpRequest) -> HttpResponse:
         if invite_form is None:
             invite_form = InviteCreateForm()
 
+    from . import poe_oauth
+
     context = {
         "form": profile_form,
         "member_form": member_form,
         "invites": invites,
         "invite_form": invite_form,
+        "poe_oauth_enabled": poe_oauth.is_enabled(),
+        "poe_connection": getattr(request.user, "poe_connection", None),
     }
     return render(request, "tracker/account_settings.html", context)
 

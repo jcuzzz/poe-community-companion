@@ -61,6 +61,26 @@
     </div>
   </form>
 
+  {% if poe_oauth_enabled %}
+    <h2>PoE account (live sync)</h2>
+    {% if poe_connection %}
+      <p class="text-muted">
+        Connected{% if poe_connection.account_name %} as <strong>{{ poe_connection.account_name }}</strong>{% endif %}.
+        Your character page pulls live gear, gems and passive tree straight from PoE.
+      </p>
+      <form method="post" action="{% url 'poe_disconnect' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn">Disconnect PoE account</button>
+      </form>
+    {% else %}
+      <p class="text-muted">
+        Link your PoE account once to sync your live character automatically — no
+        Path of Building export needed.
+      </p>
+      <a class="btn btn-primary" href="{% url 'poe_connect' %}">Connect PoE account</a>
+    {% endif %}
+  {% endif %}
+
   {% if invite_form %}
     <h2>Invite a friend</h2>
     <form method="post" class="card">

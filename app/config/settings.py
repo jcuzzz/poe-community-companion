@@ -176,6 +176,24 @@ POE_USER_AGENT = os.environ.get(
     "POE_USER_AGENT", "poe-community-companion/1.0 (self-hosted)"
 )
 
+# --- Official GGG OAuth 2.0 (live character data) -------------------------
+# Dormant until GGG issues an OAuth client. When POE_OAUTH_CLIENT_ID is set the
+# "Connect PoE account" flow lights up and syncs pull live gear/skills/tree via
+# the account:characters scope. Confidential (server-side) client + PKCE.
+POE_OAUTH_CLIENT_ID = os.environ.get("POE_OAUTH_CLIENT_ID", "").strip()
+POE_OAUTH_CLIENT_SECRET = os.environ.get("POE_OAUTH_CLIENT_SECRET", "").strip()
+POE_OAUTH_REDIRECT_URI = os.environ.get(
+    "POE_OAUTH_REDIRECT_URI", f"{SITE_BASE_URL}/account/poe/callback"
+).strip()
+POE_OAUTH_SCOPES = os.environ.get("POE_OAUTH_SCOPES", "account:profile account:characters").strip()
+POE_OAUTH_AUTHORIZE_URL = os.environ.get(
+    "POE_OAUTH_AUTHORIZE_URL", "https://www.pathofexile.com/oauth/authorize"
+)
+POE_OAUTH_TOKEN_URL = os.environ.get(
+    "POE_OAUTH_TOKEN_URL", "https://www.pathofexile.com/oauth/token"
+)
+POE_OAUTH_API_BASE = os.environ.get("POE_OAUTH_API_BASE", "https://api.pathofexile.com")
+
 # --- Security ------------------------------------------------------------
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True

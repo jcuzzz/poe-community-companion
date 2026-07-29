@@ -7,6 +7,7 @@ scoring breakdown is always explainable. See tracker/scoring.py.
 from __future__ import annotations
 
 import secrets
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
@@ -599,6 +600,7 @@ class CharacterSnapshot(models.Model):
     class Source(models.TextChoices):
         API = "api", "Auto lookup"
         POB = "pob", "Path of Building paste"
+        OAUTH = "oauth", "Official PoE account (OAuth)"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="snapshots"
@@ -615,8 +617,8 @@ class CharacterSnapshot(models.Model):
     league_text = models.CharField(
         max_length=60, blank=True, help_text="In-game league string returned by the lookup."
     )
-    source = models.CharField(max_length=4, choices=Source.choices, default=Source.API)
-    # Last-known raw payload (API JSON or the PoB export code) for later re-parsing.
+    source = models.CharField(max_length=8, choices=Source.choices, default=Source.API)
+    # Last-known raw payload (API/OAuth JSON or the PoB export code) for re-parsing.
     raw = models.TextField(blank=True)
     # Optional pobb.in build URL. When set, a scheduled poll re-fetches the latest
     # code from it (the closest thing to "auto-update" GGG's restrictions allow).
@@ -728,3 +730,33 @@ class DashboardConfig(models.Model):
         if cfg is not None:
             return copy.deepcopy(cfg.widgets)
         return dashboard_widgets.default_layout()
+
+
+class PoeConnection(models.Model):
+    """A member's linked PoE account via official GGG OAuth.
+
+    Stores the token pair so we can pull live character data (gear/skills/tree)
+    on demand with the account:characters scope. One per user. Tokens are
+    secrets — this row is never exposed to other members or the API surface.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="poe_connection"
+    )
+    account_name = models.CharField(max_length=60, blank=True)
+    access_token = models.TextField(blank=True)
+    refresh_token = models.TextField(blank=True)
+    token_expires_at = models.DateTimeField(null=True, blank=True)
+    scope = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"PoE account for {self.user.name} ({self.account_name or 'unnamed'})"
+
+    @property
+    def is_expired(self) -> bool:
+        if self.token_expires_at is None:
+            return True
+        # Treat as expired a minute early to avoid racing the boundary.
+        return timezone.now() >= (self.token_expires_at - timedelta(seconds=60))

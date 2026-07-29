@@ -14,6 +14,10 @@ urlpatterns = [
     path("characters/<str:username>/", views_roster.character_detail, name="character_detail"),
     path("roster/settings/", views_roster.roster_settings, name="roster_settings"),
     path("roster/refresh/", views_roster.roster_refresh, name="roster_refresh"),
+    # Official PoE OAuth (live character data) — dormant until a client is configured.
+    path("account/poe/connect/", views_roster.poe_connect, name="poe_connect"),
+    path("account/poe/callback", views_roster.poe_callback, name="poe_callback"),
+    path("account/poe/disconnect/", views_roster.poe_disconnect, name="poe_disconnect"),
     # Legacy /roster/ index → /characters/ (kept so old links/bookmarks resolve).
     path("roster/", RedirectView.as_view(pattern_name="roster", permanent=True)),
     path("activity/", views.activity_feed, name="activity_feed"),

@@ -9,7 +9,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
@@ -91,16 +91,26 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
     snapshot = _snapshot_for(member, viewing)
     is_owner = request.user == member
 
-    # Owner "Sync now" — re-fetch the linked pobb.in build immediately.
+    # Owner "Sync now" — pull the latest character. Prefer live OAuth (official
+    # PoE account) when connected; otherwise re-fetch the linked pobb.in build.
     if request.method == "POST" and is_owner and request.POST.get("action") == "sync":
-        if snapshot and snapshot.pob_url and active is not None:
+        from . import poe_oauth
+
+        connected = poe_oauth.is_enabled() and getattr(request.user, "poe_connection", None)
+        if connected and active is not None:
+            _snap, error = poe_oauth.sync_snapshot(request.user, active)
+            if error:
+                messages.error(request, error)
+            else:
+                messages.success(request, "Synced your live character from PoE.")
+        elif snapshot and snapshot.pob_url and active is not None:
             _snap, error = roster_service.save_pob_snapshot(request.user, active, snapshot.pob_url)
             if error:
                 messages.error(request, error)
             else:
                 messages.success(request, "Synced the latest build from pobb.in.")
         else:
-            messages.error(request, "No pobb.in link to sync from.")
+            messages.error(request, "Connect your PoE account or add a pobb.in link to sync from.")
         return redirect("character_detail", username=member.username)
 
     # Owner PoB import (posts back to this page).
@@ -123,9 +133,16 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
     build = None
     parse_error = ""
     tree_svg = ""
-    if snapshot and snapshot.raw and snapshot.source == CharacterSnapshot.Source.POB:
+    if snapshot and snapshot.raw:
         try:
-            build = roster_service.parse_pob_build(snapshot.raw)
+            if snapshot.source == CharacterSnapshot.Source.POB:
+                build = roster_service.parse_pob_build(snapshot.raw)
+            elif snapshot.source == CharacterSnapshot.Source.OAUTH:
+                import json as _json
+
+                from . import poe_oauth
+
+                build = poe_oauth.build_from_ggg_character(_json.loads(snapshot.raw))
             if build and build.get("tree") and build["tree"].get("node_ids"):
                 from .tree_render import render_tree_svg
 
@@ -148,8 +165,16 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
             "pob_form": pob_form,
             "viewing_league": viewing,
             "can_import": is_owner and active is not None and viewing == active,
+            "poe_oauth_enabled": _poe_oauth_enabled(),
+            "poe_connected": bool(getattr(member, "poe_connection", None)),
         },
     )
+
+
+def _poe_oauth_enabled() -> bool:
+    from . import poe_oauth
+
+    return poe_oauth.is_enabled()
 
 
 @login_required
@@ -180,3 +205,72 @@ def roster_refresh(request: HttpRequest) -> HttpResponse:
     else:
         messages.success(request, "Character refreshed.")
     return redirect(request.POST.get("next") or "account_settings")
+
+
+# --- Official PoE OAuth (live character data) ----------------------------
+
+_OAUTH_STATE_KEY = "poe_oauth_state"
+_OAUTH_VERIFIER_KEY = "poe_oauth_verifier"
+
+
+@login_required
+def poe_connect(request: HttpRequest) -> HttpResponse:
+    """Kick off the GGG authorisation-code flow (PKCE)."""
+    from . import poe_oauth
+
+    if not poe_oauth.is_enabled():
+        messages.error(request, "PoE account linking isn't configured yet.")
+        return redirect("account_settings")
+    state = poe_oauth.make_state()
+    verifier, challenge = poe_oauth.make_pkce()
+    request.session[_OAUTH_STATE_KEY] = state
+    request.session[_OAUTH_VERIFIER_KEY] = verifier
+    return redirect(poe_oauth.authorize_url(state, challenge))
+
+
+@login_required
+def poe_callback(request: HttpRequest) -> HttpResponse:
+    """Handle GGG's redirect: verify state, exchange the code, store tokens."""
+    from . import poe_oauth
+
+    if not poe_oauth.is_enabled():
+        raise Http404("Not found.")
+    state = request.session.pop(_OAUTH_STATE_KEY, None)
+    verifier = request.session.pop(_OAUTH_VERIFIER_KEY, None)
+    error = request.GET.get("error")
+    if error:
+        messages.error(request, "PoE connection was cancelled.")
+        return redirect("account_settings")
+    code = request.GET.get("code", "")
+    returned_state = request.GET.get("state", "")
+    if not code or not state or returned_state != state or not verifier:
+        messages.error(request, "PoE connection failed a security check — please try again.")
+        return redirect("account_settings")
+    try:
+        token = poe_oauth.exchange_code(code, verifier)
+        conn = poe_oauth.store_tokens(request.user, token)
+        # Best-effort: record the account name for display.
+        try:
+            profile = poe_oauth.fetch_profile(poe_oauth.valid_access_token(conn))
+            name = profile.get("name") or ""
+            if name:
+                conn.account_name = name[:60]
+                conn.save(update_fields=["account_name"])
+        except ValueError:
+            pass
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect("account_settings")
+    messages.success(request, "PoE account connected. Your character will sync live now.")
+    return redirect("account_settings")
+
+
+@login_required
+@require_POST
+def poe_disconnect(request: HttpRequest) -> HttpResponse:
+    """Unlink the member's PoE account (delete the stored tokens)."""
+    from .models import PoeConnection
+
+    PoeConnection.objects.filter(user=request.user).delete()
+    messages.success(request, "PoE account disconnected.")
+    return redirect("account_settings")

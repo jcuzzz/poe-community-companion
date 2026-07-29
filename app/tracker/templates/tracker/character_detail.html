@@ -30,18 +30,33 @@
           {% if snapshot.pob_url %} &middot; <span class="char-autosync" title="Auto-synced from pobb.in">auto-syncs</span>{% endif %}
         {% endif %}
       </p>
-      {% if snapshot.pob_url %}
-        <p class="char-actions">
+      <p class="char-actions">
+        {% if snapshot.pob_url %}
           <a class="btn btn-sm" href="https://pob.cool/#build={{ snapshot.pob_url|urlencode }}" target="_blank" rel="noopener noreferrer">View full build &nearr;</a>
           <a class="btn btn-sm" href="{{ snapshot.pob_url }}" target="_blank" rel="noopener noreferrer">Open on pobb.in &nearr;</a>
-          {% if can_import %}
-            <form method="post" class="inline-btn">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="sync">
-              <button type="submit" class="btn btn-sm btn-primary">Sync now</button>
-            </form>
-          {% endif %}
-        </p>
+        {% endif %}
+        {% if can_import and poe_connected %}
+          <form method="post" class="inline-btn">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="sync">
+            <button type="submit" class="btn btn-sm btn-primary">Sync live from PoE</button>
+          </form>
+        {% elif can_import and snapshot.pob_url %}
+          <form method="post" class="inline-btn">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="sync">
+            <button type="submit" class="btn btn-sm btn-primary">Sync now</button>
+          </form>
+        {% endif %}
+      </p>
+      {% if is_owner %}
+        {% if poe_oauth_enabled and not poe_connected %}
+          <p class="char-hint text-muted">
+            Want automatic live updates? <a href="{% url 'account_settings' %}">Connect your PoE account</a> &mdash; no Path of Building export needed.
+          </p>
+        {% elif snapshot.pob_url and not poe_connected %}
+          <p class="char-hint text-muted">This reflects your last Path of Building export &mdash; re-export to pobb.in (or click Sync now) to refresh.</p>
+        {% endif %}
       {% endif %}
     </div>
 
