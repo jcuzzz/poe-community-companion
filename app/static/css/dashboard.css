@@ -728,3 +728,124 @@
   .act-avatar { grid-row: auto; }
   .act-time { grid-column: auto; text-align: right; }
 }
+
+/* ==========================================================================
+   WIDGET: kpis (Stat tiles) — tiers by container width
+     compact   <360px   two tiles abreast, smaller figures
+     standard  360px    two abreast at full size
+     expanded  >=720px  all four abreast
+   .stat-grid's own viewport breakpoints in app.css don't know how wide this
+   cell is, so the widget restates the column count against its container.
+   ========================================================================== */
+
+.kpi-row { margin-bottom: 0; }
+.dash-cell .kpi-row { grid-template-columns: repeat(2, 1fr); }
+
+@container widget (max-width: 359px) {
+  .dash-cell .kpi-row .stat-tile { padding: var(--space-2) var(--space-3); }
+  .dash-cell .kpi-row .value { font-size: var(--fs-xl); }
+}
+@container widget (min-width: 720px) {
+  .dash-cell .kpi-row { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ==========================================================================
+   WIDGET: progression (Progression trend) — tiers by container width
+     compact   <320px   figures only; the chart is REMOVED, not shrunk
+     standard  320px    sparkline above the figures
+     expanded  >=640px  taller chart with the figures beside it
+   ========================================================================== */
+
+.prog-title {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-display);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--color-gold-bright);
+}
+.prog-chart {
+  display: block;
+  width: 100%;
+  height: 3rem;
+  margin: var(--space-2) 0;
+}
+.prog-line {
+  fill: none;
+  stroke: var(--color-gold);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.prog-area { fill: rgba(201, 162, 74, 0.12); stroke: none; }
+.prog-figures { margin: 0; font-size: var(--fs-sm); color: var(--color-parchment-dim); }
+.prog-figures strong { color: var(--color-gold-bright); }
+.prog-range { white-space: nowrap; }
+
+@container widget (max-width: 319px) {
+  .prog-chart { display: none; }
+  .prog-range { display: block; }
+}
+@container widget (min-width: 640px) {
+  .prog {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title   figures"
+      "chart   chart";
+    align-items: baseline;
+    column-gap: var(--space-4);
+  }
+  .prog-title { grid-area: title; }
+  .prog-figures { grid-area: figures; text-align: right; }
+  .prog-chart { grid-area: chart; height: 5rem; margin-bottom: 0; }
+  .prog .empty-state { grid-column: 1 / -1; }
+}
+
+/* ==========================================================================
+   WIDGET: progress_ring (League progress) — tiers by container width
+     compact   <260px   the ring alone; its aria-label still reads the figures
+     standard  260px    ring beside a short legend
+     expanded  >=480px  a larger ring with the legend
+   ========================================================================== */
+
+.progress-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.progress-ring {
+  --p: 0%;
+  flex: 0 0 auto;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(closest-side, var(--color-bg-card) 76%, transparent 77%),
+    conic-gradient(var(--color-gold) 0 var(--p), var(--color-border-strong) var(--p) 100%);
+}
+.progress-ring-value {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-gold-bright);
+}
+.progress-legend-title {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-display);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--color-gold-bright);
+}
+.progress-legend-meta { margin: 0; font-size: var(--fs-sm); color: var(--color-parchment-dim); }
+.progress-legend-meta strong { color: var(--color-parchment); }
+
+@container widget (max-width: 259px) {
+  .progress-card { justify-content: center; }
+  .progress-legend { display: none; }
+}
+@container widget (min-width: 480px) {
+  .progress-ring { width: 7.5rem; height: 7.5rem; }
+  .progress-ring-value { font-size: var(--fs-xl); }
+}

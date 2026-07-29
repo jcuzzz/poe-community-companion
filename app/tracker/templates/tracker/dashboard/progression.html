@@ -1,18 +1,29 @@
+{% comment %}
+Guild progression. Tiers chosen by the CELL's width via @container in
+dashboard.css (.prog-*):
+  compact  <320px   NO chart — the figures only. A 200px-wide sparkline is a
+                    scribble, so we drop it rather than shrink it.
+  standard 320px    a sparkline above the figures
+  expanded >=640px  a taller chart with the figures beside it
+The SVG carries the same information as the caption in its aria-label, so
+hiding it at compact costs a screen-reader user nothing.
+{% endcomment %}
 {% with progression=w.ctx.progression %}
-  {% if progression %}
-    <p class="progress-legend-title">Progression</p>
-    <svg class="progression-svg" viewBox="0 0 {{ progression.w }} {{ progression.h }}"
-         preserveAspectRatio="none" role="img"
-         aria-label="{{ progression.total }} verified completions over time">
-      <path class="prog-area" d="{{ progression.area }}"/>
-      <path class="prog-line" d="{{ progression.line }}"/>
-    </svg>
-    <p class="text-muted progression-meta">
-      <strong>{{ progression.total }}</strong> completion{{ progression.total|pluralize }}
-      &middot; {{ progression.start|date:"M j" }} &ndash; {{ progression.end|date:"M j" }}
-    </p>
-  {% else %}
-    <p class="progress-legend-title">Progression</p>
-    <div class="empty-state empty-state--inline">Not enough history to chart yet.</div>
-  {% endif %}
+  <div class="prog">
+    <p class="prog-title">Progression</p>
+    {% if progression %}
+      <svg class="prog-chart" viewBox="0 0 {{ progression.w }} {{ progression.h }}"
+           preserveAspectRatio="none" role="img"
+           aria-label="{{ progression.total }} verified completions over time">
+        <path class="prog-area" d="{{ progression.area }}"/>
+        <path class="prog-line" d="{{ progression.line }}"/>
+      </svg>
+      <p class="prog-figures">
+        <strong>{{ progression.total }}</strong> completion{{ progression.total|pluralize }}
+        <span class="prog-range">{{ progression.start|date:"M j" }} &ndash; {{ progression.end|date:"M j" }}</span>
+      </p>
+    {% else %}
+      <div class="empty-state empty-state--inline">Not enough history to chart yet.</div>
+    {% endif %}
+  </div>
 {% endwith %}

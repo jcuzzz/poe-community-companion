@@ -1,3 +1,11 @@
+{% comment %}
+League progress. Tiers chosen by the CELL's width via @container in
+dashboard.css: compact <260px is the ring alone (its aria-label still reads the
+figures), standard adds the legend, expanded >=480px enlarges the ring.
+With no achievements at all this used to render nothing, which left the card
+frame the dashboard wraps it in as an empty box on the board — it states the
+case instead.
+{% endcomment %}
 {% if w.ctx.total %}
   <div class="progress-card">
     <div class="progress-ring" style="--p: {{ w.ctx.pct }}%;" role="img"
@@ -9,4 +17,7 @@
       <p class="progress-legend-meta"><strong>{{ w.ctx.claimed }}</strong> of {{ w.ctx.total }} achievements claimed</p>
     </div>
   </div>
+{% else %}
+  <p class="progress-legend-title">League progress</p>
+  <div class="empty-state empty-state--inline">No achievements in this league yet.</div>
 {% endif %}
