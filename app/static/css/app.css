@@ -1213,28 +1213,34 @@ input[type="radio"] {
 html[data-season="allflame"] {
   color-scheme: dark;
 
-  --color-bg: #0a1517;
-  --color-bg-raised: #0f2124;
-  --color-bg-card: #143034;
+  /* The teal is emitted light, not the panel material. Surfaces stay close to
+     soot-black while text leans warm-neutral and frames read as oxidised brass. */
+  --color-bg: #07100f;
+  --color-bg-raised: #0b1716;
+  --color-bg-card: #0d1c1a;
 
-  --color-parchment: #dce8e6;      /* body text, 14.8:1 on --color-bg */
-  --color-parchment-dim: #8fa6a4;  /* muted text, 7.2:1 */
-  --color-gold: #35c4a8;           /* flame accent — links/borders, 8.5:1 */
-  --color-gold-bright: #6ff2d4;    /* flame accent — headings/emphasis, 13.5:1 */
-  --color-gold-dim: #1e5b54;       /* subtle decorative borders */
+  --color-parchment: #d9ddd5;
+  --color-parchment-dim: #8f9b94;
+  --color-gold: #3fc3a1;
+  --color-gold-bright: #82e4c9;
+  --color-gold-dim: #28564d;
 
-  --color-border: #1c3438;
-  --color-border-strong: #2e5a5e;
+  --color-border: #20322f;
+  --color-border-strong: #3a504a;
+  --color-frame: #4c4735;
+  --color-frame-bright: #806b42;
+  --color-brass: #a9864d;
+  --color-brass-dim: #5d4b31;
 
   /* Ember core — the warm heart of the cold flame. Reused for the amber role. */
-  --color-ember: #ff8a3d;
-  --color-amber: #ff8a3d;
-  --color-amber-bg: #241206;
+  --color-ember: #d98242;
+  --color-amber: #d98242;
+  --color-amber-bg: #21140b;
 
-  --focus-ring: #6ff2d4;
+  --focus-ring: #82e4c9;
 
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.5);
-  --shadow-raised: 0 6px 20px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 5px 18px rgba(0, 0, 0, 0.42);
+  --shadow-raised: 0 10px 30px rgba(0, 0, 0, 0.58);
 }
 
 /* Hardcoded warm gradients retinted from the (theme-adaptive) tokens, so these
@@ -1242,12 +1248,28 @@ html[data-season="allflame"] {
 html[data-season="allflame"] .site-header,
 html[data-season="allflame"] .topbar,
 html[data-season="allflame"] .sidebar {
-  background: linear-gradient(180deg, var(--color-bg-raised), var(--color-bg) 80%);
+  background:
+    linear-gradient(180deg, rgba(20, 32, 29, 0.98), rgba(5, 13, 13, 0.98) 82%);
+}
+html[data-season="allflame"] .topbar {
+  border-bottom-color: var(--color-frame);
+  box-shadow: 0 7px 22px rgba(0, 0, 0, 0.26);
+}
+html[data-season="allflame"] .sidebar {
+  border-right-color: var(--color-frame);
+  box-shadow:
+    inset -1px 0 rgba(128, 107, 66, 0.12),
+    8px 0 28px rgba(0, 0, 0, 0.18);
 }
 html[data-season="allflame"] .hero-champion {
   background:
-    radial-gradient(ellipse at top left, rgba(53, 196, 168, 0.16), transparent 55%),
-    linear-gradient(180deg, var(--color-bg-card), var(--color-bg-raised));
+    radial-gradient(ellipse 52% 170% at 4% 50%, rgba(63, 195, 161, 0.15), transparent 72%),
+    linear-gradient(100deg, rgba(13, 31, 29, 0.97), rgba(8, 18, 17, 0.94));
+  border-color: var(--color-frame-bright);
+  animation: none;
+  box-shadow:
+    0 0 0 1px rgba(63, 195, 161, 0.08) inset,
+    0 8px 30px rgba(0, 0, 0, 0.46);
 }
 html[data-season="allflame"] .medal {
   background: linear-gradient(180deg, var(--color-bg-raised), var(--color-bg-card));
@@ -1264,12 +1286,13 @@ html[data-season="allflame"] .medallion {
    to the spectral flame so they don't read as brown against the teal board. */
 html[data-season="allflame"] .first-tile {
   background:
-    radial-gradient(circle at top right, rgba(111, 242, 212, 0.18), transparent 60%),
-    linear-gradient(160deg, var(--color-bg-card), var(--color-bg-raised) 60%);
+    radial-gradient(circle at 18% 8%, rgba(63, 195, 161, 0.13), transparent 48%),
+    linear-gradient(145deg, rgba(14, 32, 29, 0.97), rgba(7, 16, 15, 0.98) 72%);
+  border-color: var(--color-frame-bright);
 }
 html[data-season="allflame"] .stat-tile--first {
   background:
-    radial-gradient(circle at top, rgba(111, 242, 212, 0.14), transparent 70%),
+    radial-gradient(circle at top, rgba(130, 228, 201, 0.10), transparent 70%),
     var(--color-bg-card);
 }
 
@@ -1283,15 +1306,78 @@ html[data-season="allflame"] .brazier {
 
 /* Dark Allflame (default): abyssal teal glow above, deep vignette below. */
 html[data-season="allflame"] body {
+  background-color: var(--color-bg);
   background-image:
-    radial-gradient(ellipse 120% 55% at 50% -8%, rgba(53, 196, 168, 0.10), transparent 60%),
-    radial-gradient(ellipse 90% 60% at 50% 115%, rgba(0, 0, 0, 0.6), transparent 55%);
+    linear-gradient(90deg, rgba(2, 7, 7, 0.20), rgba(2, 7, 7, 0.02) 45%, rgba(2, 7, 7, 0.32)),
+    radial-gradient(ellipse 88% 58% at 72% 2%, rgba(42, 133, 112, 0.11), transparent 66%),
+    linear-gradient(180deg, rgba(4, 10, 10, 0.03), rgba(1, 5, 5, 0.70)),
+    url("../img/allflame-contours.svg");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 /* Prominent warm gold glows authored as inline rgba (not tokens) retinted to
    the spectral flame so they don't read as gold halos against the teal board. */
 html[data-season="allflame"] .prog-area { fill: rgba(53, 196, 168, 0.14); }
-html[data-season="allflame"] .brand-mark { box-shadow: 0 0 10px rgba(53, 196, 168, 0.45); }
-html[data-season="allflame"] .first-tile { box-shadow: 0 0 0 1px rgba(111, 242, 212, 0.18) inset, var(--shadow-raised); }
-html[data-season="allflame"] .medal-first { box-shadow: 0 0 0 1px rgba(111, 242, 212, 0.25) inset; }
-html[data-season="allflame"] .trophy-icon { filter: drop-shadow(0 0 6px rgba(111, 242, 212, 0.5)); }
+html[data-season="allflame"] .brand-mark {
+  background: linear-gradient(145deg, #79d7be, #2c7869);
+  box-shadow: 0 0 15px rgba(63, 195, 161, 0.25);
+}
+html[data-season="allflame"] .first-tile {
+  box-shadow: 0 0 0 1px rgba(130, 228, 201, 0.06) inset, var(--shadow-card);
+}
+html[data-season="allflame"] .medal-first { box-shadow: 0 0 0 1px rgba(130, 228, 201, 0.14) inset; }
+html[data-season="allflame"] .trophy-icon { filter: drop-shadow(0 0 7px rgba(63, 195, 161, 0.26)); }
+
+/* Smoked-metal panels let a trace of the procedural field show through. */
+html[data-season="allflame"] .card,
+html[data-season="allflame"] .achievement-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.014), transparent 38%),
+    rgba(10, 23, 21, 0.94);
+}
+
+/* Bronze construction lines keep teal inside the interface as light and state,
+   rather than outlining every box like a futuristic HUD. */
+html[data-season="allflame"] .card,
+html[data-season="allflame"] .achievement-card,
+html[data-season="allflame"] .trophy-card,
+html[data-season="allflame"] .stat-tile {
+  border-color: var(--color-frame);
+}
+html[data-season="allflame"] .card::after,
+html[data-season="allflame"] .achievement-card::after,
+html[data-season="allflame"] .trophy-card::after,
+html[data-season="allflame"] .hero-champion::after,
+html[data-season="allflame"] .stat-tile::after {
+  border-color: rgba(128, 107, 66, 0.18);
+  background:
+    linear-gradient(var(--color-frame-bright) 0 0) top left     / 10px 1px,
+    linear-gradient(var(--color-frame-bright) 0 0) top left     / 1px 10px,
+    linear-gradient(var(--color-frame-bright) 0 0) top right    / 10px 1px,
+    linear-gradient(var(--color-frame-bright) 0 0) top right    / 1px 10px,
+    linear-gradient(var(--color-frame-bright) 0 0) bottom left  / 10px 1px,
+    linear-gradient(var(--color-frame-bright) 0 0) bottom left  / 1px 10px,
+    linear-gradient(var(--color-frame-bright) 0 0) bottom right / 10px 1px,
+    linear-gradient(var(--color-frame-bright) 0 0) bottom right / 1px 10px;
+  background-repeat: no-repeat;
+}
+html[data-season="allflame"] .flourish::after {
+  opacity: 0.64;
+  background:
+    linear-gradient(45deg, transparent 45%, var(--color-brass) 45% 55%, transparent 55%) left center / 7px 7px no-repeat,
+    linear-gradient(90deg, var(--color-brass-dim), transparent 78%) left center / 100% 1px no-repeat;
+}
+html[data-season="allflame"] .trophy-ribbon {
+  background: linear-gradient(90deg, #395c52, #83d6be, #395c52);
+}
+html[data-season="allflame"] .nav-list a[aria-current="page"] {
+  background:
+    linear-gradient(90deg, rgba(63, 195, 161, 0.12), transparent 86%),
+    linear-gradient(90deg, rgba(128, 107, 66, 0.09), transparent 70%);
+}
+html[data-season="allflame"] table.standings tbody tr:first-child {
+  background: linear-gradient(90deg, rgba(128, 107, 66, 0.13), transparent 82%);
+}

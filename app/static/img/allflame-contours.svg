@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Deterministic noise: the seed keeps the texture identical on every load. -->
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.72"
+        numOctaves="3"
+        seed="329"
+        stitchTiles="stitch"
+      />
+      <feColorMatrix
+        type="matrix"
+        values="
+          0 0 0 0 0.36
+          0 0 0 0 0.55
+          0 0 0 0 0.50
+          0 0 0 .12 0"
+      />
+    </filter>
+    <filter id="smoke" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.004 0.012"
+        numOctaves="4"
+        seed="29"
+        stitchTiles="stitch"
+        result="noise"
+      />
+      <feGaussianBlur in="noise" stdDeviation="9" result="softNoise" />
+      <feColorMatrix
+        in="softNoise"
+        type="matrix"
+        values="
+          0 0 0 0 0.05
+          0 0 0 0 0.32
+          0 0 0 0 0.26
+          0 0 0 .34 0"
+      />
+    </filter>
+    <radialGradient id="allflame" cx="70%" cy="12%" r="78%">
+      <stop offset="0" stop-color="#1a6a59" stop-opacity=".24" />
+      <stop offset=".42" stop-color="#0c312c" stop-opacity=".13" />
+      <stop offset="1" stop-color="#020707" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#50b69d" stop-opacity=".12" />
+      <stop offset=".54" stop-color="#6e8f7c" stop-opacity=".055" />
+      <stop offset="1" stop-color="#171c1a" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#07100f" />
+  <rect width="1600" height="1000" fill="url(#allflame)" />
+  <rect x="-100" y="-80" width="1800" height="1160" filter="url(#smoke)" opacity=".58" />
+
+  <!-- Wide contour strokes suggest currents and smoke without depicting scenery. -->
+  <g fill="none" stroke="url(#fade)" stroke-width="1.25">
+    <path d="M-130 166C143 24 396 52 533 174S812 333 1046 215s408-125 690 39" />
+    <path d="M-178 207C115 64 379 91 521 214s292 161 536 42 424-128 718 39" />
+    <path d="M-205 253C92 111 366 130 514 254s309 167 561 50 436-127 740 50" />
+    <path d="M-232 305C73 165 355 173 512 297s323 174 583 62 448-121 760 64" />
+    <path d="M-249 365C64 230 352 224 520 348s335 182 601 79 458-111 776 72" />
+    <path d="M-251 434C68 306 360 286 540 409s344 190 614 99 464-96 788 88" />
+  </g>
+
+  <g fill="none" stroke="#398777" stroke-opacity=".045" stroke-width="1">
+    <path d="M131 112c141 133 172 273 91 420S95 802 198 1014" />
+    <path d="M179 84c151 144 187 298 104 452s-129 286-14 508" />
+    <path d="M1230-44c-136 167-144 323-36 465s163 267 77 491" />
+    <path d="M1300-37c-143 177-151 343-39 492s171 281 84 518" />
+  </g>
+
+  <rect width="1600" height="1000" filter="url(#grain)" opacity=".36" />
+</svg>
