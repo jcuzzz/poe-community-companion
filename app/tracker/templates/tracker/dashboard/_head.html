@@ -1,0 +1,13 @@
+{% comment %}
+Standardised widget header. Every widget that names itself uses this one so
+headers, rules and "view all" actions are identical across the board.
+Params: title (required), link_url + link_label (optional action).
+{% endcomment %}
+<div class="widget-head">
+  <h2 class="flourish">{{ title }}</h2>
+  {% if link_url %}
+    <div class="widget-actions">
+      <a class="widget-link" href="{{ link_url }}">{{ link_label }} &raquo;</a>
+    </div>
+  {% endif %}
+</div>

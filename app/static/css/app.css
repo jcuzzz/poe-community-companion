@@ -56,6 +56,14 @@
 
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.45);
   --shadow-raised: 0 6px 20px rgba(0, 0, 0, 0.55);
+
+  /* Content column. The shell should use most of the viewport rather than
+     stranding the board in a narrow ribbon, but stop before lines get too long
+     to scan — 100rem ≈ 1600px, with the sidebar sitting flush beside it. */
+  --shell-max: 100rem;
+
+  /* Minimum comfortable hit area for pointer/touch controls (WCAG 2.5.8). */
+  --tap-min: 44px;
 }
 
 /* ==========================================================================
@@ -393,9 +401,9 @@ ul, ol { padding-left: 1.25rem; }
 main {
   flex: 1 1 auto;
   width: 100%;
-  max-width: 96rem;
+  max-width: var(--shell-max);
   margin: 0 auto;
-  padding: var(--space-6) var(--space-6) var(--space-7);
+  padding: var(--space-5) var(--space-5) var(--space-7);
 }
 
 .site-footer {
@@ -408,9 +416,9 @@ main {
 
 /* Messages */
 .messages {
-  max-width: 96rem;
+  max-width: var(--shell-max);
   margin: var(--space-4) auto 0;
-  padding: 0 var(--space-6);
+  padding: 0 var(--space-5);
   list-style: none;
   width: 100%;
 }
@@ -1338,7 +1346,18 @@ html[data-season="allflame"] .brand-mark {
 html[data-season="allflame"] .first-tile {
   box-shadow: 0 0 0 1px rgba(130, 228, 201, 0.06) inset, var(--shadow-card);
 }
-html[data-season="allflame"] .medal-first { box-shadow: 0 0 0 1px rgba(130, 228, 201, 0.14) inset; }
+/* firsts.css paints "First Overall" as dark ink on a warm gold gradient. Under
+   the Allflame palette --color-gold-dim is a deep teal, so that dark ink landed
+   on a dark chip and the label was unreadable — it reads as emitted light here
+   instead. */
+html[data-season="allflame"] .medal-first {
+  background: linear-gradient(120deg,
+    rgba(63, 195, 161, 0.10), rgba(63, 195, 161, 0.24), rgba(63, 195, 161, 0.10));
+  color: var(--color-gold-bright);
+  border-color: var(--color-gold);
+  text-shadow: none;
+  box-shadow: 0 0 0 1px rgba(130, 228, 201, 0.14) inset;
+}
 html[data-season="allflame"] .trophy-icon { filter: drop-shadow(0 0 7px rgba(63, 195, 161, 0.26)); }
 
 /* Smoked-metal panels let a trace of the procedural field show through. */

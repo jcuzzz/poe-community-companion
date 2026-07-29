@@ -5,7 +5,17 @@ from __future__ import annotations
 from django.test import TestCase
 from django.urls import reverse
 
-from tracker.dashboard_widgets import DEFAULT_LAYOUT, default_layout, resolve_widgets
+from types import SimpleNamespace
+
+from tracker.dashboard_widgets import (
+    DEFAULT_LAYOUT,
+    SPAN_PRESETS,
+    WIDGET_TYPES,
+    catalogue,
+    contract_errors,
+    default_layout,
+    resolve_widgets,
+)
 from tracker.models import DashboardConfig, League
 
 from .factories import make_admin, make_league, make_player
@@ -14,13 +24,20 @@ PASSWORD = "correct-horse-battery-42"
 
 
 def _data(**over):
+    # Shaped like the real dashboard data dict: achievement_cards are
+    # achievement_standings() dicts and firsts are Submissions, because the
+    # widget builders read `card["achievement"].pk` / `sub.achievement_id`.
+    cards = [
+        {"achievement": SimpleNamespace(pk=i, slug=f"a{i}", label=f"A{i}")}
+        for i in range(7)
+    ]
     base = {
         "champion": None,
-        "standings": [{"completions": 1} for _ in range(10)],
-        "achievement_cards": list(range(7)),
+        "standings": [{"completions": 1, "rank": i} for i in range(10)],
+        "achievement_cards": cards,
         "recent_submissions": list(range(40)),
         "latest_first": None,
-        "firsts": list(range(20)),
+        "firsts": [SimpleNamespace(achievement_id=i) for i in range(20)],
         "kpis": [],
         "top_characters": list(range(24)),
         "progression": None,
@@ -42,8 +59,13 @@ class ResolveWidgetsTests(TestCase):
     def test_width_is_clamped(self):
         widgets = resolve_widgets([{"type": "kpis", "w": 99}], _data())
         self.assertEqual(widgets[0]["w"], 12)
+        # Spans below the widget's declared minimum snap up to it: a stored 0
+        # (or a hand-edited 1) would render the widget below the width it stays
+        # legible at.
         widgets = resolve_widgets([{"type": "kpis", "w": 0}], _data())
-        self.assertEqual(widgets[0]["w"], 1)
+        self.assertEqual(widgets[0]["w"], WIDGET_TYPES["kpis"]["min_w"])
+        widgets = resolve_widgets([{"type": "champion", "w": 3}], _data())
+        self.assertEqual(widgets[0]["w"], WIDGET_TYPES["champion"]["min_w"])
 
     def test_count_option_slices_list(self):
         widgets = resolve_widgets(
@@ -54,6 +76,35 @@ class ResolveWidgetsTests(TestCase):
     def test_non_list_layout_falls_back_to_default(self):
         widgets = resolve_widgets("garbage", _data())
         self.assertEqual(len(widgets), len(DEFAULT_LAYOUT))
+
+
+class WidgetContractTests(TestCase):
+    """Every widget declares supported spans, a minimum, a default and three
+    presentation tiers (see docs/view-contract.md). A widget that ships half a
+    contract renders at a width it was never designed for."""
+
+    def test_every_widget_declares_a_complete_contract(self):
+        self.assertEqual(contract_errors(), [])
+
+    def test_default_layout_respects_declared_spans(self):
+        for entry in DEFAULT_LAYOUT:
+            meta = WIDGET_TYPES[entry["type"]]
+            with self.subTest(widget=entry["type"]):
+                self.assertIn(entry["w"], meta["spans"])
+                self.assertGreaterEqual(entry["w"], meta["min_w"])
+
+    def test_catalogue_only_offers_supported_spans(self):
+        preset_values = {value for value, _ in SPAN_PRESETS}
+        for item in catalogue():
+            meta = WIDGET_TYPES[item["type"]]
+            with self.subTest(widget=item["type"]):
+                self.assertTrue(item["spans"], "no spans offered")
+                for value, label in item["spans"]:
+                    self.assertIn(value, preset_values)
+                    self.assertIn(value, meta["spans"])
+                    self.assertGreaterEqual(value, meta["min_w"])
+                    self.assertTrue(label)
+                self.assertIn(item["default_w"], [v for v, _ in item["spans"]])
 
 
 class LayoutResolutionTests(TestCase):

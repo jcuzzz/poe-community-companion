@@ -6,11 +6,47 @@
    headers, the two-column activity/standings split).
    ========================================================================== */
 
+/* ==========================================================================
+   PRESENTATION TIERS — the contract every dashboard widget implements
+   ==========================================================================
+
+   A widget's presentation is chosen by the width of the CELL IT LANDS IN, not
+   by the span name it was configured with. A "quarter" widget is ~306px wide on
+   a 1600px board but only ~226px on a 1024px one — the same name, two different
+   design problems. So every widget styles itself with `@container` queries
+   against its own `.dash-cell` and never against the viewport.
+
+   Three tiers, in ascending order of available width:
+
+     compact   — identity + the single most important number. Lists over cards,
+                 no charts, no secondary columns.
+     standard  — the widget's normal reading: primary content plus the most
+                 useful secondary detail.
+     expanded  — the full showcase: every category, full tables, hero framing.
+
+   Each widget declares its own pixel thresholds (they differ — a table needs
+   more room to earn a column than a portrait strip needs to earn a tile) both
+   here in its CSS block and in `tracker/dashboard_widgets.py` WIDGET_TYPES, so
+   the registry and the stylesheet can be checked against each other. Reference
+   cell widths at the standard gap, for picking thresholds:
+
+     span   1600px board   1440px board   1024px board
+     3      306            266            226
+     4      414            363            280
+     6      646            556            476
+     8      856            749            642
+     9      966            846            745
+     12     1296           1136           976
+
+   Container queries need no fallback here: the target is modern evergreen
+   browsers, so there are deliberately NO media-query duplicates of tier logic.
+   Viewport media queries below are for the SHELL only — how many grid columns a
+   span occupies once the sidebar collapses.
+   -------------------------------------------------------------------------- */
+
 /* --------------------------------------------------------------------------
    Config-driven widget grid — a 12-column reflowing layout. Each widget cell
-   spans .dash-wN columns; on narrow screens everything collapses to full width
-   so a low-data dashboard still reads as a tidy stack rather than a lopsided
-   two-column split.
+   spans .dash-wN columns and is a query container for its own contents.
    -------------------------------------------------------------------------- */
 .dash-admin-bar {
   display: flex;
@@ -23,40 +59,100 @@
   gap: var(--space-5);
   align-items: start;
 }
-.dash-cell { min-width: 0; }
-.dash-w1  { grid-column: span 12; }
-.dash-w2  { grid-column: span 12; }
-.dash-w3  { grid-column: span 6; }
-.dash-w4  { grid-column: span 6; }
-.dash-w5  { grid-column: span 6; }
+.dash-cell {
+  min-width: 0;
+  container-type: inline-size;
+  container-name: widget;
+}
+.dash-w1  { grid-column: span 1; }
+.dash-w2  { grid-column: span 2; }
+.dash-w3  { grid-column: span 3; }
+.dash-w4  { grid-column: span 4; }
+.dash-w5  { grid-column: span 5; }
 .dash-w6  { grid-column: span 6; }
-.dash-w7  { grid-column: span 12; }
-.dash-w8  { grid-column: span 12; }
-.dash-w9  { grid-column: span 12; }
-.dash-w10 { grid-column: span 12; }
-.dash-w11 { grid-column: span 12; }
+.dash-w7  { grid-column: span 7; }
+.dash-w8  { grid-column: span 8; }
+.dash-w9  { grid-column: span 9; }
+.dash-w10 { grid-column: span 10; }
+.dash-w11 { grid-column: span 11; }
 .dash-w12 { grid-column: span 12; }
 
-/* Full 12-column mapping kicks in once there's room for it. */
-@media (min-width: 56rem) {
-  .dash-w1  { grid-column: span 1; }
-  .dash-w2  { grid-column: span 2; }
-  .dash-w3  { grid-column: span 3; }
-  .dash-w4  { grid-column: span 4; }
-  .dash-w5  { grid-column: span 5; }
-  .dash-w6  { grid-column: span 6; }
-  .dash-w7  { grid-column: span 7; }
-  .dash-w8  { grid-column: span 8; }
-  .dash-w9  { grid-column: span 9; }
-  .dash-w10 { grid-column: span 10; }
-  .dash-w11 { grid-column: span 11; }
-  .dash-w12 { grid-column: span 12; }
+/* Shell collapse (viewport, not container). Below 56rem the 12-column board is
+   too tight to be read as columns, so spans fold into halves; below 40rem
+   everything stacks. Widgets don't need to know — they just see a narrower
+   container and drop to a lower tier. */
+@media (max-width: 55.99rem) {
+  .dash-grid { gap: var(--space-4); }
+  .dash-w1, .dash-w2, .dash-w3, .dash-w4, .dash-w5, .dash-w6 { grid-column: span 6; }
+  .dash-w7, .dash-w8, .dash-w9, .dash-w10, .dash-w11, .dash-w12 { grid-column: span 12; }
+}
+@media (max-width: 40rem) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .dash-cell { grid-column: auto !important; }
+}
+
+/* --------------------------------------------------------------------------
+   Standardised widget chrome — one header, one border, one padding rhythm and
+   one actions slot for every widget, so a board of eight widgets reads as one
+   surface instead of eight bespoke ones.
+   -------------------------------------------------------------------------- */
+.widget-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+.widget-head h2 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  line-height: 1.2;
+}
+.widget-head .widget-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+.widget-link {
+  font-size: var(--fs-sm);
+  color: var(--color-gold);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.widget-link:hover { text-decoration: underline; }
+
+/* At compact widths the "view all" link would wrap under a truncated title and
+   cost a whole line; the title alone still names the widget. */
+@container widget (max-width: 300px) {
+  .widget-head h2 { font-size: var(--fs-md); }
+  .widget-head .widget-link { display: none; }
+}
+
+/* Touch sizing is a device concern, not a container one — a 300px cell on a
+   desktop board doesn't need thumb-sized controls, a 300px phone screen does.
+   So this one stays a viewport media query: every standalone control inside a
+   widget clears the 44px minimum on phones. Inline links inside a sentence
+   (a player's name mid-row) are exempt under WCAG 2.5.8 and stay as they are. */
+@media (max-width: 40rem) {
+  .dash-admin-bar .btn,
+  .dash-grid .btn,
+  .dash-grid .widget-link,
+  .dash-grid .gchar-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-min);
+  }
+  .dash-grid .gchar-link { display: flex; }
+  .dash-grid .widget-link { padding-block: var(--space-2); }
 }
 
 /* Widgets that carry their own section header shouldn't double the top gap. */
 .dash-cell .section-header { margin-top: 0; }
 .dash-cell .kpi-row { margin-bottom: 0; }
-.dash-cell .char-strip { margin-bottom: 0; }
 
 /* --------------------------------------------------------------------------
    Section headers ("First Achievements", "Recent Activity", "Leaderboard")
@@ -75,50 +171,21 @@
   margin: 0;
 }
 
-.section-link {
-  font-size: var(--fs-sm);
-  color: var(--color-gold);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.section-link:hover {
-  text-decoration: underline;
-}
-
 /* --------------------------------------------------------------------------
-   Hero champion — avatar + body alignment
+   Shared with pages outside the dashboard — kept here because that's where
+   they were authored, not because the widgets own them.
    -------------------------------------------------------------------------- */
 
-.hero-champion-avatar {
-  flex-shrink: 0;
-  display: block;
-  line-height: 0;
-}
-
-.hero-champion-body {
-  flex: 1 1 auto;
-  min-width: 10rem;
-}
-
-.hero-empty {
-  margin-bottom: var(--space-6);
-}
-
-/* --------------------------------------------------------------------------
-   Trophy row — winner avatar row inside each first-achievement card
-   -------------------------------------------------------------------------- */
-
+/* Winner avatar row inside an achievement card (partials/achievement_card). */
 .trophy-winner {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   margin: var(--space-2) 0 var(--space-3);
 }
-
 .trophy-winner .trophy-holder {
   font-weight: 700;
 }
-
 .trophy-winner .trophy-holder a {
   text-decoration: none;
 }
@@ -126,92 +193,23 @@
   text-decoration: underline;
 }
 
-/* --------------------------------------------------------------------------
-   Recent Activity + Leaderboard widgets
-   -------------------------------------------------------------------------- */
-
+/* Plain activity list — the standalone activity feed and the achievement
+   detail page. The dashboard's activity WIDGET has its own tiered
+   presentation (.act) and no longer shares these. */
 .activity-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-
-/* Leaderboard widget lives in a narrow grid cell; give the table a floor width
-   so it scrolls inside .table-wrap on mobile instead of squishing the Medals
-   column into tall, ragged rows. */
-.dash-widget--leaderboard .standings { min-width: 26rem; }
-
 .activity-item {
   padding: var(--space-3) var(--space-2);
   border-bottom: 1px solid var(--color-border);
 }
 .activity-item:last-child { border-bottom: none; }
-
 .activity-item .member-avatar {
   vertical-align: middle;
   margin-right: var(--space-2);
 }
-
-/* KPI row directly under the champion hero */
-.kpi-row { margin-bottom: var(--space-6); }
-
-/* Guild progression trend — a compact sparkline card that sits in the right
-   rail directly under the League-progress donut (same width). Title, tiny
-   curve, caption stacked vertically. */
-.progression-card {
-  margin-top: var(--space-5);
-}
-.progression-svg {
-  display: block;
-  width: 100%;
-  height: 3rem;
-  margin: var(--space-2) 0;
-}
-.prog-line {
-  fill: none;
-  stroke: var(--color-gold);
-  stroke-width: 2;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-.prog-area { fill: rgba(201, 162, 74, 0.12); stroke: none; }
-.progression-meta { margin: 0; font-size: var(--fs-sm); }
-.progression-meta strong { color: var(--color-gold-bright); }
-
-/* Progress ring (right rail) — conic gradient donut, pure CSS */
-.progress-card {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-.progress-ring {
-  --p: 0%;
-  flex: 0 0 auto;
-  width: 7.5rem;
-  height: 7.5rem;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background:
-    radial-gradient(closest-side, var(--color-bg-card) 76%, transparent 77%),
-    conic-gradient(var(--color-gold) 0 var(--p), var(--color-border-strong) var(--p) 100%);
-}
-.progress-ring-value {
-  font-family: var(--font-display);
-  font-size: var(--fs-xl);
-  font-variant-numeric: tabular-nums;
-  color: var(--color-gold-bright);
-}
-.progress-legend-title {
-  margin: 0 0 var(--space-1);
-  font-family: var(--font-display);
-  font-variant: small-caps;
-  letter-spacing: 0.06em;
-  color: var(--color-gold-bright);
-}
-.progress-legend-meta { margin: 0; font-size: var(--fs-sm); color: var(--color-parchment-dim); }
-.progress-legend-meta strong { color: var(--color-parchment); }
-
 .activity-meta {
   margin: var(--space-1) 0 0;
   font-size: var(--fs-sm);

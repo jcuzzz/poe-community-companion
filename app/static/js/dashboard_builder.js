@@ -30,11 +30,16 @@
   var saving = false;
   function markDirty() { dirty = true; }
 
-  // Width presets (12-column grid). Any stored width not listed is added.
+  // Width presets (12-column grid). Each widget declares which of these it
+  // supports (registry `spans`/`min_w`), so the selector can't offer a span the
+  // widget can't render legibly. Values are the stored ones — never renumber.
   var WIDTHS = [
     [3, "Quarter"], [4, "Third"], [6, "Half"],
     [8, "Two-thirds"], [9, "Three-quarters"], [12, "Full width"]
   ];
+  function widthsFor(meta) {
+    return (meta.spans && meta.spans.length) ? meta.spans : WIDTHS;
+  }
 
   function present() {
     return Array.prototype.map.call(
@@ -47,6 +52,7 @@
     var meta = META[entry.type];
     if (!meta) return null;
     var w = entry.w || meta.default_w;
+    if (meta.min_w && w < meta.min_w) w = meta.min_w;
     var options = entry.options || {};
 
     var card = document.createElement("div");
@@ -121,7 +127,7 @@
     wLabel.textContent = "Width ";
     var wSel = document.createElement("select");
     wSel.className = "builder-w";
-    var widths = WIDTHS.slice();
+    var widths = widthsFor(meta).slice();
     if (!widths.some(function (p) { return p[0] === w; })) {
       widths.push([w, w + " / 12"]);
       widths.sort(function (a, b) { return a[0] - b[0]; });
@@ -182,11 +188,14 @@
     card.addEventListener("dragend", function () {
       dragging = null;
       card.classList.remove("is-dragging");
+      canvas.classList.remove("is-dropping");
+      markDirty();
     });
   }
   canvas.addEventListener("dragover", function (e) {
     e.preventDefault();
     if (!dragging) return;
+    canvas.classList.add("is-dropping");
     var after = afterElement(e.clientY, e.clientX);
     if (after == null) canvas.appendChild(dragging);
     else canvas.insertBefore(dragging, after);

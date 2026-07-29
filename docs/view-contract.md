@@ -13,14 +13,72 @@ Every page gets these from the `tracker.context_processors.league` processor:
 ## Pages
 
 ### `dashboard` — `tracker/dashboard.html`
+
+The dashboard is a **configurable widget board**, not a fixed page. The view
+computes one generously-sized `data` dict, then
+`dashboard_widgets.resolve_widgets(layout, data)` slices it per widget and the
+template renders a 12-column grid of `.dash-cell.dash-wN` cells. The template
+gets a single key:
+
 | key | value |
 |---|---|
-| `champion` | leaderboard row dict or `None` |
+| `widgets` | ordered list of render-ready widgets (below) |
+
+`data` keys consumed by the widget builders:
+
+| key | value |
+|---|---|
+| `champion` | leaderboard row dict or `None`, with a `character` snapshot attached |
 | `standings` | list of leaderboard rows (all players) |
 | `achievement_cards` | list of `achievement_standings()` dicts |
-| `recent_submissions` | last 10 visible submissions |
+| `recent_submissions` | up to 40 visible submissions |
 | `latest_first` | most recent approved submission holding a `first` award, or `None` |
-| `firsts` | approved submissions holding a `first` award, newest first (trophy cards) |
+| `firsts` | approved submissions holding a `first` award, newest first |
+| `kpis` | list of `{label, value}` |
+| `top_characters` | up to 24 `CharacterSnapshot`s, highest level first |
+| `progression` | pre-scaled SVG series dict, or `None` |
+
+Each resolved widget is `{type, label, template, card, w, options, ctx}`; the
+partial reads its data from `w.ctx` only.
+
+## Dashboard widget contract
+
+Every entry in `dashboard_widgets.WIDGET_TYPES` declares the following, and
+`contract_errors()` (exercised by `test_dashboard.WidgetContractTests`) fails the
+build if any of it is missing or inconsistent:
+
+| field | meaning |
+|---|---|
+| `spans` | column spans an admin may choose, drawn from `SPAN_PRESETS` (3/4/6/8/9/12 — stored values, never renumber) |
+| `min_w` | smallest span the widget stays legible at; stored spans below it snap up |
+| `default_w` | span it gets when added from the palette |
+| `tiers` | `{compact, standard, expanded}` → minimum **container** width in px |
+| `empty_state` | what it shows with no data |
+| `overflow` | `truncate` \| `scroll` \| `wrap` |
+| `option_defaults` / `option_max` | numeric knobs exposed in the builder |
+| `card` | wrap the widget in the shared `.card` panel |
+
+**Presentation tiers are selected by the width of the cell, via CSS container
+queries — never by span name and never by viewport.** A quarter-width cell is
+~306px on a 1600px board but ~226px on a 1024px one; the same span is two
+different design problems. Each widget declares its own thresholds because they
+differ by content (a table earns a column later than a portrait strip earns a
+tile), and the numbers are duplicated deliberately: once in `WIDGET_TYPES.tiers`
+and once as `@container widget (...)` in that widget's block in `dashboard.css`.
+Change them together.
+
+Container queries have no fallback here by design — the target is modern
+evergreen browsers, so there are no media-query duplicates of tier logic.
+Viewport media queries in `dashboard.css` cover only the shell (how many grid
+columns a span occupies once the sidebar collapses) and touch sizing.
+
+Ownership: the dashboard grid owns placement, span, ordering and edit mode; each
+widget owns how its own content presents at different widths. The renderer
+carries no per-widget branches.
+
+Shared chrome: `tracker/dashboard/_head.html` renders the standard widget header
+(title plus an optional action link) — widgets that name themselves include it
+rather than rolling their own.
 
 Leaderboard row dict: `player`, `points`, `rank`, `completions`, `firsts`,
 `lowest_played`, `fewest_kills`, `lowest_level`.
@@ -85,8 +143,16 @@ ordered by total award points desc then earliest `obtained_at`),
 `?played=<raw text>` as the user types, and echoes back the parsed value.
 
 ## Conventions
-- Money-free, dark parchment + gold theme. Styles in `app/static/css/app.css`
-  only; no CSS framework, no inline `style=` except player banner hue.
+- Dark theme only (the light theme was removed with the Allflame reskin). The
+  seasonal token layer keeps the same token *roles* as the original gold theme,
+  so components restyle without per-rule edits: `--color-parchment` is the
+  cream body text, `--color-gold*` the Allflame green accent,
+  `--color-parchment-dim` the muted supporting text, `--color-brass*` the
+  tarnished decorative detailing.
+- Hard edges: `--radius-*` are `0` per `docs/specs/ux-pass.md` Round 2. Don't
+  reintroduce rounded cards.
+- Styles live in `app/static/css/`, split per feature; no CSS framework, no
+  inline `style=` except player banner hue and the progress ring's `--p`.
 - HTMX is vendored at `app/static/js/htmx.min.js`, loaded in base.html.
 - Every mutating form posts with `{% csrf_token %}`.
 - Use `{{ submission.played_display }}` for played time, never raw seconds.
