@@ -506,7 +506,7 @@ class DashboardCharPanelTests(TestCase):
         resp = self.client.get(reverse("dashboard"))
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Guild characters")
-        self.assertContains(resp, "char-tile")
+        self.assertContains(resp, "gchar-link")
         body = resp.content.decode()
         # highest level appears before the lowest in the strip
         self.assertLess(body.index(">96<"), body.index(">80<"))
@@ -522,7 +522,7 @@ class DashboardCharPanelTests(TestCase):
         )
         self.client.login(username="viewer", password=PASSWORD)
         resp = self.client.get(reverse("dashboard"))
-        self.assertEqual(resp.content.decode().count('class="char-tile"'), 1)
+        self.assertEqual(resp.content.decode().count('class="gchar-link"'), 1)
 
 
 class GearModsTests(TestCase):

@@ -1,27 +1,40 @@
 {% load static %}
+{% comment %}
+Guild characters. One DOM, three presentations chosen by the CELL's width via
+@container in dashboard.css (.gchars-*):
+  compact  <360px   short character list — never a grid of postage stamps
+  standard 360px    portrait cards, player + class only
+  expanded >=700px  showcase cards: portrait, player, character, level,
+                    class/ascendancy and the build metadata we hold
+{% endcomment %}
+{% url 'roster' as all_characters_url %}
+{% include "tracker/dashboard/_head.html" with title="Guild characters" link_url=all_characters_url link_label="All characters" %}
 {% if w.ctx.top_characters %}
-  <div class="section-header">
-    <h2 class="flourish">Guild characters</h2>
-    <a class="section-link" href="{% url 'roster' %}">All characters &raquo;</a>
-  </div>
-  <div class="char-strip">
+  <ol class="gchars">
     {% for snap in w.ctx.top_characters %}
-      <a class="char-tile" href="{% url 'character_detail' snap.user.username %}"
-         title="{{ snap.user.name }} — {{ snap.display_class }} · Level {{ snap.level }}">
-        <span class="char-tile-icon">
-          {% if snap.portrait %}
-            <img class="char-tile-art" src="{% static snap.portrait %}" alt="" loading="lazy">
-          {% else %}
-            <span class="char-tile-crest" style="--hue: {{ snap.user.banner_hue|default:42 }};" aria-hidden="true">{{ snap.user.name|slice:":1"|upper }}</span>
-          {% endif %}
-          {% if snap.level %}<span class="char-tile-level">{{ snap.level }}</span>{% endif %}
-        </span>
-        <span class="char-tile-name">{{ snap.user.name }}</span>
-        {% if snap.display_class %}<span class="char-tile-class">{{ snap.display_class }}</span>{% endif %}
-      </a>
+      <li class="gchar">
+        <a class="gchar-link" href="{% url 'character_detail' snap.user.username %}">
+          <span class="gchar-media">
+            {% if snap.portrait %}
+              <img class="gchar-art" src="{% static snap.portrait %}" alt="" loading="lazy">
+            {% else %}
+              <span class="gchar-crest" style="--hue: {{ snap.user.banner_hue|default:42 }};" aria-hidden="true">{{ snap.user.name|slice:":1"|upper }}</span>
+            {% endif %}
+            {% if snap.level %}<span class="gchar-level">{{ snap.level }}</span>{% endif %}
+          </span>
+          <span class="gchar-body">
+            <span class="gchar-player">{{ snap.user.name }}</span>
+            {% if snap.character_name %}<span class="gchar-name">{{ snap.character_name }}</span>{% endif %}
+            {% if snap.display_class %}<span class="gchar-class">{{ snap.display_class }}</span>{% endif %}
+            <span class="gchar-meta">
+              {% if snap.level %}<span class="gchar-meta-level">Level {{ snap.level }}</span>{% endif %}
+              {% if snap.pob_url %}<span class="gchar-sync">auto-syncs</span>{% endif %}
+            </span>
+          </span>
+        </a>
+      </li>
     {% endfor %}
-  </div>
+  </ol>
 {% else %}
-  <div class="section-header"><h2 class="flourish">Guild characters</h2></div>
   <div class="empty-state">No characters linked yet &mdash; add a Path of Building or pobb.in link on your character page.</div>
 {% endif %}

@@ -357,3 +357,124 @@
 .hero-empty {
   margin-bottom: 0;
 }
+
+/* ==========================================================================
+   WIDGET: characters (Guild characters) — tiers by container width
+     compact   <360px   a short character list; a grid here would mean
+                        postage-stamp portraits, so we don't render one
+     standard  360px    portrait cards, player + class, level on the art
+     expanded  >=700px  showcase cards — taller portrait plus character name,
+                        level and the build metadata we hold
+   ========================================================================== */
+
+.gchars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.gchar-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+.gchar-link:hover {
+  border-color: var(--color-gold-dim);
+  background: rgba(255, 255, 255, 0.02);
+}
+.gchar-media {
+  position: relative;
+  flex: 0 0 auto;
+  width: 2.5rem;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border: 1px solid var(--color-gold-dim);
+  background: var(--color-bg);
+}
+.gchar-art { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+.gchar-crest {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: var(--fs-md); font-weight: 700;
+  color: hsl(var(--hue, 42) 70% 72%);
+  background: radial-gradient(circle at 50% 40%, hsl(var(--hue, 42) 40% 22%), var(--color-bg) 78%);
+}
+.gchar-level {
+  position: absolute; bottom: 0; right: 0; z-index: 2;
+  min-width: 1.15rem; padding: 0 3px;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--fs-xs);
+  color: var(--color-parchment); text-align: center;
+  background: rgba(2, 7, 7, 0.85);
+  border-left: 1px solid var(--color-gold-dim);
+  border-top: 1px solid var(--color-gold-dim);
+}
+.gchar-body { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-2); }
+.gchar-player {
+  font-weight: 600;
+  color: var(--color-gold-bright);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gchar-name,
+.gchar-class,
+.gchar-meta {
+  font-size: var(--fs-xs);
+  color: var(--color-parchment-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gchar-class { font-variant: small-caps; letter-spacing: 0.04em; }
+.gchar-sync { color: var(--color-gold); }
+
+/* compact — the list. Only the player, class and level survive; the level
+   moves out of the art corner into the row so the icon can stay small. */
+@container widget (max-width: 359px) {
+  .gchar-name,
+  .gchar-meta { display: none; }
+  .gchar-media { width: 2rem; }
+}
+
+/* standard — cards. The portrait becomes the subject; character name and the
+   metadata line stay out of it so the card doesn't get chatty at this size. */
+@container widget (min-width: 360px) {
+  .gchars {
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    gap: var(--space-3);
+  }
+  .gchar-link {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+    padding: 0;
+    border-color: var(--color-border);
+    background: var(--color-bg-card);
+  }
+  .gchar-link:hover { border-color: var(--color-gold); }
+  .gchar-media { width: 100%; aspect-ratio: 4 / 3; border: none; border-bottom: 1px solid var(--color-border); }
+  .gchar-level { font-size: var(--fs-sm); min-width: 1.5rem; }
+  .gchar-body { flex-direction: column; gap: 0; padding: 0 var(--space-3) var(--space-3); }
+  .gchar-player,
+  .gchar-name,
+  .gchar-class,
+  .gchar-meta { max-width: 100%; }
+  .gchar-name,
+  .gchar-meta { display: none; }
+}
+
+/* expanded — the showcase. Taller portraits, and the character name, level and
+   sync state come back because there's room to read them. */
+@container widget (min-width: 700px) {
+  .gchars { grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: var(--space-4); }
+  .gchar-level { font-size: var(--fs-md); min-width: 1.75rem; }
+  .gchar-name { display: block; color: var(--color-parchment); font-size: var(--fs-sm); }
+  .gchar-meta {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
+    padding-top: var(--space-1);
+    border-top: 1px solid var(--color-border);
+  }
+}
