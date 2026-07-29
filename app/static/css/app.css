@@ -76,7 +76,6 @@ body {
   background-image:
     radial-gradient(ellipse 120% 55% at 50% -8%, rgba(201, 162, 74, 0.08), transparent 60%),
     radial-gradient(ellipse 90% 60% at 50% 115%, rgba(0, 0, 0, 0.65), transparent 55%);
-  background-attachment: fixed;
   color: var(--color-parchment);
   font-family: var(--font-body);
   font-size: var(--fs-base);
@@ -1307,6 +1306,18 @@ html[data-season="allflame"] .brazier {
 /* Dark Allflame (default): abyssal teal glow above, deep vignette below. */
 html[data-season="allflame"] body {
   background-color: var(--color-bg);
+  background-image: none;
+}
+/* The layered field lives on a compositor-friendly fixed pseudo-element so it
+   stays put on scroll WITHOUT the per-frame repaint that background-attachment:
+   fixed forces (that caused visible scroll lag). */
+html[data-season="allflame"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--color-bg);
   background-image:
     linear-gradient(90deg, rgba(2, 7, 7, 0.20), rgba(2, 7, 7, 0.02) 45%, rgba(2, 7, 7, 0.32)),
     radial-gradient(ellipse 88% 58% at 72% 2%, rgba(42, 133, 112, 0.11), transparent 66%),
@@ -1315,7 +1326,6 @@ html[data-season="allflame"] body {
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
-  background-attachment: fixed;
 }
 
 /* Prominent warm gold glows authored as inline rgba (not tokens) retinted to
