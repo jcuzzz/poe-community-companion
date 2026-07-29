@@ -58,7 +58,6 @@
   color: var(--color-parchment-dim); line-height: 1.2;
   max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-html[data-theme="light"] .char-tile-name { color: #6e4c0c; }
 
 .char-back { margin-bottom: var(--space-3); font-size: var(--fs-sm); }
 .char-back a { color: var(--color-parchment-dim); text-decoration: none; }
@@ -143,7 +142,6 @@ html[data-theme="light"] .char-tile-name { color: #6e4c0c; }
 .gear-icon img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .gear-name { grid-area: name; align-self: end; font-weight: 600; overflow-wrap: anywhere; }
 .gear-base { grid-area: base; align-self: start; font-size: var(--fs-xs); color: var(--color-parchment-dim); }
-html[data-theme="light"] .gear-icon { background: radial-gradient(circle at 50% 35%, #efe6cf, #d9c393 90%); }
 
 /* Item mod tooltip (hover/focus) — shows the affixes parsed from the PoB text. */
 .gear-item--has-tip { cursor: help; }
@@ -176,8 +174,6 @@ html[data-theme="light"] .gear-icon { background: radial-gradient(circle at 50% 
 .gear-tip-mods li { color: #8aa7d8; padding: 1px 0; }
 .gear-tip-flag { margin: var(--space-2) 0 0; color: var(--color-crimson); font-weight: 600; }
 @media (max-width: 40rem) { .gear-tip { left: 0; top: 100%; } }
-html[data-theme="light"] .gear-tip { background: #fffdf7; }
-html[data-theme="light"] .gear-tip-mods li { color: #35507e; }
 .gear-extra { margin: var(--space-3) 0 0; font-size: var(--fs-sm); }
 
 /* PoE rarity colours (dark theme) */
@@ -275,25 +271,8 @@ html[data-theme="light"] .gear-tip-mods li { color: #35507e; }
 .tree-svg .t-nd  { fill: var(--color-gold-bright); }
 .tree-svg .t-not { fill: var(--color-gold-bright); stroke: #1a1408; stroke-width: 6; }
 .tree-svg .t-key { fill: #e8c76c; stroke: #1a1408; stroke-width: 10; }
-html[data-theme="light"] .tree-canvas { background: radial-gradient(ellipse at center, #efe6cf, #d9c393 85%); }
-html[data-theme="light"] .tree-svg .t-base { stroke: #cbbf9e; }
-html[data-theme="light"] .tree-svg .t-alloc { stroke: #8a6113; }
-html[data-theme="light"] .tree-svg .t-nd,
-html[data-theme="light"] .tree-svg .t-not { fill: #6e4c0c; }
-html[data-theme="light"] .tree-svg .t-key { fill: #8a6113; }
 
 .tree-points { margin: 0 0 var(--space-1); }
 .tree-points .value { font-family: var(--font-display); font-size: var(--fs-2xl); color: var(--color-gold-bright); }
 .tree-points .label { color: var(--color-parchment-dim); font-size: var(--fs-sm); }
 .char-tree .btn { margin-top: var(--space-3); }
-
-/* ---- Light theme: brighten rarity/element colours for contrast ---- */
-html[data-theme="light"] .gear-item--normal .gear-name { color: #4a4a4a; }
-html[data-theme="light"] .gear-item--magic .gear-name  { color: #3a3ac0; }
-html[data-theme="light"] .gear-item--rare .gear-name   { color: #8a6a10; }
-html[data-theme="light"] .gear-item--unique .gear-name { color: #9c5a1c; }
-html[data-theme="light"] .stat-lines--resistances .stat-line-row:nth-child(1) dd { color: #b23a2c; }
-html[data-theme="light"] .stat-lines--resistances .stat-line-row:nth-child(2) dd { color: #2c6a9c; }
-html[data-theme="light"] .stat-lines--resistances .stat-line-row:nth-child(3) dd { color: #8a6a10; }
-html[data-theme="light"] .stat-lines--resistances .stat-line-row:nth-child(4) dd { color: #7a3a9c; }
-html[data-theme="light"] .skill-group-tag { color: #1a1408; }

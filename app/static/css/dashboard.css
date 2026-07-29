@@ -216,14 +216,3 @@
   margin: var(--space-1) 0 0;
   font-size: var(--fs-sm);
 }
-
-/* --------------------------------------------------------------------------
-   Light theme — the site theme is driven by data-theme (a manual toggle), so
-   only override on that, NOT on the OS-level prefers-color-scheme (which would
-   dim links even when a dark-OS user is viewing the site in light theme, and
-   vice-versa). Darkened for legible contrast on the parchment background.
-   -------------------------------------------------------------------------- */
-:root[data-theme="light"] .section-link,
-html[data-theme="light"] .section-link {
-  color: #6e4c0c;
-}

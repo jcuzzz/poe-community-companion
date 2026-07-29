@@ -36,15 +36,6 @@
 .member-avatar--md { width: 3rem; height: 3rem; font-size: 1.25rem; }
 .member-avatar--lg { width: 4.5rem; height: 4.5rem; font-size: 1.9rem; }
 
-:root[data-theme="light"] .member-avatar {
-  color: #2a2114;
-  background: radial-gradient(
-    circle at 30% 25%,
-    hsl(var(--hue, 42) 55% 78%),
-    hsl(var(--hue, 42) 45% 60%)
-  );
-}
-
 /* Gold-ringed medallion that frames achievement art (or an emoji fallback).
    Circles are a sanctioned curve — the hard-edge rule is for panels, not seals. */
 .medallion {

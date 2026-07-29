@@ -1200,137 +1200,98 @@ input[type="radio"] {
 }
 
 /* ==========================================================================
-   Light theme
-   Overrides the dark parchment/gold palette when the toggle (in the footer,
-   see base.html) sets data-theme="light" on <html>. The dark theme above
-   remains the default and is untouched.
-
-   Token role notes: --color-parchment / --color-parchment-dim / --color-gold
-   are used as FOREGROUND (text) colours against a dark background in the
-   default theme, so here their values are inverted into dark, readable ink
-   tones suitable for a light background. --color-gold is darkened relative
-   to --color-gold-bright so gold body text/links/borders keep ~4.5:1
-   contrast; --color-gold-bright stays for large headings (3:1 is enough
-   there) and for "gold chip on dark text" combos like .skip-link.
+   Seasonal theme — "Curse of the Allflame"
+   A drowned/abyssal look: near-black teal water, a spectral teal-green
+   "Allflame" glow as the accent, and a warm ember core as the hot highlight.
+   Applied via data-season="allflame" on <html> (see base.html); layered over
+   the base tokens so it's a drop-in reskin — remove the attribute (and this
+   block) to return to parchment/gold next league. The accent keeps the same
+   token *roles* as gold, so every component reskins without per-rule edits.
+   Palette contrast-checked: body 14.8:1, links 8.5:1, headings 13.5:1 (dark).
    ========================================================================== */
 
-html[data-theme="light"] {
-  color-scheme: light;
+html[data-season="allflame"] {
+  color-scheme: dark;
 
-  /* Backgrounds: layered warm parchment, lightest for cards on top */
-  --color-bg: #f4ecd8;
-  --color-bg-raised: #efe6cf;
-  --color-bg-card: #fffdf7;
+  --color-bg: #0a1517;
+  --color-bg-raised: #0f2124;
+  --color-bg-card: #143034;
 
-  /* Text (roles inverted from dark theme — see note above) */
-  --color-parchment: #2a2015;      /* body text ink, ~14.8:1 on --color-bg */
-  --color-parchment-dim: #5c5138;  /* muted/secondary text, ~6.4:1 on --color-bg */
-  --color-gold: #8a6113;           /* links / gold body text, ~4.7:1 on --color-bg */
-  --color-gold-bright: #6e4c0c;    /* headings (larger type), ~7.4:1 on --color-bg */
-  --color-gold-dim: #cbb27f;       /* decorative borders/dividers, not text */
+  --color-parchment: #dce8e6;      /* body text, 14.8:1 on --color-bg */
+  --color-parchment-dim: #8fa6a4;  /* muted text, 7.2:1 */
+  --color-gold: #35c4a8;           /* flame accent — links/borders, 8.5:1 */
+  --color-gold-bright: #6ff2d4;    /* flame accent — headings/emphasis, 13.5:1 */
+  --color-gold-dim: #1e5b54;       /* subtle decorative borders */
 
-  --color-border: #d9c9a4;
-  --color-border-strong: #b9a274;
+  --color-border: #1c3438;
+  --color-border-strong: #2e5a5e;
 
-  --color-crimson: #8f2f2b;
-  --color-crimson-bg: #f7e0de;
-  --color-sage: #3f6b3a;
-  --color-sage-bg: #e3efe0;
-  --color-amber: #8a5a12;
-  --color-amber-bg: #f5e6c8;
-  --color-slate: #3f5b6e;
-  --color-slate-bg: #e2ecf1;
+  /* Ember core — the warm heart of the cold flame. Reused for the amber role. */
+  --color-ember: #ff8a3d;
+  --color-amber: #ff8a3d;
+  --color-amber-bg: #241206;
 
-  --focus-ring: #6e4c0c;
+  --focus-ring: #6ff2d4;
 
-  --shadow-card: 0 2px 8px rgba(90, 70, 30, 0.14);
-  --shadow-raised: 0 6px 20px rgba(90, 70, 30, 0.18);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-raised: 0 6px 20px rgba(0, 0, 0, 0.6);
 }
 
-html[data-theme="light"] body {
-  background-image:
-    radial-gradient(ellipse at top, rgba(138, 97, 19, 0.05), transparent 60%);
+/* Hardcoded warm gradients retinted from the (theme-adaptive) tokens, so these
+   surfaces follow whichever Allflame theme — dark or light — is active. */
+html[data-season="allflame"] .site-header,
+html[data-season="allflame"] .topbar,
+html[data-season="allflame"] .sidebar {
+  background: linear-gradient(180deg, var(--color-bg-raised), var(--color-bg) 80%);
 }
-
-/* .skip-link's background is --color-gold-bright; keep its text a near-black
-   ink (rather than the very dark brown above) so "dark text on gold chip"
-   stays high-contrast regardless of exactly how dark gold-bright is tuned. */
-html[data-theme="light"] .skip-link {
-  color: #1a1408;
-}
-
-/* Hardcoded dark gradients that don't derive from tokens and would otherwise
-   still render as near-black bars in light mode. */
-html[data-theme="light"] .site-header {
-  background: linear-gradient(180deg, #fffdf7, #f4ecd8);
-}
-html[data-theme="light"] .hero-champion {
+html[data-season="allflame"] .hero-champion {
   background:
-    radial-gradient(ellipse at top left, rgba(138, 97, 19, 0.10), transparent 55%),
-    linear-gradient(180deg, #fffdf7, #efe6cf);
+    radial-gradient(ellipse at top left, rgba(53, 196, 168, 0.16), transparent 55%),
+    linear-gradient(180deg, var(--color-bg-card), var(--color-bg-raised));
 }
-
-/* App-shell chrome: give the sidebar + topbar a light parchment surface in
-   light mode instead of the hardcoded dark gradients (which otherwise leave a
-   dark rail on a light page). Nav text already flips via the token overrides. */
-html[data-theme="light"] .sidebar {
-  background: linear-gradient(180deg, #fffdf7, #f1e7cf);
-  border-right-color: var(--color-border-strong);
-  box-shadow: inset -1px 0 0 rgba(138, 97, 19, 0.12);
+html[data-season="allflame"] .medal {
+  background: linear-gradient(180deg, var(--color-bg-raised), var(--color-bg-card));
 }
-html[data-theme="light"] .topbar {
-  background: linear-gradient(180deg, #fffdf7, #f4ecd8);
-  border-bottom-color: var(--color-border-strong);
-}
-/* The brazier glow reads as smoke on a light bg — soften it right down. */
-html[data-theme="light"] .brazier { opacity: 0.5; }
-
-/* Medal chips (.medal base) use a hardcoded dark gradient — in light mode that
-   rendered as black bars. Give them a parchment surface with dark-gold ink. */
-html[data-theme="light"] .medal {
-  background: linear-gradient(180deg, #f6edd6, #efe6cf);
-  border-color: var(--color-gold-dim);
-  color: #5a4712;
-}
-
-/* Achievement medallion seal — its radial is authored dark; on a light page a
-   softly lit gold seal reads better than a black disc. */
-html[data-theme="light"] .medallion {
-  background: radial-gradient(circle at 50% 35%, #fbf4df 0%, #ecdcb4 60%, #d9c393 100%);
+html[data-season="allflame"] .medallion {
+  background:
+    radial-gradient(circle at 50% 35%, #123a34 0%, #0f2a27 55%, #0a1517 100%);
   box-shadow:
     0 0 0 3px var(--color-bg),
-    0 0 0 4px rgba(138, 97, 19, 0.4),
-    inset 0 1px 3px rgba(120, 90, 30, 0.35);
+    0 0 0 4px rgba(53, 196, 168, 0.4),
+    inset 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+/* Trophy / first-place tiles carry a warm gold glow authored inline; retint it
+   to the spectral flame so they don't read as brown against the teal board. */
+html[data-season="allflame"] .first-tile {
+  background:
+    radial-gradient(circle at top right, rgba(111, 242, 212, 0.18), transparent 60%),
+    linear-gradient(160deg, var(--color-bg-card), var(--color-bg-raised) 60%);
+}
+html[data-season="allflame"] .stat-tile--first {
+  background:
+    radial-gradient(circle at top, rgba(111, 242, 212, 0.14), transparent 70%),
+    var(--color-bg-card);
 }
 
-/* .gallery-large img's letterbox background (#0c0a07) is left as-is: it's a
-   decorative backdrop behind object-fit:contain images, not UI chrome, and
-   matches photo/screenshot letterboxing conventions in either theme. */
+/* The brazier becomes the Allflame: a cold teal-green ghost-fire with a hot
+   ember core. */
+html[data-season="allflame"] .brazier {
+  background:
+    radial-gradient(ellipse 42% 92% at 50% 100%, rgba(53, 196, 168, 0.55), rgba(255, 138, 61, 0.22) 45%, transparent 70%),
+    radial-gradient(ellipse 22% 70% at 50% 100%, rgba(140, 255, 224, 0.85), transparent 65%);
+}
 
-/* ==========================================================================
-   Theme toggle button (footer)
-   ========================================================================== */
+/* Dark Allflame (default): abyssal teal glow above, deep vignette below. */
+html[data-season="allflame"] body {
+  background-image:
+    radial-gradient(ellipse 120% 55% at 50% -8%, rgba(53, 196, 168, 0.10), transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 115%, rgba(0, 0, 0, 0.6), transparent 55%);
+}
 
-.theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  background: var(--color-bg-raised);
-  color: var(--color-parchment-dim);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-1) var(--space-3);
-  font-family: var(--font-body);
-  font-size: var(--fs-xs);
-  line-height: 1.4;
-  cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
-}
-.theme-toggle:hover {
-  color: var(--color-gold);
-  border-color: var(--color-border-strong);
-}
-.theme-toggle:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
+/* Prominent warm gold glows authored as inline rgba (not tokens) retinted to
+   the spectral flame so they don't read as gold halos against the teal board. */
+html[data-season="allflame"] .prog-area { fill: rgba(53, 196, 168, 0.14); }
+html[data-season="allflame"] .brand-mark { box-shadow: 0 0 10px rgba(53, 196, 168, 0.45); }
+html[data-season="allflame"] .first-tile { box-shadow: 0 0 0 1px rgba(111, 242, 212, 0.18) inset, var(--shadow-raised); }
+html[data-season="allflame"] .medal-first { box-shadow: 0 0 0 1px rgba(111, 242, 212, 0.25) inset; }
+html[data-season="allflame"] .trophy-icon { filter: drop-shadow(0 0 6px rgba(111, 242, 212, 0.5)); }

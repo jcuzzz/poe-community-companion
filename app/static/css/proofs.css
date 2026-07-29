@@ -284,22 +284,3 @@
 .proof-add-slot {
   margin: 0 0 var(--space-4);
 }
-
-/* ==========================================================================
-   Light theme — additive overrides only. base.html sets data-theme="light"
-   on <html>; the dark rules above are the default and are untouched.
-
-   Deliberately NOT overridden: the #0c0a07 backgrounds on .proof-link /
-   .proof-link img / .proof-slot-preview-img are photo letterboxing behind
-   object-fit media and stay dark in both themes (matching app.css's
-   .gallery-large img). .proof-lightbox-backdrop's rgba(12,10,7,0.9) is a
-   modal scrim that dims the page in both themes.
-
-   The one fix: .proof-zoom-hint is a dark pill floating over the dark
-   letterboxed image, so the pill stays dark — but its text uses
-   var(--color-parchment), which flips to dark ink in light mode and would be
-   unreadable on the dark pill. Pin it to a light ink so it stays legible.
-   ========================================================================== */
-html[data-theme="light"] .proof-zoom-hint {
-  color: #f4ecd8;
-}
