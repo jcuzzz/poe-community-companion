@@ -596,3 +596,78 @@
   .tro-item:nth-child(n + 5) { display: grid; }
   .tro-item--open { display: grid; }
 }
+
+/* ==========================================================================
+   WIDGET: leaderboard — tiers by container width
+     compact   <340px   rank, player, points
+     standard  340px    + completions and abbreviated medal labels
+     expanded  >=720px  + full medal / efficiency labels (matches the registry)
+   Columns are dropped whole, never squeezed: the old behaviour gave the table
+   a 26rem floor and let it scroll sideways inside a quarter-width cell, which
+   is how the Medals column ended up clipped off the edge of the board.
+   ========================================================================== */
+
+/* Fixed layout below the expanded tier: a narrow cell must not be widened by a
+   header's min-content width ("Completions" alone is ~90px). Headers wrap
+   instead, and the table always fits the cell it was given. */
+.lb {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+.lb .lb-player { overflow-wrap: anywhere; }
+
+/* Narrow tiers show the abbreviated header but keep the full word in the
+   accessibility tree, so the column is still named for a screen reader. */
+.lb-h-full {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.lb .lb-rank { width: 2.75rem; }
+.lb .lb-points { width: 3.5rem; font-variant-numeric: tabular-nums; }
+.lb .lb-col-secondary { width: 4.5rem; }
+.lb .lb-col-medals { width: 3.5rem; }
+
+/* compact — rank, player, points. Completions and medals leave the table. */
+.lb-col-medals,
+.lb-col-secondary { display: none; }
+.lb-medal-full { display: none; }
+.lb .medal-row { display: none; }
+.lb-medal-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-parchment-dim);
+}
+
+/* standard — completions, plus the medals as a single count. Chips at this
+   width wrap into a tall ragged stack and push the table past the cell, which
+   is exactly the squeezing this widget is meant to avoid. */
+@container widget (min-width: 340px) {
+  .lb-col-secondary { display: table-cell; }
+  .lb-col-medals { display: table-cell; }
+}
+
+/* expanded — the count gives way to the medal chips, labels spelled out. */
+@container widget (min-width: 720px) {
+  .lb { table-layout: auto; }
+  .lb .lb-rank,
+  .lb .lb-points,
+  .lb .lb-col-secondary,
+  .lb .lb-col-medals { width: auto; }
+  .lb-h-full {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+  .lb-h-abbr { display: none; }
+  .lb-medal-count { display: none; }
+  .lb .medal-row { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+  .lb-medal-abbr { display: none; }
+  .lb-medal-full { display: inline; }
+  .lb .medal { font-size: var(--fs-sm); }
+}

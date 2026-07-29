@@ -1,5 +1,54 @@
-<div class="section-header">
-  <h2 class="flourish">Leaderboard</h2>
-  <a class="section-link" href="{% url 'leaderboard' %}">Full leaderboard &raquo;</a>
-</div>
-{% include "tracker/partials/leaderboard_table.html" with rows=w.ctx.standings %}
+{% comment %}
+Leaderboard. The dashboard widget owns its own table rather than reusing
+partials/leaderboard_table.html, because the full-page table has a different
+job: here whole columns are HIDDEN as the cell narrows, never compressed.
+Tiers, chosen by the CELL's width via @container in dashboard.css (.lb-*):
+  compact  <380px   rank, player, points
+  standard 340px    + completions and a medal COUNT
+  expanded >=720px  the count becomes the full medal and efficiency chips
+{% endcomment %}
+{% url 'leaderboard' as leaderboard_url %}
+{% include "tracker/dashboard/_head.html" with title="Leaderboard" link_url=leaderboard_url link_label="Full leaderboard" %}
+<table class="lb standings">
+  <caption class="u-visually-hidden">League standings</caption>
+  <thead>
+    <tr>
+      {% comment %}
+      Headers carry a short and a long label; the cell's width picks one. Single
+      long words ("Completions") would otherwise set the column's min-content
+      width and push the table out of a quarter-width cell.
+      {% endcomment %}
+      <th scope="col" class="lb-rank"><span class="lb-h-full">Rank</span><span class="lb-h-abbr" aria-hidden="true">#</span></th>
+      <th scope="col">Player</th>
+      <th scope="col" class="numeric">Points</th>
+      <th scope="col" class="numeric lb-col-secondary"><span class="lb-h-full">Completions</span><span class="lb-h-abbr" aria-hidden="true">Done</span></th>
+      <th scope="col" class="lb-col-medals"><span class="lb-h-full">Medals</span><span class="lb-h-abbr" aria-hidden="true">Med</span></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in w.ctx.standings %}
+      <tr {% if user == row.player %}class="is-self"{% endif %}>
+        <td class="lb-rank">{{ row.rank }}</td>
+        <td class="lb-player"><a href="{% url 'player_profile' row.player.username %}">{{ row.player.name }}</a></td>
+        <td class="numeric lb-points">{{ row.points }}</td>
+        <td class="numeric lb-col-secondary">{{ row.completions }}</td>
+        <td class="lb-col-medals">
+          {% with medals=row.firsts|add:row.lowest_played|add:row.fewest_kills|add:row.lowest_level %}
+            <span class="lb-medal-count">{% if medals %}{{ medals }}{% else %}&mdash;{% endif %}</span>
+          {% endwith %}
+          <div class="medal-row">
+            {% if row.firsts %}<span class="medal medal-first"><span class="lb-medal-full">First Overall</span><span class="lb-medal-abbr">1st</span> &times;{{ row.firsts }}</span>{% endif %}
+            {% if row.lowest_played %}<span class="medal medal-lowest_played"><span class="lb-medal-full">Lowest /played</span><span class="lb-medal-abbr">/played</span> &times;{{ row.lowest_played }}</span>{% endif %}
+            {% if row.fewest_kills %}<span class="medal medal-fewest_kills"><span class="lb-medal-full">Fewest Kills</span><span class="lb-medal-abbr">Kills</span> &times;{{ row.fewest_kills }}</span>{% endif %}
+            {% if row.lowest_level %}<span class="medal medal-lowest_level"><span class="lb-medal-full">Lowest Level</span><span class="lb-medal-abbr">Level</span> &times;{{ row.lowest_level }}</span>{% endif %}
+            {% if not row.firsts and not row.lowest_played and not row.fewest_kills and not row.lowest_level %}
+              <span class="text-muted">&mdash;</span>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" class="empty-state">No players yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
