@@ -1,23 +1,47 @@
 {% load static %}
-<div class="section-header">
-  <h2 class="flourish">First Achievements</h2>
-  <a class="section-link" href="{% url 'achievement_list' %}">View all achievements &raquo;</a>
-</div>
-{% if w.ctx.firsts %}
-  <div class="trophy-row">
+{% comment %}
+First achievements. One DOM, three presentations chosen by the CELL's width via
+@container in dashboard.css (.tro-*):
+  compact  <400px   icon / name / winner list
+  standard 400px    fewer, less detailed trophy cards
+  expanded >=760px  every category, unclaimed ones included
+The proof link is present in every tier — it's the whole point of a first — and
+unclaimed categories are hidden with display:none, so they leave the a11y tree
+together with the visual layout rather than being announced but invisible.
+{% endcomment %}
+{% url 'achievement_list' as achievements_url %}
+{% include "tracker/dashboard/_head.html" with title="First Achievements" link_url=achievements_url link_label="View all achievements" %}
+{% if w.ctx.firsts or w.ctx.unclaimed %}
+  <ul class="tro">
     {% for sub in w.ctx.firsts %}
-      <div class="first-tile">
+      <li class="tro-item first-tile">
         <span class="trophy-ribbon" aria-hidden="true">First</span>
-        <span class="trophy-icon">{% include "tracker/partials/achievement_icon.html" with achievement=sub.achievement size="lg" %}</span>
-        <p class="trophy-label">{{ sub.achievement.label }}</p>
-        <div class="trophy-winner">
-          {% include "tracker/partials/member_avatar.html" with member=sub.user size="sm" %}
-          <span class="trophy-holder"><a href="{% url 'player_profile' sub.user.username %}">{{ sub.user.name }}</a></span>
+        <span class="tro-icon">{% include "tracker/partials/achievement_icon.html" with achievement=sub.achievement size="lg" %}</span>
+        <div class="tro-body">
+          <p class="tro-label">{{ sub.achievement.label }}</p>
+          <div class="tro-winner">
+            {% include "tracker/partials/member_avatar.html" with member=sub.user size="sm" %}
+            <span class="trophy-holder"><a href="{% url 'player_profile' sub.user.username %}">{{ sub.user.name }}</a></span>
+          </div>
         </div>
-        <a class="btn btn-sm" href="{% url 'submission_detail' sub.pk %}">View proof</a>
-      </div>
+        <a class="btn btn-sm tro-proof" href="{% url 'submission_detail' sub.pk %}">
+          View proof<span class="u-visually-hidden"> for {{ sub.achievement.label }}</span>
+        </a>
+      </li>
     {% endfor %}
-  </div>
+    {% for achievement in w.ctx.unclaimed %}
+      <li class="tro-item tro-item--open">
+        <span class="tro-icon">{% include "tracker/partials/achievement_icon.html" with achievement=achievement size="lg" %}</span>
+        <div class="tro-body">
+          <p class="tro-label">{{ achievement.label }}</p>
+          <p class="tro-open">Unclaimed</p>
+        </div>
+        <a class="btn btn-sm tro-proof" href="{% url 'achievement_detail' achievement.slug %}">
+          Claim it<span class="u-visually-hidden">: {{ achievement.label }}</span>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
 {% else %}
   <div class="empty-state">
     <span class="icon" aria-hidden="true">&#10024;</span>

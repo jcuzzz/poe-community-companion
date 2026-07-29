@@ -478,3 +478,121 @@
     border-top: 1px solid var(--color-border);
   }
 }
+
+/* ==========================================================================
+   WIDGET: firsts (First Achievements) — tiers by container width
+     compact   <400px   icon / name / winner list, proof link kept
+     standard  400px    trophy cards, fewer of them and less secondary detail
+     expanded  >=720px  every category — the unclaimed ones included
+   The item cap at the narrow tiers is deliberate truncation (registry
+   overflow: "truncate"): a quarter-width cell showing the admin's full count
+   would be a mile-long column next to a two-line neighbour.
+   ========================================================================== */
+
+.tro {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.tro-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  min-height: 0;
+}
+.tro-icon { display: inline-flex; }
+.tro-body { min-width: 0; }
+.tro-label {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-base);
+  line-height: 1.2;
+  color: var(--color-gold-bright);
+}
+.tro-winner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  font-size: var(--fs-sm);
+}
+.tro-open {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-parchment-dim);
+}
+.tro-proof { white-space: nowrap; }
+
+/* Unclaimed categories are expanded-tier only — a quiet, unframed variant so
+   the claimed trophies stay the loud thing on the board. */
+.tro-item--open {
+  display: none;
+  background: transparent;
+  border: 1px dashed var(--color-border-strong);
+  box-shadow: none;
+}
+.tro-item--open .tro-label { color: var(--color-parchment-dim); }
+.tro-item--open .tro-icon { opacity: 0.5; filter: grayscale(1); }
+
+/* compact — flat rows, no card skin and no corner ribbon (it needs a card
+   corner to sit in). Icon, name, winner, proof. */
+@container widget (max-width: 399px) {
+  .tro-item {
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: none;
+    padding: var(--space-2) 0;
+  }
+  .tro-item:last-child { border-bottom: none; }
+  .tro-item .trophy-ribbon { display: none; }
+  /* The lg medallion and its art are both sized in crests.css; scale the seal
+     AND its contents or the art overflows the row. */
+  .tro-item .medallion { width: 2.5rem; height: 2.5rem; }
+  .tro-item .achv-art { width: 1.6rem; height: 1.6rem; }
+  .tro-item .achievement-icon { font-size: 1.25rem; }
+  .tro-label { font-size: var(--fs-sm); }
+  .tro-item { gap: var(--space-2) var(--space-3); padding: var(--space-3) 0; }
+  .tro-winner .member-avatar { display: none; }
+  .tro-proof {
+    font-size: var(--fs-xs);
+    padding: var(--space-1) var(--space-2);
+  }
+  .tro-item:nth-child(n + 6) { display: none; }
+}
+
+/* standard — cards. Fewer of them, and the winner avatar drops out so each one
+   carries less secondary weight than at full width. */
+@container widget (min-width: 400px) {
+  .tro { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: var(--space-4); }
+  .tro-item {
+    grid-template-columns: 1fr;
+    align-items: start;
+    align-content: start;
+    gap: var(--space-2);
+    overflow: hidden;
+    padding: var(--space-4);
+    padding-right: 2.5rem; /* clear the corner ribbon */
+    min-height: 9rem;
+  }
+  .tro-proof { justify-self: start; margin-top: auto; }
+  .tro-winner .member-avatar { display: none; }
+  .tro-item:nth-child(n + 5) { display: none; }
+}
+
+/* expanded — the full board: every claimed trophy, the winner's avatar back,
+   and the categories still up for grabs. */
+@container widget (min-width: 720px) {
+  .tro { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
+  .tro-label { font-size: var(--fs-md); }
+  .tro-winner .member-avatar { display: inline-flex; }
+  .tro-item:nth-child(n + 5) { display: grid; }
+  .tro-item--open { display: grid; }
+}
