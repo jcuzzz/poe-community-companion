@@ -214,3 +214,146 @@
   margin: var(--space-1) 0 0;
   font-size: var(--fs-sm);
 }
+
+/* ==========================================================================
+   WIDGET: champion — tiers by container width
+     compact   <360px   portrait, name, crown, points
+     standard  360px    portrait, name, primary statistics
+     expanded  >=820px  hero banner: portrait, identity, statistics, chasing
+                        pack and league clock filling the full width
+   ========================================================================== */
+
+.champ {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "portrait identity"
+    "stats    stats";
+  align-items: center;
+  gap: var(--space-4) var(--space-5);
+  margin-bottom: 0;
+  padding: var(--space-5);
+}
+.champ-portrait { grid-area: portrait; }
+.champ-identity { grid-area: identity; }
+.champ-stats { grid-area: stats; }
+.champ-aside { grid-area: aside; }
+.champ-portrait {
+  position: relative;
+  display: block;
+  line-height: 0;
+  flex-shrink: 0;
+}
+.champ-crown {
+  position: absolute;
+  top: calc(var(--space-2) * -1);
+  left: calc(var(--space-2) * -1);
+  font-size: var(--fs-md);
+  line-height: 1;
+  color: var(--color-gold-bright);
+  filter: drop-shadow(0 0 6px rgba(130, 228, 201, 0.5));
+}
+.champ-identity { min-width: 0; }
+.champ-identity h2 { margin: 0; overflow-wrap: anywhere; }
+.champ-character {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--color-parchment-dim);
+}
+
+.champ-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin: 0;
+}
+.champ-stat dt {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-parchment-dim);
+}
+.champ-stat dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--color-parchment);
+}
+.champ-stat--lead dd { color: var(--color-gold-bright); font-size: var(--fs-2xl); }
+
+.champ-aside { display: none; }
+.champ-aside-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-parchment-dim);
+}
+.champ-chase {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--fs-sm);
+}
+.champ-chase li {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr auto;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.champ-chase li:last-child { border-bottom: none; }
+.champ-chase-rank { color: var(--color-parchment-dim); font-variant-numeric: tabular-nums; }
+.champ-chase li a { text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.champ-chase-points {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-parchment);
+}
+.champ-clock {
+  margin: var(--space-3) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--color-parchment-dim);
+}
+.champ-clock strong { color: var(--color-gold); }
+
+/* compact — only identity and the headline number survive. */
+@container widget (max-width: 359px) {
+  .champ { padding: var(--space-4); gap: var(--space-3) var(--space-4); }
+  .champ-character { display: none; }
+  .champ-stats { gap: var(--space-4); }
+  .champ-stat:not(.champ-stat--lead) { display: none; }
+  .champ-stat--lead dd { font-size: var(--fs-xl); }
+  .champ .class-portrait--lg { width: 3.25rem; height: 3.25rem; }
+}
+
+/* expanded — the banner. Statistics move up beside the identity and the aside
+   claims the right-hand third, so full width carries content instead of air. */
+@container widget (min-width: 820px) {
+  .champ {
+    grid-template-columns: auto minmax(12rem, 1fr) minmax(14rem, 20rem);
+    grid-template-areas:
+      "portrait identity aside"
+      "portrait stats    aside";
+    align-content: center;
+    gap: var(--space-3) var(--space-6);
+    padding: var(--space-6);
+  }
+  .champ-identity { align-self: end; }
+  .champ-stats { align-self: start; }
+  .champ-aside {
+    display: block;
+    align-self: center;
+    padding-left: var(--space-5);
+    border-left: 1px solid var(--color-border);
+  }
+  .champ .class-portrait--lg { width: 7rem; height: 7rem; }
+  .champ-crown { font-size: var(--fs-xl); }
+  .champ-stat--lead dd { font-size: var(--fs-2xl); }
+}
+
+.hero-empty {
+  margin-bottom: 0;
+}

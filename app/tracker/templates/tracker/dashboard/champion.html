@@ -1,8 +1,14 @@
 {% load static %}
+{% comment %}
+League champion. One DOM for all three presentations — which parts show is
+decided by the CELL's width via @container in dashboard.css (.champ-*), so
+nothing here branches on span. Tiers: compact <360px, standard 360-819px,
+expanded >=820px (hero banner).
+{% endcomment %}
 {% with champion=w.ctx.champion %}
   {% if champion %}
-    <section class="hero-champion hero-champion--crowned" aria-label="League champion">
-      <a class="hero-champion-avatar" href="{% url 'player_profile' champion.player.username %}">
+    <section class="champ hero-champion hero-champion--crowned" aria-label="League champion">
+      <a class="champ-portrait" href="{% url 'player_profile' champion.player.username %}">
         {% if champion.character.portrait %}
           <span class="class-portrait class-portrait--lg" title="{{ champion.character.display_class }}">
             <img class="{% if champion.character.portrait_is_avatar %}is-avatar{% endif %}" src="{% static champion.character.portrait %}" alt="{{ champion.character.display_class }}">
@@ -10,20 +16,61 @@
         {% else %}
           {% include "tracker/partials/member_avatar.html" with member=champion.player size="lg" %}
         {% endif %}
+        <span class="champ-crown" aria-hidden="true">&#9819;</span>
       </a>
-      <div class="hero-champion-body">
+
+      <div class="champ-identity">
         <span class="champion-eyebrow">League Champion</span>
         <h2><a href="{% url 'player_profile' champion.player.username %}">{{ champion.player.name }}</a></h2>
-        <p class="subtitle">
-          <strong>{{ champion.points }}</strong> points
-          &middot; {{ champion.firsts }} first{{ champion.firsts|pluralize }}
-          &middot; {{ champion.completions }} completion{{ champion.completions|pluralize }}
-        </p>
+        {% if champion.character %}
+          <p class="champ-character">
+            {% if champion.character.character_name %}{{ champion.character.character_name }}{% endif %}
+            {% if champion.character.display_class %}<span class="champ-sep" aria-hidden="true">&middot;</span> {{ champion.character.display_class }}{% endif %}
+            {% if champion.character.level %}<span class="champ-sep" aria-hidden="true">&middot;</span> Level {{ champion.character.level }}{% endif %}
+          </p>
+        {% endif %}
+      </div>
+
+      <dl class="champ-stats">
+        <div class="champ-stat champ-stat--lead">
+          <dt>Points</dt><dd>{{ champion.points }}</dd>
+        </div>
+        <div class="champ-stat">
+          <dt>First{{ champion.firsts|pluralize }}</dt><dd>{{ champion.firsts }}</dd>
+        </div>
+        <div class="champ-stat">
+          <dt>Completion{{ champion.completions|pluralize }}</dt><dd>{{ champion.completions }}</dd>
+        </div>
+      </dl>
+
+      {% comment %}
+      Expanded tier only: the chasing pack and the league clock, so a full-width
+      champion reads as a banner rather than a stretched card with a wide dead
+      zone to the right of the name.
+      {% endcomment %}
+      <div class="champ-aside">
+        {% if w.ctx.runners_up %}
+          <p class="champ-aside-title">Chasing</p>
+          <ol class="champ-chase">
+            {% for row in w.ctx.runners_up %}
+              <li>
+                <span class="champ-chase-rank">{{ row.rank }}</span>
+                <a href="{% url 'player_profile' row.player.username %}">{{ row.player.name }}</a>
+                <span class="champ-chase-points">{{ row.points }}</span>
+              </li>
+            {% endfor %}
+          </ol>
+        {% endif %}
+        {% if league_days_remaining %}
+          <p class="champ-clock">
+            <strong>{{ league_days_remaining }}</strong> day{{ league_days_remaining|pluralize }} left
+          </p>
+        {% endif %}
       </div>
     </section>
   {% else %}
     <div class="empty-state hero-empty">
-      <span class="icon" aria-hidden="true">&#127942;</span>
+      <span class="icon" aria-hidden="true">&#9819;</span>
       No champion crowned yet &mdash; be the first to get an achievement approved and claim the throne.
     </div>
   {% endif %}
