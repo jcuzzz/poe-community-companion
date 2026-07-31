@@ -10,4 +10,5 @@ db.sqlite3
 .pytest_cache/
 app/staticfiles/
 Assets/Concept/
+Assets/references/
 .playwright-mcp/
