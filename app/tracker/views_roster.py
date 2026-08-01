@@ -274,3 +274,33 @@ def poe_disconnect(request: HttpRequest) -> HttpResponse:
     PoeConnection.objects.filter(user=request.user).delete()
     messages.success(request, "PoE account disconnected.")
     return redirect("account_settings")
+
+
+def ladder_board(request: HttpRequest) -> HttpResponse:
+    """Read-only board of characters auto-tracked from the public GGG ladder for
+    the viewing league. No login required — this is the spectator surface and the
+    low-friction half of the hybrid (ladder gives progress; OAuth/PoB gives build
+    detail on the character page). See docs/design/ladder-tracking.md."""
+    from .models import LadderCharacter
+
+    viewing = get_viewing_league(request)
+    chars = list(LadderCharacter.objects.filter(league=viewing)) if viewing else []
+
+    class_filter = request.GET.get("class", "").strip()
+    classes = sorted({c.class_name for c in chars if c.class_name})
+    if class_filter:
+        chars = [c for c in chars if c.class_name == class_filter]
+
+    alive = sum(1 for c in chars if not c.dead)
+    return render(
+        request,
+        "tracker/ladder.html",
+        {
+            "characters": chars,
+            "classes": classes,
+            "class_filter": class_filter,
+            "alive_count": alive,
+            "dead_count": len(chars) - alive,
+            "ladder_configured": bool(viewing and viewing.ggg_id),
+        },
+    )

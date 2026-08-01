@@ -25,6 +25,7 @@ from .models import (
     ContestVote,
     DashboardConfig,
     InviteCode,
+    LadderCharacter,
     League,
     MemberProfile,
     ProofImage,
@@ -33,6 +34,15 @@ from .models import (
     SubmissionReaction,
     User,
 )
+
+
+@admin.register(LadderCharacter)
+class LadderCharacterAdmin(admin.ModelAdmin):
+    list_display = ("rank", "character_name", "level", "class_name", "account_name",
+                    "dead", "is_public", "league", "last_seen")
+    list_filter = ("league", "dead", "is_public", "class_name")
+    search_fields = ("character_name", "account_name")
+    ordering = ("league", "rank")
 
 
 @admin.register(DashboardConfig)

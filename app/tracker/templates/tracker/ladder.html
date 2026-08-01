@@ -1,0 +1,70 @@
+{% extends "tracker/base.html" %}
+{% block title %}Ladder &middot; {{ brand_name }}{% endblock %}
+{% block content %}
+  <section class="card">
+    <div class="section-header">
+      <h1 class="flourish">Live ladder</h1>
+    </div>
+    <p class="text-muted">
+      Auto-tracked from Path of Exile's public ladder for
+      <strong>{{ viewing_league.name|default:"this league" }}</strong>
+      &mdash; no account needed. Build detail (gear &amp; tree) comes from a
+      connected PoE account or a Path of Building import on each character page.
+    </p>
+
+    {% if characters %}
+      <p class="char-subline">
+        <span class="pill pill-league">{{ characters|length }} tracked</span>
+        <span class="pill">{{ alive_count }} alive</span>
+        {% if dead_count %}<span class="pill pill-class">{{ dead_count }} dead</span>{% endif %}
+      </p>
+
+      {% if classes %}
+        <form method="get" class="league-select" style="margin:.5rem 0 1rem">
+          <label class="u-visually-hidden" for="class-filter">Filter by class</label>
+          <select id="class-filter" name="class" onchange="this.form.submit()">
+            <option value="">All classes</option>
+            {% for c in classes %}
+              <option value="{{ c }}"{% if c == class_filter %} selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      {% endif %}
+
+      <div class="board-scroll" style="overflow-x:auto">
+        <table class="standings">
+          <thead>
+            <tr><th>#</th><th>Character</th><th>Lvl</th><th>Class</th><th>Account</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {% for c in characters %}
+              <tr{% if c.dead %} class="is-dead"{% endif %}>
+                <td>{{ c.rank|default:"&ndash;" }}</td>
+                <td><strong>{{ c.character_name }}</strong></td>
+                <td>{{ c.level }}</td>
+                <td>{{ c.class_name|default:"&ndash;" }}</td>
+                <td class="text-muted">{{ c.account_name|default:"&ndash;" }}</td>
+                <td>
+                  {% if c.dead %}<span class="pill pill-class">Dead</span>
+                  {% else %}<span class="pill pill-league">Alive</span>{% endif %}
+                  {% if c.is_public %}<span class="pill" title="Profile is public">public</span>{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        {% if not ladder_configured %}
+          No ladder is configured for this league yet. An admin can set the
+          league's <strong>GGG id</strong> (the exact Path of Exile league name)
+          in the admin, then run <code>manage.py poll_ladder</code> to populate it.
+        {% else %}
+          No characters tracked yet &mdash; run <code>manage.py poll_ladder</code>
+          to pull the latest ladder.
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

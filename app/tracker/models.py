@@ -760,3 +760,59 @@ class PoeConnection(models.Model):
             return True
         # Treat as expired a minute early to avoid racing the boundary.
         return timezone.now() >= (self.token_expires_at - timedelta(seconds=60))
+
+
+class LadderCharacter(models.Model):
+    """A character auto-tracked from GGG's public ladder API for a league.
+
+    Unlike CharacterSnapshot (opt-in, per registered member, carries full
+    build data), this is the low-friction half of the hybrid: anyone on the
+    league ladder is tracked here from public data alone — level, class, rank,
+    alive/dead — with no login or OAuth. Build detail (gear/tree) still comes
+    from OAuth or a PoB paste on the character page. Refreshed by
+    `manage.py poll_ladder`. See docs/design/ladder-tracking.md.
+    """
+
+    league = models.ForeignKey(
+        League, on_delete=models.CASCADE, related_name="ladder_characters"
+    )
+    # Character names are globally unique in PoE, so (league, character_name)
+    # is a safe natural key for upserts.
+    character_name = models.CharField(max_length=80)
+    character_id = models.CharField(max_length=80, blank=True)
+    account_name = models.CharField(max_length=80, blank=True)
+    level = models.PositiveSmallIntegerField(default=1)
+    # The ladder reports the ascendancy name once ascended, else the base class.
+    class_name = models.CharField(max_length=40, blank=True)
+    rank = models.PositiveIntegerField(default=0)
+    experience = models.BigIntegerField(default=0)
+    dead = models.BooleanField(default=False)
+    # Whether the account's profile is public — i.e. its build *could* be
+    # fetched. False means OAuth/PoB is the only path to build detail.
+    is_public = models.BooleanField(default=False)
+    # Linked to a registered member when we can match the account/character.
+    member = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ladder_characters",
+    )
+    first_seen = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["rank", "-level", "character_name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["league", "character_name"],
+                name="unique_ladder_character_per_league",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["league", "rank"]),
+            models.Index(fields=["league", "-level"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.character_name} (L{self.level} {self.class_name}) rank {self.rank}"

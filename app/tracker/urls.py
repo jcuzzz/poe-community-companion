@@ -20,6 +20,7 @@ urlpatterns = [
     path("account/poe/disconnect/", views_roster.poe_disconnect, name="poe_disconnect"),
     # Legacy /roster/ index → /characters/ (kept so old links/bookmarks resolve).
     path("roster/", RedirectView.as_view(pattern_name="roster", permanent=True)),
+    path("ladder/", views_roster.ladder_board, name="ladder_board"),
     path("activity/", views.activity_feed, name="activity_feed"),
     path("achievements/", views.achievement_list, name="achievement_list"),
     path("achievements/<slug:slug>/", views.achievement_detail, name="achievement_detail"),
