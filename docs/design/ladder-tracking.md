@@ -40,9 +40,14 @@ league's id) in the admin, then:
 Run it on a schedule (cron / systemd timer) during an event for a live board.
 Honour the rate limit — a few-minute cadence is plenty.
 
+## Member linking (done)
+`poll_ladder` calls `poe_ladder.link_members(league)` after upserting, matching
+each `LadderCharacter` to a registered member by (1) OAuth PoE account, else
+(2) character name (snapshot or registered Character). The character page shows a
+live "Live ladder" strip (rank/level/class/alive-dead) beside the opt-in build
+detail, and ladder-board rows link through to the member's page.
+
 ## Not yet built (follow-ups)
-- Link `LadderCharacter` → registered `User`/`CharacterSnapshot` (match by account
-  or character name) so the character page shows ladder progress + build together.
 - Auto-complete ladder-derivable achievements (level milestones, HC death).
 - Cache the spectator board for large-event view load.
 - Scheduled polling (management command is ready; needs a timer).
