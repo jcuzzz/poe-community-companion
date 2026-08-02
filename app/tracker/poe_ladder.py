@@ -87,6 +87,47 @@ def normalize_entry(raw: dict) -> dict:
     }
 
 
+def link_members(league) -> int:
+    """Match this league's LadderCharacter rows to registered members and set
+    their `member` FK. Two signals, strongest first:
+
+      1. PoE account — a member's OAuth PoeConnection.account_name equals the
+         ladder entry's account (links every character on that account).
+      2. Character name — a member has a CharacterSnapshot or a registered
+         Character with the same (globally unique) character name.
+
+    Returns the number of rows newly linked. Idempotent.
+    """
+    from .models import Character, CharacterSnapshot, LadderCharacter, PoeConnection
+
+    # account name -> user id (account is global, not per-league)
+    by_account = {
+        acc: uid
+        for uid, acc in PoeConnection.objects.exclude(account_name="").values_list(
+            "user_id", "account_name"
+        )
+    }
+    # character name -> user id (snapshots for this league + registered names)
+    by_char: dict[str, int] = {}
+    for uid, name in CharacterSnapshot.objects.filter(league=league).exclude(
+        character_name=""
+    ).values_list("user_id", "character_name"):
+        by_char.setdefault(name, uid)
+    for uid, name in Character.objects.exclude(character_name="").values_list(
+        "user_id", "character_name"
+    ):
+        by_char.setdefault(name, uid)
+
+    linked = 0
+    for lc in LadderCharacter.objects.filter(league=league):
+        uid = by_account.get(lc.account_name) or by_char.get(lc.character_name)
+        if uid and lc.member_id != uid:
+            lc.member_id = uid
+            lc.save(update_fields=["member"])
+            linked += 1
+    return linked
+
+
 def iter_entries(league_id: str, max_entries: int | None = None, pause: float | None = None):
     """Yield normalized ladder entries, paging until the ladder is exhausted
     or ``max_entries`` is reached. Sleeps ``pause`` seconds between pages to

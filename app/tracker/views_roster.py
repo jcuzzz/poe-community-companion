@@ -152,6 +152,19 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
         except Exception:  # noqa: BLE001 - a viewer-facing page must never 500 on stored data
             parse_error = "Couldn't read the stored build."
 
+    # Live ladder standing (auto-tracked, no auth) for this member in the
+    # viewing league — the low-friction half of the hybrid, shown alongside the
+    # opt-in build detail above.
+    from .models import LadderCharacter
+
+    ladder_standing = None
+    if viewing:
+        ladder_standing = (
+            LadderCharacter.objects.filter(league=viewing, member=member)
+            .order_by("-level")
+            .first()
+        )
+
     return render(
         request,
         "tracker/character_detail.html",
@@ -164,6 +177,7 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
             "is_owner": is_owner,
             "pob_form": pob_form,
             "viewing_league": viewing,
+            "ladder_standing": ladder_standing,
             "can_import": is_owner and active is not None and viewing == active,
             "poe_oauth_enabled": _poe_oauth_enabled(),
             "poe_connected": bool(getattr(member, "poe_connection", None)),
@@ -284,7 +298,11 @@ def ladder_board(request: HttpRequest) -> HttpResponse:
     from .models import LadderCharacter
 
     viewing = get_viewing_league(request)
-    chars = list(LadderCharacter.objects.filter(league=viewing)) if viewing else []
+    chars = (
+        list(LadderCharacter.objects.filter(league=viewing).select_related("member"))
+        if viewing
+        else []
+    )
 
     class_filter = request.GET.get("class", "").strip()
     classes = sorted({c.class_name for c in chars if c.class_name})

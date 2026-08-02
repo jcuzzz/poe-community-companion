@@ -73,6 +73,21 @@
     {% endif %}
   </section>
 
+  {% if ladder_standing %}
+    <section class="card ladder-standing">
+      <p class="char-subline">
+        <span class="char-eyebrow">Live ladder &middot; {{ ladder_standing.league.name }}</span>
+      </p>
+      <p class="char-subline">
+        {% if ladder_standing.rank %}<span class="pill pill-league">Rank {{ ladder_standing.rank }}</span>{% endif %}
+        <span class="pill">Level {{ ladder_standing.level }}</span>
+        {% if ladder_standing.class_name %}<span class="pill pill-class">{{ ladder_standing.class_name }}</span>{% endif %}
+        {% if ladder_standing.dead %}<span class="pill pill-class">Dead</span>{% else %}<span class="pill pill-league">Alive</span>{% endif %}
+      </p>
+      <p class="text-muted">Auto-tracked from the public ladder &middot; updated {{ ladder_standing.last_seen|timesince }} ago.</p>
+    </section>
+  {% endif %}
+
   {% if parse_error %}
     <div class="messages"><li class="warning">Couldn't read the stored build: {{ parse_error }}</li></div>
   {% endif %}

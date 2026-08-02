@@ -113,3 +113,65 @@ class PollLadderCommandTests(TestCase):
         League.objects.filter(pk=self.league.pk).update(ggg_id="")
         with self.assertRaises(CommandError):
             call_command("poll_ladder", league="gauntlet", stdout=StringIO())
+
+
+class LinkMembersTests(TestCase):
+    def setUp(self):
+        from tracker.models import User
+
+        self.league = League.objects.create(name="Gnt", slug="gnt", ggg_id="G", is_active=False)
+        self.alice = User.objects.create_user(username="alice", password="x", is_player=True)
+        self.bob = User.objects.create_user(username="bob", password="x", is_player=True)
+
+    def _lc(self, name, account):
+        return LadderCharacter.objects.create(
+            league=self.league, character_name=name, account_name=account, level=90
+        )
+
+    def test_links_by_poe_account(self):
+        from tracker.models import PoeConnection
+
+        PoeConnection.objects.create(user=self.alice, account_name="Alice#1234")
+        lc = self._lc("AliceChar", "Alice#1234")
+        n = poe_ladder.link_members(self.league)
+        lc.refresh_from_db()
+        self.assertEqual(n, 1)
+        self.assertEqual(lc.member_id, self.alice.pk)
+
+    def test_links_by_character_name_via_snapshot(self):
+        from tracker.models import CharacterSnapshot
+
+        CharacterSnapshot.objects.create(
+            user=self.bob, league=self.league, character_name="BobSlayer"
+        )
+        lc = self._lc("BobSlayer", "someacct#9")
+        poe_ladder.link_members(self.league)
+        lc.refresh_from_db()
+        self.assertEqual(lc.member_id, self.bob.pk)
+
+    def test_account_match_takes_precedence(self):
+        from tracker.models import CharacterSnapshot, PoeConnection
+
+        PoeConnection.objects.create(user=self.alice, account_name="Shared#1")
+        CharacterSnapshot.objects.create(
+            user=self.bob, league=self.league, character_name="X"
+        )
+        lc = self._lc("X", "Shared#1")  # name says bob, account says alice
+        poe_ladder.link_members(self.league)
+        lc.refresh_from_db()
+        self.assertEqual(lc.member_id, self.alice.pk)
+
+    def test_no_match_leaves_member_null(self):
+        lc = self._lc("Nobody", "nobody#0")
+        poe_ladder.link_members(self.league)
+        lc.refresh_from_db()
+        self.assertIsNone(lc.member_id)
+
+    def test_idempotent(self):
+        from tracker.models import PoeConnection
+
+        PoeConnection.objects.create(user=self.alice, account_name="Alice#1234")
+        self._lc("AliceChar", "Alice#1234")
+        poe_ladder.link_members(self.league)
+        second = poe_ladder.link_members(self.league)
+        self.assertEqual(second, 0)

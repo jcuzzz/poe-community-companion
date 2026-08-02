@@ -40,7 +40,13 @@
             {% for c in characters %}
               <tr{% if c.dead %} class="is-dead"{% endif %}>
                 <td>{{ c.rank|default:"&ndash;" }}</td>
-                <td><strong>{{ c.character_name }}</strong></td>
+                <td>
+                  {% if c.member_id %}
+                    <a href="{% url 'character_detail' c.member.username %}"><strong>{{ c.character_name }}</strong></a>
+                  {% else %}
+                    <strong>{{ c.character_name }}</strong>
+                  {% endif %}
+                </td>
                 <td>{{ c.level }}</td>
                 <td>{{ c.class_name|default:"&ndash;" }}</td>
                 <td class="text-muted">{{ c.account_name|default:"&ndash;" }}</td>
