@@ -122,6 +122,8 @@ class Command(BaseCommand):
                 updated += not was_created
 
         linked = poe_ladder.link_members(league)
+        fed = poe_ladder.feed_member_snapshots(league)
         self.stdout.write(
-            ok(f"Done. {created} created, {updated} updated, {linked} linked to members.")
+            ok(f"Done. {created} created, {updated} updated, "
+               f"{linked} linked to members, {fed} member snapshots refreshed.")
         )

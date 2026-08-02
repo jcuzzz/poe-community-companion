@@ -175,3 +175,59 @@ class LinkMembersTests(TestCase):
         poe_ladder.link_members(self.league)
         second = poe_ladder.link_members(self.league)
         self.assertEqual(second, 0)
+
+
+class FeedMemberSnapshotsTests(TestCase):
+    def setUp(self):
+        from tracker.models import User
+
+        self.league = League.objects.create(name="Gnt", slug="gnt", ggg_id="G", is_active=False)
+        self.alice = User.objects.create_user(username="alice", password="x", is_player=True)
+
+    def _lc(self, name, level, cls="Slayer", member=None):
+        return LadderCharacter.objects.create(
+            league=self.league, character_name=name, account_name="a#1",
+            level=level, class_name=cls, member=member,
+        )
+
+    def test_creates_snapshot_for_member_without_one(self):
+        from tracker.models import CharacterSnapshot
+
+        self._lc("AliceChar", 91, member=self.alice)
+        n = poe_ladder.feed_member_snapshots(self.league)
+        self.assertEqual(n, 1)
+        snap = CharacterSnapshot.objects.get(user=self.alice, league=self.league)
+        self.assertEqual(snap.level, 91)
+        self.assertEqual(snap.class_name, "Slayer")
+        self.assertEqual(snap.source, CharacterSnapshot.Source.LADDER)
+
+    def test_refreshes_level_on_existing_snapshot(self):
+        from tracker.models import CharacterSnapshot
+
+        CharacterSnapshot.objects.create(
+            user=self.alice, league=self.league, character_name="AliceChar",
+            class_name="Duelist", level=80, source=CharacterSnapshot.Source.POB, raw="x",
+        )
+        self._lc("AliceChar", 93, member=self.alice)
+        poe_ladder.feed_member_snapshots(self.league)
+        snap = CharacterSnapshot.objects.get(user=self.alice, league=self.league)
+        self.assertEqual(snap.level, 93)          # refreshed from ladder
+        self.assertEqual(snap.class_name, "Duelist")  # existing build class preserved
+        self.assertEqual(snap.raw, "x")           # build detail untouched
+
+    def test_uses_highest_level_character(self):
+        from tracker.models import CharacterSnapshot
+
+        self._lc("Low", 40, member=self.alice)
+        self._lc("Main", 96, member=self.alice)
+        poe_ladder.feed_member_snapshots(self.league)
+        snap = CharacterSnapshot.objects.get(user=self.alice, league=self.league)
+        self.assertEqual(snap.level, 96)
+
+    def test_ignores_unlinked_characters(self):
+        from tracker.models import CharacterSnapshot
+
+        self._lc("Stranger", 90, member=None)
+        n = poe_ladder.feed_member_snapshots(self.league)
+        self.assertEqual(n, 0)
+        self.assertFalse(CharacterSnapshot.objects.exists())

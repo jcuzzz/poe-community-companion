@@ -601,6 +601,7 @@ class CharacterSnapshot(models.Model):
         API = "api", "Auto lookup"
         POB = "pob", "Path of Building paste"
         OAUTH = "oauth", "Official PoE account (OAuth)"
+        LADDER = "ladder", "Public ladder (auto)"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="snapshots"

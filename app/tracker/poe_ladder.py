@@ -128,6 +128,58 @@ def link_members(league) -> int:
     return linked
 
 
+def feed_member_snapshots(league) -> int:
+    """Keep registered members' character data current from the ladder.
+
+    For each member with a linked LadderCharacter in this league, refresh their
+    CharacterSnapshot header — level always (the ladder is authoritative for
+    current level), and character name / class when we don't already have them.
+    Members who are on the ladder but never imported a build get a lightweight
+    snapshot (source LADDER) so they still appear on the dashboard/roster; build
+    detail (gear/tree) stays whatever OAuth/PoB provides, untouched.
+
+    Uses each member's highest-level linked character. Returns rows touched.
+    """
+    from .models import CharacterSnapshot, LadderCharacter
+
+    best: dict[int, "LadderCharacter"] = {}
+    for lc in (
+        LadderCharacter.objects.filter(league=league, member__isnull=False)
+        .order_by("-level")
+    ):
+        best.setdefault(lc.member_id, lc)
+
+    touched = 0
+    for uid, lc in best.items():
+        snap = CharacterSnapshot.objects.filter(user_id=uid, league=league).first()
+        if snap is None:
+            CharacterSnapshot.objects.create(
+                user_id=uid,
+                league=league,
+                character_name=lc.character_name,
+                class_name=lc.class_name,
+                level=lc.level,
+                source=CharacterSnapshot.Source.LADDER,
+                league_text=league.name,
+            )
+            touched += 1
+            continue
+        fields = []
+        if lc.level and snap.level != lc.level:
+            snap.level = lc.level
+            fields.append("level")
+        if not snap.character_name and lc.character_name:
+            snap.character_name = lc.character_name
+            fields.append("character_name")
+        if not snap.class_name and lc.class_name:
+            snap.class_name = lc.class_name
+            fields.append("class_name")
+        if fields:
+            snap.save(update_fields=fields)
+            touched += 1
+    return touched
+
+
 def iter_entries(league_id: str, max_entries: int | None = None, pause: float | None = None):
     """Yield normalized ladder entries, paging until the ladder is exhausted
     or ``max_entries`` is reached. Sleeps ``pause`` seconds between pages to
