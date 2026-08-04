@@ -132,10 +132,23 @@ def league_create(request: HttpRequest) -> HttpResponse:
         )
         if make_active:
             league.activate()
+
+        # Optionally seed the new season's achievements from a template.
+        applied_msg = ""
+        template_slug = request.POST.get("template", "").strip()
+        if template_slug:
+            from .models import AchievementTemplate
+
+            template = AchievementTemplate.objects.filter(slug=template_slug).first()
+            if template:
+                n = template.apply_to_league(league)
+                applied_msg = f" Seeded {n} achievements from '{template.name}'."
+
         messages.success(
             request,
             f"Created season '{league.name}'"
-            + (" and made it active." if make_active else "."),
+            + (" and made it active." if make_active else ".")
+            + applied_msg,
         )
         return redirect("dashboard")
 
@@ -145,10 +158,13 @@ def league_create(request: HttpRequest) -> HttpResponse:
     def _annotate(leagues):
         return [{**lg, "already": slugify_name(lg["name"]) in existing_slugs} for lg in leagues]
 
+    from .models import AchievementTemplate
+
     context = {
         "leagues_poe1": _annotate(league_api.fetch_leagues("poe1")),
         "leagues_poe2": _annotate(league_api.fetch_leagues("poe2")),
         "active_league": get_active_league(),
+        "templates": list(AchievementTemplate.objects.all()),
     }
     return render(request, "tracker/league_form.html", context)
 

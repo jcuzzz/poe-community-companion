@@ -264,6 +264,128 @@ class Achievement(models.Model):
         return f"https://web.poecdn.com/image/{path}" if path else ""
 
 
+class AchievementTemplate(models.Model):
+    """A reusable, named set of achievements an admin can apply to a league.
+
+    Lets an organiser spin a new season/event up from a template ("templated
+    few") instead of hand-authoring every achievement, or start blank and author
+    custom ones. Applying a template creates Achievement rows on the target
+    league (matched by slug); the league's own rows can then be edited, reordered
+    (sort_order) and reweighted (base_points) independently. See
+    docs/design/achievement-templates.md.
+    """
+
+    name = models.CharField(max_length=80, unique=True)
+    slug = models.SlugField(max_length=80, unique=True)
+    description = models.TextField(blank=True)
+    game = models.CharField(
+        max_length=8, choices=League.Game.choices, default=League.Game.POE1
+    )
+    is_hardcore = models.BooleanField(default=False)
+    is_ssf = models.BooleanField(default=False, verbose_name="SSF")
+    # Built-in templates ship with the app; user templates are admin-authored or
+    # captured from an existing league.
+    built_in = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-built_in", "name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+    def apply_to_league(self, league, replace: bool = False) -> int:
+        """Create/update Achievement rows on ``league`` from this template's items.
+
+        Matches by slug (idempotent). ``replace=True`` first deactivates the
+        league's existing achievements that this template doesn't include — it
+        never deletes them, so historical submissions/awards are preserved.
+        Returns the number of achievements created or updated.
+        """
+        from django.db import transaction
+
+        touched = 0
+        with transaction.atomic():
+            slugs = {item.slug for item in self.items.all()}
+            if replace:
+                league.achievements.exclude(slug__in=slugs).update(active=False)
+            for item in self.items.all():
+                Achievement.objects.update_or_create(
+                    league=league,
+                    slug=item.slug,
+                    defaults={
+                        "name": item.name,
+                        "label": item.label,
+                        "description": item.description,
+                        "icon": item.icon,
+                        "base_points": item.base_points,
+                        "verification_rules": item.verification_rules,
+                        "requires_allowlist": item.requires_allowlist,
+                        "sort_order": item.sort_order,
+                        "active": True,
+                    },
+                )
+                touched += 1
+        return touched
+
+    @classmethod
+    def capture_from_league(cls, league, name: str, slug: str = "", description: str = ""):
+        """Snapshot a league's current achievements into a new reusable template."""
+        from django.utils.text import slugify
+
+        template = cls.objects.create(
+            name=name,
+            slug=slug or slugify(name),
+            description=description,
+            game=league.game,
+            is_hardcore=league.is_hardcore,
+            is_ssf=league.is_ssf,
+        )
+        for ach in league.achievements.all():
+            AchievementTemplateItem.objects.create(
+                template=template,
+                name=ach.name,
+                slug=ach.slug,
+                label=ach.label,
+                description=ach.description,
+                icon=ach.icon,
+                base_points=ach.base_points,
+                verification_rules=ach.verification_rules,
+                requires_allowlist=ach.requires_allowlist,
+                sort_order=ach.sort_order,
+            )
+        return template
+
+
+class AchievementTemplateItem(models.Model):
+    """One achievement definition inside a template. Mirrors the authorable
+    fields of Achievement; base_points is the per-event completion points."""
+
+    template = models.ForeignKey(
+        AchievementTemplate, on_delete=models.CASCADE, related_name="items"
+    )
+    name = models.CharField(max_length=80)
+    slug = models.SlugField(max_length=80)
+    label = models.CharField(max_length=40, blank=True)
+    description = models.TextField(blank=True)
+    icon = models.CharField(max_length=8, blank=True)
+    base_points = models.PositiveSmallIntegerField(default=2)
+    verification_rules = models.TextField(blank=True)
+    requires_allowlist = models.BooleanField(default=False)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["template", "slug"], name="unique_template_item_slug"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.template.slug})"
+
+
 class AllowlistItem(models.Model):
     """Administrator-controlled list of items that count as T0 uniques."""
 

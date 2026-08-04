@@ -60,6 +60,17 @@
       </div>
     </details>
 
+    <div class="form-row">
+      <label for="template">Achievement set</label>
+      <select id="template" name="template">
+        <option value="">Custom — I'll add achievements myself</option>
+        {% for t in templates %}
+          <option value="{{ t.slug }}">{{ t.name }}{% if t.built_in %} (built-in){% endif %} &middot; {{ t.items.count }} achievement{{ t.items.count|pluralize }}</option>
+        {% endfor %}
+      </select>
+      <p class="text-muted">Seed this season from a template, or leave Custom and author your own. You can edit, reorder and reweight them afterward.</p>
+    </div>
+
     <div class="form-row form-row--checkbox">
       <label for="make_active"><input type="checkbox" id="make_active" name="make_active" checked> Make this the active season</label>
       <p class="text-muted">Members submit to the active season. The previous one becomes a read-only archive.</p>

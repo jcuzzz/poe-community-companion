@@ -17,6 +17,8 @@ from django.utils.html import format_html
 from . import scoring
 from .models import (
     Achievement,
+    AchievementTemplate,
+    AchievementTemplateItem,
     AllowlistItem,
     AuditEntry,
     Award,
@@ -34,6 +36,40 @@ from .models import (
     SubmissionReaction,
     User,
 )
+
+
+class AchievementTemplateItemInline(admin.TabularInline):
+    model = AchievementTemplateItem
+    extra = 1
+    fields = ("sort_order", "name", "slug", "label", "base_points",
+              "requires_allowlist", "icon")
+    ordering = ("sort_order", "name")
+
+
+@admin.register(AchievementTemplate)
+class AchievementTemplateAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "game", "is_hardcore", "is_ssf", "built_in", "item_count")
+    list_filter = ("game", "is_hardcore", "is_ssf", "built_in")
+    prepopulated_fields = {"slug": ("name",)}
+    inlines = [AchievementTemplateItemInline]
+    actions = ["apply_to_active_league"]
+
+    @admin.display(description="Achievements")
+    def item_count(self, obj):
+        return obj.items.count()
+
+    @admin.action(description="Apply to the active league (create/update its achievements)")
+    def apply_to_active_league(self, request, queryset):
+        active = League.get_active()
+        if active is None:
+            self.message_user(request, "No active league to apply to.", level="error")
+            return
+        total = 0
+        for template in queryset:
+            total += template.apply_to_league(active)
+        self.message_user(
+            request, f"Applied {queryset.count()} template(s): {total} achievements on '{active}'."
+        )
 
 
 @admin.register(LadderCharacter)
