@@ -1,20 +1,41 @@
 {% if submission.proofs.all %}
   <div class="proof-gallery" data-proof-gallery>
     {% for proof in submission.proofs.all %}
-      <figure class="proof-frame{% if forloop.first %} proof-frame-hero{% endif %}">
-        <a href="{{ proof.image.url }}" target="_blank" rel="noopener" class="proof-link"
-           data-lightbox-src="{{ proof.image.url }}"
-           data-lightbox-alt="{{ proof.get_kind_display }} proof{% if proof.caption %}: {{ proof.caption }}{% endif %} for {{ submission.achievement.name }}">
+      {% if proof.is_video %}
+        <figure class="proof-frame proof-frame--video{% if forloop.first %} proof-frame-hero{% endif %}">
           <span class="proof-kind-badge">{{ proof.get_kind_display }}</span>
-          <img src="{{ proof.image.url }}" alt="{{ proof.get_kind_display }} proof{% if proof.caption %}: {{ proof.caption }}{% endif %} for {{ submission.achievement.name }}" loading="lazy">
-          <span class="proof-zoom-hint" aria-hidden="true">&#128269; View full size</span>
-        </a>
-        {% if proof.caption %}
-          <figcaption>{{ proof.caption }}</figcaption>
-        {% endif %}
-      </figure>
+          {% with media=proof.media %}
+            {% if media %}
+              <div class="proof-video">
+                <iframe src="{{ media.embed_url }}" title="{{ proof.get_kind_display }} video proof for {{ submission.achievement.name }}"
+                        loading="lazy" allowfullscreen
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        allow="autoplay; fullscreen; picture-in-picture"></iframe>
+              </div>
+            {% else %}
+              <a href="{{ proof.video_url }}" target="_blank" rel="noopener noreferrer" class="proof-link">
+                &#9654; Watch video proof &nearr;
+              </a>
+            {% endif %}
+          {% endwith %}
+          {% if proof.caption %}<figcaption>{{ proof.caption }}</figcaption>{% endif %}
+        </figure>
+      {% else %}
+        <figure class="proof-frame{% if forloop.first %} proof-frame-hero{% endif %}">
+          <a href="{{ proof.image.url }}" target="_blank" rel="noopener" class="proof-link"
+             data-lightbox-src="{{ proof.image.url }}"
+             data-lightbox-alt="{{ proof.get_kind_display }} proof{% if proof.caption %}: {{ proof.caption }}{% endif %} for {{ submission.achievement.name }}">
+            <span class="proof-kind-badge">{{ proof.get_kind_display }}</span>
+            <img src="{{ proof.image.url }}" alt="{{ proof.get_kind_display }} proof{% if proof.caption %}: {{ proof.caption }}{% endif %} for {{ submission.achievement.name }}" loading="lazy">
+            <span class="proof-zoom-hint" aria-hidden="true">&#128269; View full size</span>
+          </a>
+          {% if proof.caption %}
+            <figcaption>{{ proof.caption }}</figcaption>
+          {% endif %}
+        </figure>
+      {% endif %}
     {% endfor %}
   </div>
 {% else %}
-  <p class="text-muted">No proof screenshots attached.</p>
+  <p class="text-muted">No proof attached.</p>
 {% endif %}

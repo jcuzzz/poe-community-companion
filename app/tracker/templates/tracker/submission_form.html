@@ -75,15 +75,21 @@
         <p>Add a screenshot as proof — the item, currency or inventory view is the
         main one. Optionally add more (e.g. <code>/played</code> and <code>/kills</code>
         chat output) with <strong>Add another image</strong>.</p>
-        <p class="hint">JPEG, PNG or WebP only, 10 MB max per image.</p>
+        <p class="hint">JPEG, PNG or WebP only, 10 MB max per image. Each proof slot
+        can hold a screenshot <em>or</em> a video link (YouTube, Twitch clip, or Streamable).</p>
       </div>
 
       {% if existing_proofs %}
         <div class="u-flex">
           {% for proof in existing_proofs %}
             <div class="existing-proof-thumb">
-              <img src="{{ proof.image.url }}" alt="{{ proof.get_kind_display }} proof">
-              <span class="caption">{{ proof.get_kind_display }}</span>
+              {% if proof.is_video %}
+                <span class="existing-proof-video" aria-hidden="true">&#9654;</span>
+                <span class="caption">{{ proof.get_kind_display }} &middot; video</span>
+              {% else %}
+                <img src="{{ proof.image.url }}" alt="{{ proof.get_kind_display }} proof">
+                <span class="caption">{{ proof.get_kind_display }}</span>
+              {% endif %}
               {% if submission %}
                 <form class="inline-btn" method="post" action="{% url 'proof_delete' submission.pk proof.pk %}" onsubmit="return confirm('Remove this proof image?');">
                   {% csrf_token %}
@@ -112,11 +118,17 @@
       {% for proof_form in proof_formset %}
         <div class="proof-form-item" data-proof-slot="{{ forloop.counter0 }}">
           {% for hidden in proof_form.hidden_fields %}{{ hidden }}{% endfor %}
+          {% if proof_form.non_field_errors %}<ul class="field-errors">{% for error in proof_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
           <div class="form-row">
             <label for="{{ proof_form.image.id_for_label }}">Image</label>
             {{ proof_form.image }}
             {% if proof_form.image.errors %}<ul class="field-errors">{% for error in proof_form.image.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
             <div class="proof-slot-preview" data-proof-preview></div>
+          </div>
+          <div class="form-row">
+            <label for="{{ proof_form.video_url.id_for_label }}">…or a video link</label>
+            {{ proof_form.video_url }}
+            {% if proof_form.video_url.errors %}<ul class="field-errors">{% for error in proof_form.video_url.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
           </div>
           <div class="form-row">
             <label for="{{ proof_form.kind.id_for_label }}">Kind</label>

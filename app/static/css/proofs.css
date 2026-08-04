@@ -284,3 +284,20 @@
 .proof-add-slot {
   margin: 0 0 var(--space-4);
 }
+
+/* Video-link proofs: responsive 16:9 embed inside a proof frame. */
+.proof-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  overflow: hidden;
+}
+.proof-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.proof-frame--video { display: flex; flex-direction: column; }

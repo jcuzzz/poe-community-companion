@@ -416,7 +416,12 @@ class ProofImage(models.Model):
         OTHER = "other", "Other"
 
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name="proofs")
-    image = models.ImageField(upload_to=proof_upload_path)
+    # A proof is either an uploaded image OR a linked video clip (exactly one;
+    # enforced in the form). image is nullable so video-only proofs are allowed.
+    image = models.ImageField(upload_to=proof_upload_path, blank=True, null=True)
+    video_url = models.URLField(
+        blank=True, help_text="Link to a YouTube, Twitch clip, or Streamable video."
+    )
     kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.OTHER)
     caption = models.CharField(max_length=120, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
@@ -426,6 +431,19 @@ class ProofImage(models.Model):
 
     def __str__(self) -> str:
         return f"Proof #{self.pk} for submission #{self.submission_id}"
+
+    @property
+    def is_video(self) -> bool:
+        return bool(self.video_url)
+
+    @property
+    def media(self) -> dict | None:
+        """Embed info for a video proof ({provider, embed_url, watch_url}), or None."""
+        if not self.video_url:
+            return None
+        from .proof_media import video_embed
+
+        return video_embed(self.video_url)
 
 
 class Award(models.Model):

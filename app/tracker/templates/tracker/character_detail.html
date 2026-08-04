@@ -60,9 +60,11 @@
       {% endif %}
     </div>
 
-    {% if can_import %}
-      <details class="char-import"{% if not build %} open{% endif %}>
-        <summary class="btn btn-sm">Import PoB code</summary>
+    {# When a build already exists, tuck re-import into a details. The no-build
+       case gets a prominent card below instead (form renders in only one place). #}
+    {% if can_import and build %}
+      <details class="char-import">
+        <summary class="btn btn-sm">Update build</summary>
         <form method="post" class="char-import-form">
           {% csrf_token %}
           {{ pob_form.code }}
@@ -93,13 +95,26 @@
   {% endif %}
 
   {% if not build %}
-    <div class="empty-state">
-      {% if is_owner %}
-        No build imported yet &mdash; paste your Path of Building code above to fill in gear, skills and stats.
-      {% else %}
+    {% if can_import %}
+      <section class="card char-import-card">
+        <div class="section-header"><h2 class="flourish">Add your build</h2></div>
+        <p class="text-muted">
+          Paste a <strong>Path of Building</strong> code, or a <strong>pobb.in</strong>
+          link (a pobb.in link auto-syncs whenever you re-export). This fills in your
+          gear, skills, stats and passive tree.
+        </p>
+        <form method="post" class="char-import-form">
+          {% csrf_token %}
+          {{ pob_form.code }}
+          {% if pob_form.code.errors %}<ul class="field-errors">{% for e in pob_form.code.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          <button type="submit" class="btn btn-primary">Save build</button>
+        </form>
+      </section>
+    {% else %}
+      <div class="empty-state">
         {{ member.name }} hasn't imported a Path of Building character for this league yet.
-      {% endif %}
-    </div>
+      </div>
+    {% endif %}
   {% else %}
     <div class="char-grid">
       {# --------------- Left: gear + skills --------------- #}

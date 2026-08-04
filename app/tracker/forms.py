@@ -157,7 +157,7 @@ class SubmissionForm(forms.ModelForm):
 class ProofImageForm(forms.ModelForm):
     class Meta:
         model = ProofImage
-        fields = ["image", "kind", "caption"]
+        fields = ["image", "video_url", "kind", "caption"]
 
     def clean_image(self):
         image = self.cleaned_data.get("image")
@@ -165,6 +165,32 @@ class ProofImageForm(forms.ModelForm):
         if image and "image" in self.changed_data:
             utils.validate_proof_image(image)
         return image
+
+    def clean_video_url(self):
+        from . import proof_media
+
+        url = (self.cleaned_data.get("video_url") or "").strip()
+        if url and not proof_media.is_supported(url):
+            raise ValidationError(
+                f"Unsupported video link. Use {proof_media.SUPPORTED_LABEL}."
+            )
+        return url
+
+    def clean(self):
+        cleaned = super().clean()
+        # A row being deleted, or an empty extra row, needs no media.
+        if cleaned.get("DELETE"):
+            return cleaned
+        has_image = bool(cleaned.get("image") or self.instance.pk and self.instance.image)
+        has_video = bool(cleaned.get("video_url"))
+        # Only enforce on rows the user actually touched (kind/caption alone
+        # don't make a proof); an untouched empty extra row stays blank.
+        touched = has_image or has_video or bool(cleaned.get("caption"))
+        if touched and not (has_image or has_video):
+            raise ValidationError("Add a screenshot or a video link for this proof.")
+        if has_image and has_video:
+            raise ValidationError("A proof is either a screenshot or a video link, not both.")
+        return cleaned
 
     def save(self, commit: bool = True):
         instance = super().save(commit=False)
@@ -187,7 +213,7 @@ class BaseProofImageFormSet(forms.BaseInlineFormSet):
                 continue
             if form.cleaned_data.get("DELETE"):
                 continue
-            if form.cleaned_data.get("image"):
+            if form.cleaned_data.get("image") or form.cleaned_data.get("video_url"):
                 total += 1
             elif form.instance.pk:
                 total += 1
