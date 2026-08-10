@@ -44,6 +44,7 @@ KEEP_SHEETS = (
     "mastery",
     "frame",
     "groupBackground",
+    "atlasBackground",
 )
 ZOOM = "0.5"
 
@@ -149,6 +150,21 @@ def build(raw: dict, version: str) -> dict:
         if node["icon"] and node["icon"] not in coords:
             node["icon"] = ""
 
+    # Group background decorations (the constellation frames behind clusters):
+    # centre position + sprite key (+ optional in-tree-unit offsets).
+    group_art = []
+    for group in groups.values():
+        background = group.get("background") or {}
+        image = background.get("image")
+        if image and image in coords:
+            group_art.append(
+                {
+                    "x": round(group["x"]) + int(background.get("offsetX") or 0),
+                    "y": round(group["y"]) + int(background.get("offsetY") or 0),
+                    "bg": image,
+                }
+            )
+
     return {
         "version": version,
         "budget": raw["points"]["totalPoints"],
@@ -157,6 +173,7 @@ def build(raw: dict, version: str) -> dict:
         "bounds": bounds,
         "nodes": nodes,
         "edges": [list(e) for e in sorted(edges)],
+        "groups": group_art,
         "sprites": {"sheets": sheets, "coords": coords},
     }
 

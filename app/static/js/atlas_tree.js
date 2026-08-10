@@ -31,18 +31,33 @@
     };
   }
 
+  // Node the pointer went down on — clicks are resolved on pointerup because
+  // setPointerCapture retargets the browser's own click event to the svg root,
+  // which would make node clicks impossible.
+  var downNode = null;
+
   svg.addEventListener("pointerdown", function (evt) {
     if (evt.button !== 0) return;
     panning = true;
     last = { x: evt.clientX, y: evt.clientY, moved: false };
-    svg.setPointerCapture(evt.pointerId);
+    downNode = evt.target.closest ? evt.target.closest(".atlas-node") : null;
+    // Deliberately NOT capturing the pointer here: capture retargets the
+    // pointerup/click at the svg root, which breaks node clicks. Capture
+    // starts only once an actual drag is detected (below).
   });
   svg.addEventListener("pointermove", function (evt) {
     if (!panning || !last) return;
     var rect = svg.getBoundingClientRect();
     var dx = ((evt.clientX - last.x) / rect.width) * vb[2];
     var dy = ((evt.clientY - last.y) / rect.height) * vb[3];
-    if (Math.abs(evt.clientX - last.x) + Math.abs(evt.clientY - last.y) > 3) last.moved = true;
+    if (Math.abs(evt.clientX - last.x) + Math.abs(evt.clientY - last.y) > 3 && !last.moved) {
+      last.moved = true;
+      try {
+        svg.setPointerCapture(evt.pointerId); // keep the pan alive off-element
+      } catch (e) {
+        /* pointer may already be gone */
+      }
+    }
     vb[0] -= dx;
     vb[1] -= dy;
     last.x = evt.clientX;
@@ -192,10 +207,10 @@
     }
   }
 
-  svg.addEventListener("click", function (evt) {
-    if (last && last.moved) return; // it was a pan, not a click
-    var node = evt.target.closest && evt.target.closest(".atlas-node");
-    if (!node) return;
+  svg.addEventListener("pointerup", function () {
+    if (!downNode || (last && last.moved)) return; // it was a pan, not a click
+    var node = downNode;
+    downNode = null;
     var id = node.getAttribute("data-node-id");
     if (!id || !(id in graph.edges)) return;
     var next = new Set(allocated);

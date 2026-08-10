@@ -170,10 +170,20 @@ a.strat-tag:hover { border-color: var(--color-gold-dim, #8a6d2f); }
 /* SVG node/edge states (classes emitted by atlas_render + toggled by JS). */
 .atlas-node { cursor: pointer; }
 [data-mode="view"] .atlas-node { cursor: default; }
-.atlas-node .node-shape { fill: #2a2438; stroke: #443a5a; stroke-width: 6; }
+/* The circle is only the hit-target / fallback; real GGG frame art conveys
+   allocation state (frame-off/frame-on sprites swapped inside the SVG). */
+.atlas-node .node-shape {
+  fill: transparent;
+  stroke: none;
+  /* A transparent fill is unpainted, so default SVG hit-testing would skip
+     it entirely — force the circle to stay the node's click target. */
+  pointer-events: all;
+}
 .atlas-node.is-allocated .node-shape {
-  fill: var(--color-gold-dim, #8a6d2f);
+  fill: transparent;
   stroke: var(--color-gold-bright, #d4af5a);
+  stroke-width: 4;
+  stroke-opacity: 0.5;
 }
 .atlas-edge { stroke: #2e2840; stroke-width: 10; }
 .atlas-edge.is-allocated { stroke: var(--color-gold-dim, #8a6d2f); }

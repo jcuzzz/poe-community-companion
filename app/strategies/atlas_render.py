@@ -51,7 +51,31 @@ _FULL_STYLE = (
     ".atlas-start{pointer-events:none}"
     ".atlas-start .start-ring{fill:none;stroke:#d4af5a;stroke-width:14}"
     ".atlas-start .start-core{fill:#8a6d2f}"
+    ".atlas-bg{pointer-events:none;opacity:.5}"
+    ".atlas-groupbg{pointer-events:none;opacity:.4}"
+    # Frame art swaps with allocation state (both variants are in the DOM).
+    ".atlas-node .node-frame{pointer-events:none}"
+    ".atlas-node .frame-on{display:none}"
+    ".atlas-node.is-allocated .frame-on{display:inline}"
+    ".atlas-node.is-allocated .frame-off{display:none}"
+    ".atlas-node:not(.is-allocated) .frame-off{opacity:.7}"
 )
+
+# Sprite sheets are exported at zoom 0.5, so one sheet pixel = 2 tree units.
+_SPRITE_SCALE = 2
+# The painted background map (the big parchment art behind the whole tree).
+_BG_SPRITE = "AtlasPassiveBackground"
+# PoB renders this group sprite as a half-image mirrored about the group centre.
+_HALF_IMAGE_SPRITES = {"PSGroupBackground3"}
+
+# Real node frame art per kind: (unallocated sprite, allocated sprite).
+_FRAMES = {
+    "s": ("PSSkillFrame", "PSSkillFrameActive"),
+    "n": ("NotableFrameUnallocated", "NotableFrameAllocated"),
+    "k": ("KeystoneFrameUnallocated", "KeystoneFrameAllocated"),
+    "w": ("WormholeFrameUnallocated", "WormholeFrameAllocated"),
+}
+_START_SPRITE = "AtlasPassiveSkillScreenStart"
 _THUMB_STYLE = (
     ".at-base{stroke:#2e2840;stroke-width:10;fill:none}"
     ".at-alloc{stroke:#8a6d2f;stroke-width:14;fill:none}"
@@ -97,29 +121,115 @@ def _nodes() -> dict[int, dict]:
     return {int(nid): node for nid, node in atlas_data.load().get("nodes", {}).items()}
 
 
-def _icon_svg(node: dict, cx: float, cy: float, radius: float) -> str:
-    """A nested <svg> cropping this node's sprite out of its sheet, or ''.
+@lru_cache(maxsize=1)
+def _patterns() -> tuple[str, dict[str, str]]:
+    """(<defs> markup, icon-key -> pattern id) for every sprite crop.
 
-    The nested viewBox is the sprite's rectangle inside the sheet, so the single
-    <image> is clipped to it; browsers fetch each sheet URL once no matter how
-    many nodes reference it.
+    Sprites are cropped with SVG patterns instead of nested <svg viewBox>
+    elements: a rect filled with a pattern has exact geometry, whereas a nested
+    svg's getBoundingClientRect leaks the whole sheet <image>'s extents (Chrome),
+    which bloated every node's bounding box and broke click-point maths for
+    anything that targets the node group (e.g. automated browsers).
     """
     sprites = atlas_data.load().get("sprites") or {}
-    coord = (sprites.get("coords") or {}).get(node.get("icon") or "")
-    if not coord:
+    sheets = sprites.get("sheets") or {}
+    defs, ids = [], {}
+    for n, (key, coord) in enumerate(sorted((sprites.get("coords") or {}).items())):
+        sheet_key, sx, sy, sw, sh = coord
+        sheet = sheets.get(sheet_key)
+        if not sheet or not sw or not sh:
+            continue
+        pid = f"ap{n}"
+        ids[key] = pid
+        defs.append(
+            f'<pattern id="{pid}" viewBox="{sx} {sy} {sw} {sh}" width="100%" '
+            f'height="100%" preserveAspectRatio="xMidYMid slice">'
+            f'<image href="{_esc(sheet["url"])}" width="{sheet["w"]}" height="{sheet["h"]}"/>'
+            f"</pattern>"
+        )
+    return "<defs>" + "".join(defs) + "</defs>", ids
+
+
+def _sprite_rect(
+    icon_key: str,
+    cx: float,
+    cy: float,
+    cls: str,
+    *,
+    width: float | None = None,
+    height: float | None = None,
+    flip: bool = False,
+) -> str:
+    """A rect filled with the sprite's pattern, centred on (cx, cy).
+
+    Size defaults to the sprite's native sheet pixels × ``_SPRITE_SCALE``;
+    pass ``width``/``height`` to override (aspect preserved when only one given).
+    """
+    _, ids = _patterns()
+    pid = ids.get(icon_key)
+    coord = (atlas_data.load().get("sprites") or {}).get("coords", {}).get(icon_key)
+    if not pid or not coord:
         return ""
-    sheet_key, sx, sy, sw, sh = coord
-    sheet = (sprites.get("sheets") or {}).get(sheet_key)
-    if not sheet:
+    _, _, _, sw, sh = coord
+    w = width if width is not None else sw * _SPRITE_SCALE
+    h = height if height is not None else (w * sh / sw if width is not None else sh * _SPRITE_SCALE)
+    transform = f' transform="translate(0 {2 * cy:.0f}) scale(1 -1)"' if flip else ""
+    return (
+        f'<rect class="{cls}" x="{cx - w / 2:.0f}" y="{cy - h / 2:.0f}" '
+        f'width="{w:.0f}" height="{h:.0f}" fill="url(#{pid})"{transform}/>'
+    )
+
+
+def _icon_svg(node: dict, cx: float, cy: float, radius: float) -> str:
+    """The node's skill art as a pattern-filled square rect, or ''."""
+    icon = node.get("icon") or ""
+    if not icon:
         return ""
     side = radius * _ICON_SCALE
-    return (
-        f'<svg class="node-icon" x="{cx - side / 2:.0f}" y="{cy - side / 2:.0f}" '
-        f'width="{side:.0f}" height="{side:.0f}" viewBox="{sx} {sy} {sw} {sh}" '
-        f'preserveAspectRatio="xMidYMid slice">'
-        f'<image href="{_esc(sheet["url"])}" width="{sheet["w"]}" height="{sheet["h"]}"/>'
-        f"</svg>"
+    return _sprite_rect(icon, cx, cy, "node-icon", width=side, height=side)
+
+
+def _sprite_svg(icon_key: str, x: float, y: float, cls: str, flip: bool = False) -> str:
+    """Back-compat wrapper: sprite at native scale, centred on (x, y)."""
+    return _sprite_rect(icon_key, x, y, cls, flip=flip)
+
+
+@lru_cache(maxsize=1)
+def _background_layer() -> str:
+    """The painted atlas map + per-cluster constellation art, drawn under
+    everything interactive. Static, so built once."""
+    data = atlas_data.load()
+    parts = []
+
+    # Whole-tree painted background, covering the padded viewBox.
+    sprites = data.get("sprites") or {}
+    min_x, min_y, max_x, max_y = data.get("bounds") or [0, 0, 0, 0]
+    parts.append(
+        _sprite_rect(
+            _BG_SPRITE,
+            (min_x + max_x) / 2,
+            (min_y + max_y) / 2,
+            "atlas-bg",
+            width=(max_x - min_x) + 2 * _PAD,
+            height=(max_y - min_y) + 2 * _PAD,
+        )
     )
+
+    for group in data.get("groups") or []:
+        x, y, bg = group.get("x", 0), group.get("y", 0), group.get("bg", "")
+        if bg in _HALF_IMAGE_SPRITES:
+            # The sheet holds the top half: draw it above the centre, then a
+            # vertical mirror below (how the game composes the full circle).
+            coord = (sprites.get("coords") or {}).get(bg)
+            if not coord:
+                continue
+            half_h = coord[4] * _SPRITE_SCALE / 2
+            parts.append(_sprite_svg(bg, x, y - half_h, "atlas-groupbg"))
+            parts.append(_sprite_svg(bg, x, y + half_h, "atlas-groupbg", flip=True))
+        else:
+            parts.append(_sprite_svg(bg, x, y, "atlas-groupbg"))
+
+    return "".join(parts)
 
 
 # --------------------------------------------------------------------------
@@ -216,14 +326,19 @@ def _full_skeleton() -> dict:
             masteries.append(f'<g class="atlas-mastery">{icon}</g>' if icon else "")
             continue
         if nid in starts:
+            start_art = _sprite_svg(_START_SPRITE, x, y, "atlas-start")
             start_markers.append(
-                f'<g class="atlas-start">'
-                f'<circle class="start-ring" cx="{x}" cy="{y}" r="{_START_RADIUS}"/>'
-                f'<circle class="start-core" cx="{x}" cy="{y}" r="{_START_RADIUS / 3:.0f}"/>'
-                f"</g>"
+                start_art
+                or (
+                    f'<g class="atlas-start">'
+                    f'<circle class="start-ring" cx="{x}" cy="{y}" r="{_START_RADIUS}"/>'
+                    f'<circle class="start-core" cx="{x}" cy="{y}" r="{_START_RADIUS / 3:.0f}"/>'
+                    f"</g>"
+                )
             )
             continue
         r = _RADIUS.get(kind, _RADIUS["s"])
+        frame_off, frame_on = _FRAMES.get(kind, _FRAMES["s"])
         node_groups.append(
             (
                 nid,
@@ -232,6 +347,8 @@ def _full_skeleton() -> dict:
                 f'data-stats="{_esc(chr(10).join(node.get("stats") or []))}">'
                 f'<circle class="node-shape" cx="{x}" cy="{y}" r="{r}"/>'
                 f"{_icon_svg(node, x, y, r)}"
+                f"{_sprite_svg(frame_off, x, y, 'node-frame frame-off')}"
+                f"{_sprite_svg(frame_on, x, y, 'node-frame frame-on')}"
                 f"</g>",
             )
         )
@@ -266,6 +383,8 @@ def _render_full(alloc: set[int]) -> str:
         f'preserveAspectRatio="xMidYMid meet" role="img" '
         f'aria-label="Atlas passive tree ({len(alloc)} points allocated)">'
         f"<style>{_FULL_STYLE}</style>"
+        f"{_patterns()[0]}"
+        f"{_background_layer()}"
         f'<g class="atlas-edges">{edges}</g>'
         f'{skel["masteries"]}'
         f'{skel["starts"]}'
