@@ -97,7 +97,14 @@ def strategy_create(request: HttpRequest) -> HttpResponse:
         strategy.league = league
         strategy.author = request.user
         strategy.save()
-        messages.success(request, "Strategy posted. Add variants for budget/endgame tiers.")
+        # Every strategy starts with one variant so the atlas tree / scarab
+        # fields are immediately reachable (rename it or add tiers later).
+        StrategyVariant.objects.create(strategy=strategy, name="Main")
+        messages.success(
+            request,
+            "Strategy posted. Set the atlas tree on the Main variant, "
+            "or add Budget/Endgame tiers.",
+        )
         return redirect("strategy_detail", slug=strategy.slug)
     return render(
         request,

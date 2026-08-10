@@ -78,6 +78,8 @@ class StrategyCrudTests(TestCase):
         self.assertEqual(strategy.league, self.league)
         self.assertEqual(strategy.author, self.author)
         self.assertEqual(strategy.tag_list, ["essence", "low-investment"])
+        # A default variant is created so the atlas tree is reachable at once.
+        self.assertEqual([v.name for v in strategy.variants.all()], ["Main"])
 
     def test_external_kind_requires_url(self):
         response = self.client.post(

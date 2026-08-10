@@ -82,7 +82,7 @@
               <span class="text-muted">Atlas tree &middot; {{ variant.atlas_tree.nodes|length }} points</span>
             </a>
           {% elif can_edit %}
-            <p><a class="inline-btn" href="{% url 'strategy_variant_tree' strategy.slug variant.pk %}">Set atlas tree</a></p>
+            <p><a class="btn btn-sm" href="{% url 'strategy_variant_tree' strategy.slug variant.pk %}">Set atlas tree</a></p>
           {% endif %}
         </article>
       {% endfor %}
