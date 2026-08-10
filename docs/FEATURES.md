@@ -114,19 +114,28 @@ HTMX), deployed via Docker/Caddy on a Proxmox LXC. See [../runbooks/](../runbook
   with filter bar, one-line summary, drafts (unpublished = author/staff only).
   `kind=external` catalogues an outside guide (maxroll/poeplanner/video URL).
 - **Variants** — ordered budget/endgame tiers or progression steps per strategy:
-  scarab list (one-per-line for now; structured picker planned), map-device
-  craft, investment / expected-return text, notes. `atlas_tree` JSON slot ready
-  for the tree viewer/editor (phase 3+, see
+  structured scarab setup, map-device craft, investment / expected-return text,
+  notes, and an atlas tree (see below and
   [design/farming-strategies.md](design/farming-strategies.md)).
+- **Scarab picker** — 5 map-device-style slots with a searchable, family-grouped
+  dropdown over the full 116-scarab database (icons hotlinked from poecdn;
+  data from poe.ninja's economy API via `scripts/build_scarab_data.py`, which
+  also carries the ids phase-5 live pricing will join on). Legacy free-text
+  lines are preserved; scarab icons render on strategy cards.
 - **Votes** — one upvote per member per strategy; library sorts by votes.
 - **Atlas tree viewer + editor** — each variant carries a 3.29 atlas passive
-  tree: full-tree SVG with official GGG artwork (hotlinked poecdn sprite
-  sheets), pan/zoom, node tooltips; authors click-to-allocate in-app with
-  live connectivity + point-budget rules (wormhole pairs supported), or
-  import a pathofexile.com / poeplanner.com share link; every tree exports
-  back out as a canonical pathofexile.com link. Gold-on-skeleton thumbnails
-  on the strategy page. Data pipeline: `scripts/build_atlas_data.py` from
-  GGG's official `atlastree-export` (re-run per patch).
+  tree rendered with the complete official artwork: painted atlas background,
+  group constellation art, real node frames (allocated/unallocated sprite
+  swap) and skill icons, all hotlinked from poecdn. In-game-style arc
+  connectors along orbits, trimmed to the frame art. PoB-style editing:
+  click a distant node to allocate the shortest path, click an allocated
+  node to prune it plus anything orphaned, with hover previews (gold path /
+  red prune); wormhole pairs supported. Transform-based pan/zoom (rAF-
+  coalesced; measured max frame 8 ms on the 1030-node tree). Import
+  pathofexile.com / poeplanner.com links, export canonical pathofexile.com
+  links. Gold-on-skeleton thumbnails on strategy cards. Data pipeline:
+  `scripts/build_atlas_data.py` from GGG's official `atlastree-export`
+  (re-run per patch).
 - **First feature-module toggle**: `FEATURE_STRATEGIES=0` hides the nav entry
   and 404s all module URLs (`settings.FEATURES`, `tracker/features.py`
   `@feature_required`, `features` template context var).

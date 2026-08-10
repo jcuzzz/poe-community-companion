@@ -1,7 +1,9 @@
 {% extends "tracker/base.html" %}
-{% load static %}
+{% load static scarab_tags %}
 {% block title %}{% if is_new %}Add variant{% else %}Edit variant{% endif %} &middot; {{ brand_name }}{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/strategies.css' %}">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/strategies.css' %}">
+<link rel="stylesheet" href="{% static 'css/scarabs.css' %}">
+<script defer src="{% static 'js/scarab_picker.js' %}"></script>{% endblock %}
 {% block content %}
   <h1>{% if is_new %}Add a variant{% else %}Edit &ldquo;{{ variant.name }}&rdquo;{% endif %}</h1>
   <p class="text-muted">Variant of <a href="{% url 'strategy_detail' strategy.slug %}">{{ strategy.title }}</a> &mdash; e.g. a Budget or Endgame tier, or a step in a progression.</p>
@@ -14,9 +16,13 @@
 
   <form method="post" novalidate class="strat-form">
     {% csrf_token %}
+    {% scarab_list as scarabs %}{{ scarabs|json_script:"scarab-data" }}
     {% for field in form.visible_fields %}
-      <div class="form-row">
+      <div class="form-row{% if field.name == 'scarabs_text' %} form-row-scarabs{% endif %}">
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {% if field.name == "scarabs_text" %}
+          <div id="scarab-picker" data-textarea-id="{{ field.id_for_label }}"></div>
+        {% endif %}
         {{ field }}
         {% if field.help_text %}<p class="text-muted help-text">{{ field.help_text }}</p>{% endif %}
         {% if field.errors %}<ul class="field-errors">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}

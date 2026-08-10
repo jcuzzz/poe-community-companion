@@ -1,5 +1,15 @@
-/* Atlas tree viewer/editor interactions: pan, wheel-zoom, node hover tooltip,
- * and (editor mode only) click-to-allocate posting back via a hidden JSON field.
+/* Atlas tree viewer/editor interactions.
+ *
+ * Pan/zoom drive a transform on the single <g class="atlas-viewport"> the
+ * renderer wraps all tree content in — the viewBox is static and only one
+ * transform attribute is written per animation frame, so panning never
+ * re-lays-out or re-paints the 1000-node SVG.
+ *
+ * Editor mode is Path-of-Building-style: clicking an unallocated node
+ * allocates the whole shortest path to it, clicking an allocated node removes
+ * it plus everything that loses its link to the start, and hovering previews
+ * either outcome.
+ *
  * Data-independent: works over whatever SVG the server renders. The SVG root
  * carries data-mode="view|edit"; nodes are .atlas-node[data-node-id]. */
 (function () {
@@ -9,28 +19,59 @@
   if (!wrap) return;
   var svg = wrap.querySelector("svg");
   if (!svg) return;
+  var viewport = svg.querySelector(".atlas-viewport");
 
   var mode = wrap.getAttribute("data-mode") || "view";
 
-  // --- Pan & zoom over the viewBox ---------------------------------------
-  var vb = svg.getAttribute("viewBox").split(/\s+/).map(Number);
-  var home = vb.slice();
-  var MIN_SCALE = 0.08; // relative to home width
-  var panning = false;
-  var last = null;
+  // --- Pan & zoom (transform only) ----------------------------------------
+  var vb = (svg.getAttribute("viewBox") || "0 0 100 100").split(/\s+/).map(Number);
+  // Current viewport transform: user = t + scale * tree.
+  var tx = 0;
+  var ty = 0;
+  var scale = 1;
+  var MIN_SCALE = 0.4; // relative to "fit the whole tree"
+  var MAX_SCALE = 12;
 
-  function setViewBox() {
-    svg.setAttribute("viewBox", vb.join(" "));
-  }
-
-  function clientToTree(evt) {
+  // svg-user-space -> screen mapping, from preserveAspectRatio="xMidYMid meet".
+  // Only depends on element size, so it is cached and refreshed on resize.
+  var fit = { k: 1, ox: 0, oy: 0 };
+  function refreshFit() {
     var rect = svg.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    var k = Math.min(rect.width / vb[2], rect.height / vb[3]);
+    fit.k = k;
+    fit.ox = rect.left + (rect.width - vb[2] * k) / 2 - vb[0] * k;
+    fit.oy = rect.top + (rect.height - vb[3] * k) / 2 - vb[1] * k;
+  }
+  refreshFit();
+  window.addEventListener("resize", refreshFit);
+  // No scroll listener: both consumers of `fit` (pointerdown, wheel) refresh
+  // it on entry, and a capture-phase scroll handler would force a layout of
+  // the 1000-node SVG on every scroll anywhere in the page.
+
+  function clientToTree(clientX, clientY) {
     return {
-      x: vb[0] + ((evt.clientX - rect.left) / rect.width) * vb[2],
-      y: vb[1] + ((evt.clientY - rect.top) / rect.height) * vb[3],
+      x: ((clientX - fit.ox) / fit.k - tx) / scale,
+      y: ((clientY - fit.oy) / fit.k - ty) / scale,
     };
   }
 
+  // One transform write per frame, whatever the input event rate.
+  var frameQueued = false;
+  function scheduleTransform() {
+    if (frameQueued || !viewport) return;
+    frameQueued = true;
+    requestAnimationFrame(function () {
+      frameQueued = false;
+      viewport.setAttribute(
+        "transform",
+        "translate(" + tx.toFixed(2) + " " + ty.toFixed(2) + ") scale(" + scale.toFixed(5) + ")"
+      );
+    });
+  }
+
+  var panning = false;
+  var last = null;
   // Node the pointer went down on — clicks are resolved on pointerup because
   // setPointerCapture retargets the browser's own click event to the svg root,
   // which would make node clicks impossible.
@@ -38,6 +79,7 @@
 
   svg.addEventListener("pointerdown", function (evt) {
     if (evt.button !== 0) return;
+    refreshFit();
     panning = true;
     last = { x: evt.clientX, y: evt.clientY, moved: false };
     downNode = evt.target.closest ? evt.target.closest(".atlas-node") : null;
@@ -45,41 +87,49 @@
     // pointerup/click at the svg root, which breaks node clicks. Capture
     // starts only once an actual drag is detected (below).
   });
+
   svg.addEventListener("pointermove", function (evt) {
     if (!panning || !last) return;
-    var rect = svg.getBoundingClientRect();
-    var dx = ((evt.clientX - last.x) / rect.width) * vb[2];
-    var dy = ((evt.clientY - last.y) / rect.height) * vb[3];
-    if (Math.abs(evt.clientX - last.x) + Math.abs(evt.clientY - last.y) > 3 && !last.moved) {
+    if (!last.moved && Math.abs(evt.clientX - last.x) + Math.abs(evt.clientY - last.y) > 3) {
       last.moved = true;
+      hideTip();
+      hovered = null; // so re-hovering the same node after the pan re-previews
+      clearPreview();
+      wrap.classList.add("is-panning");
       try {
         svg.setPointerCapture(evt.pointerId); // keep the pan alive off-element
       } catch (e) {
         /* pointer may already be gone */
       }
     }
-    vb[0] -= dx;
-    vb[1] -= dy;
+    if (!last.moved) return;
+    tx += (evt.clientX - last.x) / fit.k;
+    ty += (evt.clientY - last.y) / fit.k;
     last.x = evt.clientX;
     last.y = evt.clientY;
-    setViewBox();
+    scheduleTransform();
   });
-  svg.addEventListener("pointerup", function () {
+
+  function endPan() {
     panning = false;
-  });
+    wrap.classList.remove("is-panning");
+  }
+  svg.addEventListener("pointerup", endPan);
+  svg.addEventListener("pointercancel", endPan);
+
   svg.addEventListener(
     "wheel",
     function (evt) {
       evt.preventDefault();
-      var factor = evt.deltaY > 0 ? 1.18 : 1 / 1.18;
-      var newW = vb[2] * factor;
-      if (newW < home[2] * MIN_SCALE || newW > home[2] * 2.5) return;
-      var pt = clientToTree(evt);
-      vb[0] = pt.x - (pt.x - vb[0]) * factor;
-      vb[1] = pt.y - (pt.y - vb[1]) * factor;
-      vb[2] *= factor;
-      vb[3] *= factor;
-      setViewBox();
+      refreshFit();
+      var factor = evt.deltaY > 0 ? 1 / 1.18 : 1.18;
+      var next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * factor));
+      if (next === scale) return;
+      var pt = clientToTree(evt.clientX, evt.clientY);
+      scale = next;
+      tx = (evt.clientX - fit.ox) / fit.k - scale * pt.x;
+      ty = (evt.clientY - fit.oy) / fit.k - scale * pt.y;
+      scheduleTransform();
     },
     { passive: false }
   );
@@ -87,49 +137,76 @@
   var homeBtn = wrap.querySelector("[data-atlas-home]");
   if (homeBtn)
     homeBtn.addEventListener("click", function () {
-      vb = home.slice();
-      setViewBox();
+      tx = 0;
+      ty = 0;
+      scale = 1;
+      scheduleTransform();
     });
 
   // --- Tooltip -------------------------------------------------------------
   var tip = wrap.querySelector(".atlas-tip");
+  var tipNode = null;
+
   function showTip(node, evt) {
     if (!tip) return;
-    var name = node.getAttribute("data-name") || "";
-    var stats = node.getAttribute("data-stats") || "";
-    tip.querySelector(".atlas-tip-name").textContent = name;
-    var statsEl = tip.querySelector(".atlas-tip-stats");
-    statsEl.textContent = "";
-    stats.split("\n").forEach(function (line) {
-      if (!line) return;
-      var p = document.createElement("div");
-      p.textContent = line;
-      statsEl.appendChild(p);
-    });
-    tip.hidden = false;
+    if (node !== tipNode) {
+      tipNode = node;
+      tip.querySelector(".atlas-tip-name").textContent = node.getAttribute("data-name") || "";
+      var statsEl = tip.querySelector(".atlas-tip-stats");
+      statsEl.textContent = "";
+      (node.getAttribute("data-stats") || "").split("\n").forEach(function (line) {
+        if (!line) return;
+        var p = document.createElement("div");
+        p.textContent = line;
+        statsEl.appendChild(p);
+      });
+      tip.hidden = false;
+    }
     var wr = wrap.getBoundingClientRect();
     var x = evt.clientX - wr.left + 14;
     var y = evt.clientY - wr.top + 14;
-    // Keep inside the wrapper.
     if (x + tip.offsetWidth > wr.width) x = Math.max(0, x - tip.offsetWidth - 28);
     if (y + tip.offsetHeight > wr.height) y = Math.max(0, y - tip.offsetHeight - 28);
     tip.style.left = x + "px";
     tip.style.top = y + "px";
   }
+
   function hideTip() {
     if (tip) tip.hidden = true;
+    tipNode = null;
   }
 
+  // Placeholder until edit mode installs the real one.
+  var clearPreview = function () {};
+  var hoverPreview = function () {};
+  var hovered = null;
+
   svg.addEventListener("pointermove", function (evt) {
+    if (panning && last && last.moved) return; // panning frames stay cheap
     var node = evt.target.closest && evt.target.closest(".atlas-node");
-    if (node && node.getAttribute("data-name")) showTip(node, evt);
-    else hideTip();
+    if (!node || !node.getAttribute("data-name")) {
+      if (hovered) {
+        hovered = null;
+        clearPreview();
+      }
+      hideTip();
+      return;
+    }
+    showTip(node, evt);
+    if (node !== hovered) {
+      hovered = node;
+      hoverPreview(node);
+    }
   });
-  svg.addEventListener("pointerleave", hideTip);
+  svg.addEventListener("pointerleave", function () {
+    hideTip();
+    hovered = null;
+    clearPreview();
+  });
 
   if (mode !== "edit") return;
 
-  // --- Editor: click-to-allocate ------------------------------------------
+  // --- Editor: PoB-style pathing ------------------------------------------
   // Server provides the graph + rules; the client enforces connectivity so
   // feedback is instant, and the server re-validates on save.
   var dataEl = document.getElementById("atlas-graph-data");
@@ -143,6 +220,24 @@
   var startSet = new Set(graph.start.map(String));
   var allocated = new Set(JSON.parse(field.value || "[]").map(String));
 
+  // Element indexes, built once: class churn then touches only what changed.
+  var nodeEl = new Map();
+  svg.querySelectorAll(".atlas-node").forEach(function (el) {
+    nodeEl.set(el.getAttribute("data-node-id"), el);
+  });
+  var edgeEl = new Map(); // "a|b" (both orders) -> element
+  var edgesOf = new Map(); // node id -> [elements]
+  svg.querySelectorAll(".atlas-edge").forEach(function (el) {
+    var a = el.getAttribute("data-a");
+    var b = el.getAttribute("data-b");
+    edgeEl.set(a + "|" + b, el);
+    edgeEl.set(b + "|" + a, el);
+    if (!edgesOf.has(a)) edgesOf.set(a, []);
+    if (!edgesOf.has(b)) edgesOf.set(b, []);
+    edgesOf.get(a).push(el);
+    edgesOf.get(b).push(el);
+  });
+
   function neighbours(id) {
     return graph.edges[id] || [];
   }
@@ -155,56 +250,190 @@
     return total;
   }
 
-  function isConnected(candidate) {
-    // Every allocated node must reach a start node through allocated nodes.
-    if (candidate.size === 0) return true;
-    var queue = [];
+  /** Shortest chain of currently-unallocated nodes joining the allocated set
+   * (plus the always-on start nodes) to `target`, target last. [] if
+   * unreachable; [target] when target is already adjacent. */
+  function pathTo(target) {
+    if (allocated.has(target)) return [];
+    var prev = new Map();
     var seen = new Set();
-    candidate.forEach(function (id) {
-      var adj = neighbours(id);
-      for (var i = 0; i < adj.length; i++) {
-        if (startSet.has(String(adj[i]))) {
-          if (!seen.has(id)) {
-            seen.add(id);
-            queue.push(id);
-          }
-          break;
-        }
+    var queue = [];
+    startSet.forEach(function (id) {
+      seen.add(id);
+      queue.push(id);
+    });
+    allocated.forEach(function (id) {
+      if (!seen.has(id)) {
+        seen.add(id);
+        queue.push(id);
       }
     });
-    while (queue.length) {
-      var cur = queue.pop();
-      neighbours(cur).forEach(function (n) {
-        n = String(n);
-        if (candidate.has(n) && !seen.has(n)) {
-          seen.add(n);
-          queue.push(n);
+    for (var head = 0; head < queue.length; head++) {
+      var cur = queue[head];
+      var adj = neighbours(cur);
+      for (var i = 0; i < adj.length; i++) {
+        var n = String(adj[i]);
+        if (seen.has(n)) continue;
+        seen.add(n);
+        prev.set(n, cur);
+        if (n === target) {
+          var chain = [];
+          for (var walk = n; walk !== undefined && !allocated.has(walk) && !startSet.has(walk); walk = prev.get(walk))
+            chain.push(walk);
+          chain.reverse();
+          return chain;
         }
-      });
+        queue.push(n);
+      }
     }
-    return seen.size === candidate.size;
+    return [];
   }
 
-  function paint() {
-    svg.querySelectorAll(".atlas-node").forEach(function (el) {
-      el.classList.toggle("is-allocated", allocated.has(el.getAttribute("data-node-id")));
+  /** Everything that would come off if `target` were removed: itself plus any
+   * allocated node that can no longer reach a start node. */
+  function pruneFrom(target) {
+    if (!allocated.has(target)) return [];
+    var kept = new Set();
+    var queue = [];
+    startSet.forEach(function (id) {
+      kept.add(id);
+      queue.push(id);
     });
-    svg.querySelectorAll(".atlas-edge").forEach(function (el) {
-      var a = el.getAttribute("data-a");
-      var b = el.getAttribute("data-b");
-      el.classList.toggle(
-        "is-allocated",
-        (allocated.has(a) && allocated.has(b)) ||
-          (allocated.has(a) && graph.start.indexOf(Number(b)) !== -1) ||
-          (allocated.has(b) && graph.start.indexOf(Number(a)) !== -1)
-      );
+    for (var head = 0; head < queue.length; head++) {
+      var adj = neighbours(queue[head]);
+      for (var i = 0; i < adj.length; i++) {
+        var n = String(adj[i]);
+        if (n === target || kept.has(n) || !allocated.has(n)) continue;
+        kept.add(n);
+        queue.push(n);
+      }
+    }
+    var gone = [target];
+    allocated.forEach(function (id) {
+      if (id !== target && !kept.has(id)) gone.push(id);
+    });
+    return gone;
+  }
+
+  // --- Hover preview -------------------------------------------------------
+  var previewNodes = new Set();
+  var previewCls = "is-path";
+
+  clearPreview = function () {
+    previewNodes.forEach(function (id) {
+      var el = nodeEl.get(id);
+      if (el) el.classList.remove(previewCls);
+      (edgesOf.get(id) || []).forEach(function (e) {
+        e.classList.remove(previewCls);
+      });
+    });
+    previewNodes.clear();
+  };
+
+  function applyPreview(ids, cls) {
+    // Diff against what is already lit so DOM writes stay proportional to the
+    // change, not to the tree.
+    var next = new Set(ids);
+    var same = cls === previewCls;
+    if (!same) clearPreview();
+    previewNodes.forEach(function (id) {
+      if (next.has(id)) return;
+      var el = nodeEl.get(id);
+      if (el) el.classList.remove(cls);
+      (edgesOf.get(id) || []).forEach(function (e) {
+        e.classList.remove(cls);
+      });
+    });
+    previewCls = cls;
+    next.forEach(function (id) {
+      var el = nodeEl.get(id);
+      if (el) el.classList.add(cls);
+    });
+    // Tint the edges that join two highlighted ends, plus the ones joining a
+    // highlighted node to something already live — those are exactly the
+    // connectors that would light up (path) or go dark (removal).
+    var live = new Set(next);
+    allocated.forEach(function (id) {
+      live.add(id);
+    });
+    startSet.forEach(function (id) {
+      live.add(id);
+    });
+    next.forEach(function (id) {
+      neighbours(id).forEach(function (raw) {
+        var other = String(raw);
+        if (!live.has(other)) return;
+        var e = edgeEl.get(id + "|" + other);
+        if (e) e.classList.add(cls);
+      });
+    });
+    previewNodes = next;
+  }
+
+  hoverPreview = function (node) {
+    var id = node.getAttribute("data-node-id");
+    if (!id || !(id in graph.edges)) {
+      clearPreview();
+      return;
+    }
+    if (allocated.has(id)) applyPreview(pruneFrom(id), "is-removing");
+    else applyPreview(pathTo(id), "is-path");
+  };
+
+  // --- Allocation ----------------------------------------------------------
+  var saveBtn = document.querySelector(".atlas-save-row button[type=submit]");
+  function updateCounter() {
+    var budget = effectiveBudget(allocated);
+    var over = allocated.size > budget;
+    if (counter) {
+      counter.textContent = allocated.size + " / " + budget;
+      counter.classList.toggle("is-over", over);
+    }
+    // Pruning a bonus-point node can strand the rest over budget; the server
+    // would reject that save, so block it here with an explanation instead.
+    if (saveBtn) {
+      saveBtn.disabled = over;
+      saveBtn.title = over
+        ? "Over the point budget - remove " + (allocated.size - budget) + " more point(s) to save"
+        : "";
+    }
+  }
+
+  var flashTimer = null;
+  function flashDenied() {
+    if (!counter) return;
+    counter.classList.add("is-denied");
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(function () {
+      counter.classList.remove("is-denied");
+    }, 450);
+  }
+
+  function edgeIsLive(el) {
+    var a = el.getAttribute("data-a");
+    var b = el.getAttribute("data-b");
+    var la = allocated.has(a) || startSet.has(a);
+    var lb = allocated.has(b) || startSet.has(b);
+    // A start node is free and always on, so it lights as soon as the other
+    // end is allocated (mirrors the server's first paint rule).
+    return la && lb && (allocated.has(a) || allocated.has(b));
+  }
+
+  /** Repaint only the nodes in `touched` and the edges incident to them. */
+  function repaint(touched) {
+    var edges = new Set();
+    touched.forEach(function (id) {
+      var el = nodeEl.get(id);
+      if (el) el.classList.toggle("is-allocated", allocated.has(id));
+      (edgesOf.get(id) || []).forEach(function (e) {
+        edges.add(e);
+      });
+    });
+    edges.forEach(function (e) {
+      e.classList.toggle("is-allocated", edgeIsLive(e));
     });
     field.value = JSON.stringify(Array.from(allocated).map(Number));
-    if (counter) {
-      var budget = effectiveBudget(allocated);
-      counter.textContent = allocated.size + " / " + budget;
-      counter.classList.toggle("is-over", allocated.size > budget);
-    }
+    updateCounter();
   }
 
   svg.addEventListener("pointerup", function () {
@@ -213,24 +442,41 @@
     downNode = null;
     var id = node.getAttribute("data-node-id");
     if (!id || !(id in graph.edges)) return;
-    var next = new Set(allocated);
-    if (next.has(id)) next.delete(id);
-    else {
-      // Add first, THEN check: the clicked node may itself grant bonus points.
-      next.add(id);
-      if (next.size > effectiveBudget(next)) return; // over budget: ignore
+
+    var touched;
+    if (allocated.has(id)) {
+      touched = pruneFrom(id);
+      touched.forEach(function (n) {
+        allocated.delete(n);
+      });
+    } else {
+      var path = pathTo(id);
+      if (!path.length) return; // unreachable
+      var next = new Set(allocated);
+      path.forEach(function (n) {
+        next.add(n);
+      });
+      if (next.size > effectiveBudget(next)) {
+        flashDenied();
+        return;
+      }
+      allocated = next;
+      touched = path;
     }
-    if (!isConnected(next)) return;
-    allocated = next;
-    paint();
+    clearPreview();
+    repaint(touched);
+    hoverPreview(node);
   });
 
   var clearBtn = wrap.querySelector("[data-atlas-clear]");
   if (clearBtn)
     clearBtn.addEventListener("click", function () {
+      var touched = Array.from(allocated);
       allocated = new Set();
-      paint();
+      hovered = null;
+      clearPreview();
+      repaint(touched);
     });
 
-  paint();
+  repaint(Array.from(nodeEl.keys()));
 })();

@@ -140,6 +140,16 @@ a.strat-tag:hover { border-color: var(--color-gold-dim, #8a6d2f); }
   padding: 0.2rem 0.6rem;
 }
 .atlas-count.is-over { color: var(--color-crimson, #c0392b); }
+/* Over-budget click refused: brief red pulse so the ignored click is explained. */
+.atlas-count.is-denied {
+  color: var(--color-crimson, #c0392b);
+  border-color: var(--color-crimson, #c0392b);
+  animation: atlas-deny 0.45s ease-out;
+}
+@keyframes atlas-deny {
+  0%, 55% { background: rgba(192, 57, 43, 0.45); }
+  100% { background: rgba(10, 8, 6, 0.8); }
+}
 
 .atlas-tip {
   position: absolute;
@@ -185,8 +195,54 @@ a.strat-tag:hover { border-color: var(--color-gold-dim, #8a6d2f); }
   stroke-width: 4;
   stroke-opacity: 0.5;
 }
-.atlas-edge { stroke: #2e2840; stroke-width: 10; }
-.atlas-edge.is-allocated { stroke: var(--color-gold-dim, #8a6d2f); }
+/* Declared before the preview states below so a hovered node still shows the
+   path/removal colour rather than the generic hover ring. */
+.atlas-node:hover .node-shape {
+  stroke: var(--color-gold-bright, #d4af5a);
+  stroke-width: 6;
+  stroke-opacity: 0.9;
+}
+/* Pan/zoom is driven by this group's transform attribute (static viewBox), so
+   pointer input costs one attribute write per animation frame.
+   NOTE: deliberately NO `will-change: transform` here. It was tried and
+   measured: promoting a layer this large (a ~12700x11800-unit tree of ~5000
+   sprite rects) makes Chrome rasterise the whole thing, taking the pan from
+   ~2.8ms to ~400ms per frame. Leave the tree unpromoted. */
+/* While dragging, the tree must not eat pointer events for hover work. */
+.atlas-wrap.is-panning .atlas-node { pointer-events: none; }
+
+/* Connectors: thin, muted, round-capped; the renderer trims each end back to
+   the node's frame radius and bends same-orbit edges into arcs. */
+.atlas-edge {
+  fill: none;
+  stroke: #3a3450;
+  stroke-width: 9;
+  stroke-opacity: 0.75;
+  stroke-linecap: round;
+}
+.atlas-edge.is-allocated {
+  stroke: var(--color-gold-bright, #d4af5a);
+  stroke-width: 12;
+  stroke-opacity: 0.9;
+}
+/* Pathing preview: the tentative shortest path in warm gold — deliberately a
+   different hue from the site accent that marks *committed* allocation — and
+   the nodes a removal would take with it in red. Both are hover-transient. */
+.atlas-edge.is-path { stroke: #e8c46a; stroke-width: 12; stroke-opacity: 0.95; }
+.atlas-edge.is-removing { stroke: var(--color-crimson, #c0392b); stroke-width: 12; }
+.atlas-node.is-path .node-shape {
+  fill: transparent;
+  stroke: #e8c46a;
+  stroke-width: 8;
+  stroke-opacity: 0.95;
+}
+.atlas-node.is-path .node-icon { opacity: 0.9; }
+.atlas-node.is-removing .node-shape {
+  fill: transparent;
+  stroke: var(--color-crimson, #c0392b);
+  stroke-width: 8;
+  stroke-opacity: 0.9;
+}
 
 .atlas-thumb-link {
   display: block;

@@ -6,6 +6,8 @@ Plain ``unittest`` (no DB, no settings needed beyond import) but discoverable by
 
 from __future__ import annotations
 
+import math
+import re
 import unittest
 from xml.etree import ElementTree as ET
 
@@ -119,6 +121,108 @@ class FullTests(unittest.TestCase):
         self.assertEqual(len(edges), len(atlas_data.load()["edges"]))
         for edge in edges:
             self.assertTrue(edge.get("data-a") and edge.get("data-b"))
+            self.assertIn(edge.tag, (f"{SVG_NS}line", f"{SVG_NS}path"))
+
+    def test_exactly_one_pan_zoom_viewport_wrapping_the_tree(self):
+        viewports = find_by_class(self.root, "atlas-viewport")
+        self.assertEqual(len(viewports), 1)
+        for name in ("atlas-edges", "atlas-nodes", "atlas-bg"):
+            self.assertTrue(find_by_class(viewports[0], name), name)
+
+    def test_same_group_same_orbit_neighbours_get_an_arc(self):
+        nodes = atlas_data.load()["nodes"]
+        pair = next(
+            (a, b)
+            for a, b in atlas_data.load()["edges"]
+            if nodes[str(a)].get("g") == nodes[str(b)].get("g")
+            and nodes[str(a)].get("o")
+            and nodes[str(a)].get("o") == nodes[str(b)].get("o")
+        )
+        edge = self._edge(*pair)
+        self.assertEqual(edge.tag, f"{SVG_NS}path")
+        # An arc along the orbit circle: rx == ry == the orbit radius.
+        radius = atlas_data.load()["constants"]["orbitRadii"][nodes[str(pair[0])]["o"]]
+        self.assertRegex(edge.get("d"), rf"A{radius}(\.\d+)? {radius}(\.\d+)? 0 0 [01] ")
+
+    def test_every_arc_bends_around_its_group_centre(self):
+        """Sweep-flag correctness for ALL arcs: reconstruct each arc's implied
+        circle centre (SVG spec F.6.5, equal radii, large-arc 0) and require it
+        to sit on the group centre — a wrong sweep flag puts the centre on the
+        mirror side of the chord, ~2r away."""
+        data = atlas_data.load()
+        centres = data["group_centres"]
+        nodes = data["nodes"]
+        arc_re = re.compile(
+            r"M(-?[\d.]+) (-?[\d.]+)A([\d.]+) [\d.]+ 0 0 ([01]) (-?[\d.]+) (-?[\d.]+)"
+        )
+        checked = 0
+        for edge in find_by_class(self.root, "atlas-edge"):
+            d = edge.get("d")
+            if not d:
+                continue
+            m = arc_re.match(d)
+            self.assertIsNotNone(m, d)
+            x1, y1, r, sweep, x2, y2 = (float(m.group(i)) for i in (1, 2, 3, 4, 5, 6))
+            mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+            dx, dy = x2 - x1, y2 - y1
+            half = math.hypot(dx, dy) / 2
+            self.assertLessEqual(half, r + 0.5, d)
+            h = math.sqrt(max(r * r - half * half, 0.0))
+            # Perpendicular offset; sign selected by the sweep flag (F.6.5.1
+            # with fA=0 the centre sits on +perp for sweep 1, -perp for sweep 0,
+            # where perp = (-dy, dx)).
+            sign = 1.0 if sweep == 1 else -1.0
+            cx = mx + sign * h * (-dy) / (2 * half)
+            cy = my + sign * h * dx / (2 * half)
+            gid = str(nodes[edge.get("data-a")].get("g"))
+            gx, gy = centres[gid]
+            self.assertLess(
+                math.hypot(cx - gx, cy - gy),
+                5.0,
+                f"arc centre ({cx:.0f},{cy:.0f}) vs group {gid} ({gx},{gy}): {d}",
+            )
+            checked += 1
+        self.assertGreater(checked, 500)  # 564 arcs expected in the 3.29 bundle
+
+    def test_cross_group_edge_stays_a_straight_line(self):
+        nodes = atlas_data.load()["nodes"]
+        pair = next(
+            (a, b)
+            for a, b in atlas_data.load()["edges"]
+            if nodes[str(a)].get("g") != nodes[str(b)].get("g")
+        )
+        self.assertEqual(self._edge(*pair).tag, f"{SVG_NS}line")
+
+    def test_edge_endpoints_are_trimmed_back_to_the_node_rings(self):
+        nodes = atlas_data.load()["nodes"]
+        pair = next(
+            (a, b)
+            for a, b in atlas_data.load()["edges"]
+            if nodes[str(a)].get("g") != nodes[str(b)].get("g")
+        )
+        edge = self._edge(*pair)
+        na, nb = nodes[str(pair[0])], nodes[str(pair[1])]
+        x1, y1 = float(edge.get("x1")), float(edge.get("y1"))
+        x2, y2 = float(edge.get("x2")), float(edge.get("y2"))
+        # Neither end sits on a node centre any more...
+        self.assertGreater(abs(x1 - na["x"]) + abs(y1 - na["y"]), 1)
+        self.assertGreater(abs(x2 - nb["x"]) + abs(y2 - nb["y"]), 1)
+        # ...and the drawn segment is strictly shorter than centre-to-centre.
+        import math
+
+        self.assertLess(
+            math.dist((x1, y1), (x2, y2)),
+            math.dist((na["x"], na["y"]), (nb["x"], nb["y"])),
+        )
+
+    def _edge(self, a: int, b: int) -> ET.Element:
+        found = [
+            e
+            for e in find_by_class(self.root, "atlas-edge")
+            if e.get("data-a") == str(a) and e.get("data-b") == str(b)
+        ]
+        self.assertEqual(len(found), 1)
+        return found[0]
 
     def test_allocated_state_is_server_rendered(self):
         nid = self.alloc[0]

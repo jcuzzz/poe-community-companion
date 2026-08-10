@@ -1,11 +1,13 @@
 # Farming Strategies module
 
-Status: design agreed 2026-08-10. **Phase 1 SHIPPED 2026-08-11** (feature-flag
-system + `strategies` app: strategy posts, variants, votes, tag filter, external
-catalogue entries). **Phases 3+4 SHIPPED 2026-08-11** (atlas tree viewer +
-editor + import/export; built tree-first per user priority — see "Atlas tree
-implementation notes" below). Phase 2 (structured scarab picker) and phase 5
-(poe.ninja pricing) are next.
+Status: design agreed 2026-08-10. **Phases 1–4 SHIPPED 2026-08-11**: feature
+flags + strategy library (phase 1), structured scarab picker (phase 2 — 116
+scarabs from poe.ninja's `economy/exchange` API, NOT the retired
+`/api/data/itemoverview`; picker syncs into the untouched `scarabs_text` form
+field), atlas tree viewer/editor with full artwork, arc connectors, PoB-style
+path-allocate/prune and transform-based pan/zoom (phases 3+4 — see "Atlas tree
+implementation notes"). Phase 5 (poe.ninja pricing; join `lines` on scarab
+`id` from the same endpoint) is next, then a featured flag.
 
 ## Atlas tree implementation notes (as built)
 

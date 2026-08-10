@@ -27,6 +27,7 @@ colours — ships in a ``<style>`` block inside the returned ``<svg>``.
 
 from __future__ import annotations
 
+import math
 from functools import lru_cache
 from xml.sax.saxutils import escape as _xml_escape
 
@@ -53,6 +54,13 @@ _FULL_STYLE = (
     ".atlas-start .start-core{fill:#8a6d2f}"
     ".atlas-bg{pointer-events:none;opacity:.5}"
     ".atlas-groupbg{pointer-events:none;opacity:.4}"
+    # Allocated art gets a soft gold bloom; only the handful of allocated
+    # nodes/edges are filtered, so the cost stays off the 1000-node baseline.
+    ".atlas-node.is-allocated .frame-on{filter:url(#atlasGlow)}"
+    # Inline SVG inherits the page's custom properties, so the bloom tracks the
+    # site accent instead of hard-coding a second, clashing highlight colour.
+    "#atlasGlow feDropShadow{flood-color:var(--color-gold-bright,#d4af5a)}"
+    ".atlas-edges{pointer-events:none}"
     # Frame art swaps with allocation state (both variants are in the DOM).
     ".atlas-node .node-frame{pointer-events:none}"
     ".atlas-node .frame-on{display:none}"
@@ -63,6 +71,9 @@ _FULL_STYLE = (
 
 # Sprite sheets are exported at zoom 0.5, so one sheet pixel = 2 tree units.
 _SPRITE_SCALE = 2
+# Skill-icon sheets pack sprites edge to edge; their crops get a 1px inset in
+# _patterns() to stop neighbour bleed. Frames/backgrounds carry own padding.
+_INSET_SHEETS = ("normalActive", "notableActive", "keystoneActive", "wormholeActive", "mastery")
 # The painted background map (the big parchment art behind the whole tree).
 _BG_SPRITE = "AtlasPassiveBackground"
 # PoB renders this group sprite as a half-image mirrored about the group centre.
@@ -76,6 +87,15 @@ _FRAMES = {
     "w": ("WormholeFrameUnallocated", "WormholeFrameAllocated"),
 }
 _START_SPRITE = "AtlasPassiveSkillScreenStart"
+# Soft gold bloom behind allocated frame art (referenced from _FULL_STYLE).
+_GLOW_DEFS = (
+    "<defs>"
+    '<filter id="atlasGlow" x="-60%" y="-60%" width="220%" height="220%">'
+    '<feDropShadow dx="0" dy="0" stdDeviation="18" flood-color="#f0c674" '
+    'flood-opacity="0.75"/>'
+    "</filter>"
+    "</defs>"
+)
 _THUMB_STYLE = (
     ".at-base{stroke:#2e2840;stroke-width:10;fill:none}"
     ".at-alloc{stroke:#8a6d2f;stroke-width:14;fill:none}"
@@ -141,6 +161,11 @@ def _patterns() -> tuple[str, dict[str, str]]:
             continue
         pid = f"ap{n}"
         ids[key] = pid
+        # Inset skill-icon crops by a pixel: the sheets pack sprites edge to
+        # edge, and sampling the outer row bleeds neighbouring icons in as a
+        # visible square rim. Frames/backgrounds have their own padding.
+        if sheet_key in _INSET_SHEETS:
+            sx, sy, sw, sh = sx + 1, sy + 1, sw - 2, sh - 2
         defs.append(
             f'<pattern id="{pid}" viewBox="{sx} {sy} {sw} {sh}" width="100%" '
             f'height="100%" preserveAspectRatio="xMidYMid slice">'
@@ -192,6 +217,92 @@ def _icon_svg(node: dict, cx: float, cy: float, radius: float) -> str:
 def _sprite_svg(icon_key: str, x: float, y: float, cls: str, flip: bool = False) -> str:
     """Back-compat wrapper: sprite at native scale, centred on (x, y)."""
     return _sprite_rect(icon_key, x, y, cls, flip=flip)
+
+
+# --------------------------------------------------------------------------
+# edge geometry
+# --------------------------------------------------------------------------
+
+
+def _ring_radius(nid: int, node: dict, starts) -> float:
+    """How far from the node centre its frame art ends (edges stop there)."""
+    if nid in starts:
+        return _START_RADIUS
+    return float(_RADIUS.get(node.get("k"), _RADIUS["s"]))
+
+
+def _orbit_angle(node: dict, per_orbit: list) -> float | None:
+    """theta = 2*pi*oi/skillsPerOrbit[orbit], or None if the data is unusable."""
+    o, oi = node.get("o"), node.get("oi")
+    if o is None or oi is None or not o:
+        return None
+    try:
+        count = per_orbit[int(o)]
+    except (IndexError, TypeError, ValueError):
+        return None
+    if not count:
+        return None
+    return 2 * math.pi * (int(oi) % count) / count
+
+
+def _edge_markup(a: int, b: int, na: dict, nb: dict, ra: float, rb: float, geo: dict) -> str:
+    """One edge, trimmed to the two ring edges: an orbit arc when both nodes sit
+    on the same non-zero orbit of the same group (that is how the game draws
+    them), otherwise a straight segment.
+
+    Returns markup containing a literal ``{cls}`` placeholder for the
+    ``is-allocated`` class that :func:`_render_full` formats in.
+    """
+    attrs = f'class="atlas-edge{{cls}}" data-a="{a}" data-b="{b}"'
+    same_orbit = (
+        na.get("g") is not None
+        and na.get("g") == nb.get("g")
+        and na.get("o")
+        and na.get("o") == nb.get("o")
+    )
+    if same_orbit:
+        centre = geo["centres"].get(int(na["g"]))
+        radii = geo["orbit_radii"]
+        o = int(na["o"])
+        r = radii[o] if 0 <= o < len(radii) else 0
+        t1 = _orbit_angle(na, geo["per_orbit"])
+        t2 = _orbit_angle(nb, geo["per_orbit"])
+        if centre and r and t1 is not None and t2 is not None:
+            # Shorter way round: normalise the delta into (-pi, pi].
+            delta = (t2 - t1 + math.pi) % (2 * math.pi) - math.pi
+            if abs(delta) > 1e-6:
+                sign = 1.0 if delta > 0 else -1.0
+                # Trim by converting each ring radius into an arc angle, never
+                # eating more than 45% of the span from either end.
+                span = abs(delta)
+                da = min(ra / r, span * 0.45)
+                db = min(rb / r, span * 0.45)
+                s1, s2 = t1 + sign * da, t2 - sign * db
+                cx, cy = float(centre[0]), float(centre[1])
+                x1 = cx + r * math.sin(s1)
+                y1 = cy - r * math.cos(s1)
+                x2 = cx + r * math.sin(s2)
+                y2 = cy - r * math.cos(s2)
+                # sin/-cos winds clockwise on screen, which is SVG sweep-flag 1.
+                sweep = 1 if delta > 0 else 0
+                return (
+                    f'<path {attrs} d="M{x1:.1f} {y1:.1f}'
+                    f"A{r:.1f} {r:.1f} 0 0 {sweep} {x2:.1f} {y2:.1f}\"/>"
+                )
+
+    x1, y1 = float(na["x"]), float(na["y"])
+    x2, y2 = float(nb["x"]), float(nb["y"])
+    dx, dy = x2 - x1, y2 - y1
+    length = math.hypot(dx, dy)
+    if length > 1e-6:
+        ux, uy = dx / length, dy / length
+        ca = min(ra, length * 0.45)
+        cb = min(rb, length * 0.45)
+        x1 += ux * ca
+        y1 += uy * ca
+        x2 -= ux * cb
+        y2 -= uy * cb
+    return f'<line {attrs} x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}"/>'
 
 
 @lru_cache(maxsize=1)
@@ -300,6 +411,13 @@ def _full_skeleton() -> dict:
     nodes = _nodes()
     starts = atlas_data.start_nodes()
 
+    consts = data.get("constants") or {}
+    geo = {
+        "orbit_radii": list(consts.get("orbitRadii") or []),
+        "per_orbit": list(consts.get("skillsPerOrbit") or []),
+        "centres": {int(k): v for k, v in (data.get("group_centres") or {}).items()},
+    }
+
     edges = []  # (a, b, html-with-{cls})
     for a, b in data.get("edges", []):
         a, b = int(a), int(b)
@@ -310,8 +428,15 @@ def _full_skeleton() -> dict:
             (
                 a,
                 b,
-                f'<line class="atlas-edge{{cls}}" data-a="{a}" data-b="{b}" '
-                f'x1="{na["x"]}" y1="{na["y"]}" x2="{nb["x"]}" y2="{nb["y"]}"/>',
+                _edge_markup(
+                    a,
+                    b,
+                    na,
+                    nb,
+                    _ring_radius(a, na, starts),
+                    _ring_radius(b, nb, starts),
+                    geo,
+                ),
             )
         )
 
@@ -384,11 +509,16 @@ def _render_full(alloc: set[int]) -> str:
         f'aria-label="Atlas passive tree ({len(alloc)} points allocated)">'
         f"<style>{_FULL_STYLE}</style>"
         f"{_patterns()[0]}"
+        f"{_GLOW_DEFS}"
+        # One transform target for pan/zoom: the JS never touches the viewBox,
+        # so panning is a single transform write per animation frame.
+        f'<g class="atlas-viewport">'
         f"{_background_layer()}"
         f'<g class="atlas-edges">{edges}</g>'
         f'{skel["masteries"]}'
         f'{skel["starts"]}'
         f'<g class="atlas-nodes">{groups}</g>'
+        f"</g>"
         f"</svg>"
     )
 

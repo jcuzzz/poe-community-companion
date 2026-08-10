@@ -1,7 +1,8 @@
 {% extends "tracker/base.html" %}
-{% load static %}
+{% load static scarab_tags %}
 {% block title %}{{ strategy.title }} &middot; {{ brand_name }}{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/strategies.css' %}">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/strategies.css' %}">
+<link rel="stylesheet" href="{% static 'css/scarabs.css' %}">{% endblock %}
 {% block content %}
   <div class="page-head-row">
     <div>
@@ -71,7 +72,9 @@
           {% if variant.scarabs %}
             <h4 class="strat-subhead">Scarabs</h4>
             <ul class="strat-scarabs">
-              {% for scarab in variant.scarabs %}<li>{{ scarab }}</li>{% endfor %}
+              {% for scarab in variant.scarabs %}
+                <li>{% with icon=scarab|scarab_icon %}{% if icon %}<img class="scarab-inline-icon" src="{{ icon }}" alt="" loading="lazy">{% endif %}{% endwith %}<span>{{ scarab }}</span></li>
+              {% endfor %}
             </ul>
           {% endif %}
           {% if variant.notes %}<div class="strat-notes">{{ variant.notes|urlize|linebreaks }}</div>{% endif %}

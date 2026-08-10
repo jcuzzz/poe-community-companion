@@ -32,7 +32,7 @@ class StrategyVariantForm(forms.ModelForm):
         label="Scarabs",
         required=False,
         widget=forms.Textarea(attrs={"rows": 5, "placeholder": "One scarab per line"}),
-        help_text="One per line, e.g. \"Titanic Scarab of Legend x2\".",
+        help_text='One per line, e.g. "Titanic Scarab of Legend" (repeat a line for duplicates).',
     )
 
     class Meta:

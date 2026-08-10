@@ -30,11 +30,12 @@ out — those were scoped out for an *achievement tracker*; some make sense agai
 a *community site*, but flag the shift before building.
 
 ## Now / next (small, high value)
-- **Farming strategies remaining phases** (phases 1, 3, 4 shipped 2026-08-11 —
-  see [design/farming-strategies.md](design/farming-strategies.md); the atlas
-  tree viewer/editor with 3.29 artwork + link import/export is live):
-  structured scarab picker with poecdn icons → poe.ninja auto-pricing →
-  featured flag.
+- **Farming strategies remaining phases** (phases 1–4 shipped 2026-08-11 —
+  see [design/farming-strategies.md](design/farming-strategies.md); atlas
+  tree viewer/editor with full 3.29 artwork, PoB-style pathing, link
+  import/export, and the structured scarab picker are all live):
+  poe.ninja auto-pricing (join on the scarab ids already in
+  `scarab_data.json`) → featured flag.
 - **Richer player profiles** — per-achievement breakdown, personal timeline,
   efficiency bests. Mostly template; `player_stats()` already computes the data.
 - **Light-theme polish** — a few hardcoded dark colors in `proofs.css` / `firsts.css`

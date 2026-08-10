@@ -104,6 +104,11 @@ def build(raw: dict, version: str) -> dict:
             "name": node.get("name", ""),
             "stats": list(node.get("stats") or []),
             "icon": node.get("icon") or "",
+            # Orbit placement so the renderer can draw in-game-style arc
+            # connectors between same-orbit neighbours.
+            "g": int(node.get("group") or 0),
+            "o": int(node.get("orbit") or 0),
+            "oi": int(node.get("orbitIndex") or 0),
         }
         granted = node.get("grantedPassivePoints")
         if granted:
@@ -173,6 +178,13 @@ def build(raw: dict, version: str) -> dict:
         "bounds": bounds,
         "nodes": nodes,
         "edges": [list(e) for e in sorted(edges)],
+        "constants": {
+            "orbitRadii": list(orbit_radii),
+            "skillsPerOrbit": list(skills_per_orbit),
+        },
+        "group_centres": {
+            gid: [round(g["x"]), round(g["y"])] for gid, g in groups.items()
+        },
         "groups": group_art,
         "sprites": {"sheets": sheets, "coords": coords},
     }
