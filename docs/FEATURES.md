@@ -119,6 +119,14 @@ HTMX), deployed via Docker/Caddy on a Proxmox LXC. See [../runbooks/](../runbook
   for the tree viewer/editor (phase 3+, see
   [design/farming-strategies.md](design/farming-strategies.md)).
 - **Votes** — one upvote per member per strategy; library sorts by votes.
+- **Atlas tree viewer + editor** — each variant carries a 3.29 atlas passive
+  tree: full-tree SVG with official GGG artwork (hotlinked poecdn sprite
+  sheets), pan/zoom, node tooltips; authors click-to-allocate in-app with
+  live connectivity + point-budget rules (wormhole pairs supported), or
+  import a pathofexile.com / poeplanner.com share link; every tree exports
+  back out as a canonical pathofexile.com link. Gold-on-skeleton thumbnails
+  on the strategy page. Data pipeline: `scripts/build_atlas_data.py` from
+  GGG's official `atlastree-export` (re-run per patch).
 - **First feature-module toggle**: `FEATURE_STRATEGIES=0` hides the nav entry
   and 404s all module URLs (`settings.FEATURES`, `tracker/features.py`
   `@feature_required`, `features` template context var).

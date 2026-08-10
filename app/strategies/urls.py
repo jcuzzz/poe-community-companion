@@ -11,4 +11,5 @@ urlpatterns = [
     path("<slug:slug>/vote/", views.strategy_vote, name="strategy_vote"),
     path("<slug:slug>/variants/new/", views.variant_create, name="strategy_variant_create"),
     path("<slug:slug>/variants/<int:pk>/", views.variant_edit, name="strategy_variant_edit"),
+    path("<slug:slug>/variants/<int:pk>/tree/", views.variant_tree, name="strategy_variant_tree"),
 ]

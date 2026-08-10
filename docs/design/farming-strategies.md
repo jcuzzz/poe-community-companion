@@ -2,7 +2,32 @@
 
 Status: design agreed 2026-08-10. **Phase 1 SHIPPED 2026-08-11** (feature-flag
 system + `strategies` app: strategy posts, variants, votes, tag filter, external
-catalogue entries). Phases 2+ below are next.
+catalogue entries). **Phases 3+4 SHIPPED 2026-08-11** (atlas tree viewer +
+editor + import/export; built tree-first per user priority — see "Atlas tree
+implementation notes" below). Phase 2 (structured scarab picker) and phase 5
+(poe.ninja pricing) are next.
+
+## Atlas tree implementation notes (as built)
+
+- Data: official GGG export `github.com/grindinggear/atlastree-export` tag
+  **3.29.1** (`data.json`) → `scripts/build_atlas_data.py` → slim 274 KB
+  `app/strategies/atlas_tree_data.json` (1029 nodes / 1003 edges / budget 138 /
+  bonus node 65225 +20 / start 29045 / one zoom level of sprite coords). Rerun
+  the script per patch (`--source <url-or-path> --version 3.XX.X`).
+  NOTE: the export also ships `league.json` (league-mechanic variant tree) —
+  we use base `data.json`, which is what share URLs encode.
+- Modules (all in `app/strategies/`): `atlas_data.py` (loader +
+  `validate_allocation`: connectivity incl. the 3 wormhole pairs, budget,
+  drops masteries/start/unknown ids), `atlas_codec.py` (decode GGG +
+  poeplanner links — poeplanner is u16 LE with a gzipped notes tail, GGG is
+  u16 BE; encode canonical GGG v6 links), `atlas_render.py` (lru-cached SVG
+  skeletons; thumb ~30 KB, full interactive ~575 KB with real poecdn
+  sprite-sheet icons — 3 sheet fetches per page).
+- UI: `/strategies/<slug>/variants/<pk>/tree/` — viewer for all, editor for
+  author/staff (`static/js/atlas_tree.js`: pan/zoom/tooltip + client-side
+  connectivity/budget mirror of the server rules; server re-validates on save).
+  Import box accepts pathofexile.com + poeplanner.com links; export button is
+  a canonical pathofexile.com link. Thumbnails on the strategy detail page.
 
 A shared library of PoE farming strategies (atlas tree + scarabs + map device +
 economics + write-up), authored by guild members or catalogued from the web.

@@ -63,12 +63,19 @@ def strategy_list(request: HttpRequest) -> HttpResponse:
 def strategy_detail(request: HttpRequest, slug: str) -> HttpResponse:
     qs, league = _visible(request)
     strategy = get_object_or_404(qs, slug=slug)
+    from . import atlas_render
+
+    variants = list(strategy.variants.all())
+    for variant in variants:
+        nodes = variant.atlas_tree.get("nodes") if isinstance(variant.atlas_tree, dict) else None
+        if nodes:
+            variant.tree_thumb = atlas_render.render_tree_svg(nodes, mode="thumb")
     return render(
         request,
         "strategies/strategy_detail.html",
         {
             "strategy": strategy,
-            "variants": strategy.variants.all(),
+            "variants": variants,
             "vote_count": strategy.votes.count(),
             "has_voted": strategy.votes.filter(user=request.user).exists(),
             "can_edit": _can_edit(request.user, strategy),
@@ -144,6 +151,78 @@ def strategy_vote(request: HttpRequest, slug: str) -> HttpResponse:
     if request.POST.get("next") == "list":
         return redirect("strategy_list")
     return redirect("strategy_detail", slug=slug)
+
+
+@feature_required("strategies")
+@login_required
+def variant_tree(request: HttpRequest, slug: str, pk: int) -> HttpResponse:
+    """Atlas tree viewer (everyone) / editor (author & staff) for one variant.
+
+    Saves happen as POSTs of a JSON node-id list (the editor's hidden field) or
+    an imported share link; both are validated server-side before storing.
+    """
+    import json as _json
+
+    from . import atlas_codec, atlas_data, atlas_render
+
+    qs, _ = _visible(request)
+    strategy = get_object_or_404(qs, slug=slug)
+    variant = get_object_or_404(StrategyVariant, pk=pk, strategy=strategy)
+    can_edit = _can_edit(request.user, strategy)
+    error = None
+    attempted = None  # a rejected submission, re-rendered so the edit isn't lost
+
+    if request.method == "POST":
+        if not can_edit:
+            raise Http404
+        if request.POST.get("action") == "import":
+            try:
+                ids = atlas_codec.decode_atlas_url(request.POST.get("tree_url", ""))
+            except ValueError as exc:
+                ids, error = None, str(exc)
+        else:
+            try:
+                ids = [int(n) for n in _json.loads(request.POST.get("nodes", "[]"))]
+            except (ValueError, TypeError, RecursionError, OverflowError):
+                ids, error = None, "Could not read the allocated nodes — try again."
+        if ids is not None:
+            valid_ids, error = atlas_data.validate_allocation(ids)
+            if error is None:
+                variant.atlas_tree = {
+                    "version": atlas_data.load()["version"],
+                    "nodes": valid_ids,
+                }
+                variant.save(update_fields=["atlas_tree"])
+                messages.success(request, f"Atlas tree saved ({len(valid_ids)} points).")
+                return redirect("strategy_variant_tree", slug=strategy.slug, pk=variant.pk)
+            # Keep only ids the renderer knows so the rejected set still draws.
+            attempted = [i for i in ids if i in atlas_data.node_ids()]
+
+    stored = variant.atlas_tree.get("nodes", []) if isinstance(variant.atlas_tree, dict) else []
+    allocated = attempted if attempted is not None else stored
+    # The stored JSON is admin-editable, so treat it as untrusted: a bad id list
+    # must degrade to "no share link", never a 500.
+    try:
+        share_url = atlas_codec.encode_ggg_url(allocated) if allocated else ""
+    except ValueError:
+        share_url = ""
+    mode = "edit" if can_edit else "view"
+    return render(
+        request,
+        "strategies/variant_tree.html",
+        {
+            "strategy": strategy,
+            "variant": variant,
+            "mode": mode,
+            "can_edit": can_edit,
+            "tree_svg": atlas_render.render_tree_svg(allocated, mode="full"),
+            "graph_data": atlas_render.graph_data() if can_edit else None,
+            "allocated_json": _json.dumps(allocated),
+            "share_url": share_url,
+            "tree_error": error,
+            "cur": "strategy_list",
+        },
+    )
 
 
 @feature_required("strategies")

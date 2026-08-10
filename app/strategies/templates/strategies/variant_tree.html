@@ -1,0 +1,62 @@
+{% extends "tracker/base.html" %}
+{% load static %}
+{% block title %}{{ variant.name }} atlas tree &middot; {{ brand_name }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/strategies.css' %}">{% endblock %}
+{% block content %}
+  <div class="page-head-row">
+    <div>
+      <h1>{{ variant.name }} &mdash; atlas tree</h1>
+      <p class="text-muted">
+        Variant of <a href="{% url 'strategy_detail' strategy.slug %}">{{ strategy.title }}</a>
+        {% if mode == "edit" %} &middot; click nodes to allocate; changes save when you hit Save.{% endif %}
+      </p>
+    </div>
+    {% if share_url %}
+      <a class="btn btn-sm" href="{{ share_url }}" rel="noopener noreferrer" target="_blank">Open on pathofexile.com &#8599;</a>
+    {% endif %}
+  </div>
+
+  {% if tree_error %}
+    <div class="form-errors"><ul><li>{{ tree_error }}</li></ul></div>
+  {% endif %}
+
+  {% if mode == "edit" %}
+    <form method="post" class="atlas-import-row">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="import">
+      <input type="text" name="tree_url" placeholder="Paste a pathofexile.com or poeplanner.com atlas tree link to import"
+             aria-label="Atlas tree link">
+      <button type="submit" class="btn btn-sm">Import</button>
+    </form>
+  {% endif %}
+
+  <div class="atlas-wrap" data-atlas-tree data-mode="{{ mode }}">
+    <div class="atlas-toolbar">
+      <span class="atlas-count" data-atlas-count></span>
+      <button type="button" class="btn btn-sm" data-atlas-home>Reset view</button>
+      {% if mode == "edit" %}<button type="button" class="btn btn-sm" data-atlas-clear>Clear all</button>{% endif %}
+    </div>
+    {{ tree_svg }}
+    <div class="atlas-tip" hidden>
+      <div class="atlas-tip-name"></div>
+      <div class="atlas-tip-stats"></div>
+    </div>
+  </div>
+
+  {% if mode == "edit" %}
+    <form method="post" class="form-actions atlas-save-row">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save">
+      <input type="hidden" name="nodes" value="{{ allocated_json }}" data-atlas-field>
+      <button type="submit" class="btn btn-primary">Save tree</button>
+      <a class="btn" href="{% url 'strategy_detail' strategy.slug %}">Back to strategy</a>
+    </form>
+    {{ graph_data|json_script:"atlas-graph-data" }}
+  {% else %}
+    <div class="form-actions">
+      <a class="btn" href="{% url 'strategy_detail' strategy.slug %}">Back to strategy</a>
+    </div>
+  {% endif %}
+
+  <script src="{% static 'js/atlas_tree.js' %}" defer></script>
+{% endblock %}

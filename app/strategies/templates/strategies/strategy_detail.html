@@ -76,7 +76,13 @@
           {% endif %}
           {% if variant.notes %}<div class="strat-notes">{{ variant.notes|urlize|linebreaks }}</div>{% endif %}
           {% if variant.atlas_tree.nodes %}
-            <p class="text-muted">Atlas tree: {{ variant.atlas_tree.nodes|length }} points ({{ variant.atlas_tree.version }})</p>
+            <a class="atlas-thumb-link" href="{% url 'strategy_variant_tree' strategy.slug variant.pk %}"
+               title="View atlas tree">
+              {{ variant.tree_thumb }}
+              <span class="text-muted">Atlas tree &middot; {{ variant.atlas_tree.nodes|length }} points</span>
+            </a>
+          {% elif can_edit %}
+            <p><a class="inline-btn" href="{% url 'strategy_variant_tree' strategy.slug variant.pk %}">Set atlas tree</a></p>
           {% endif %}
         </article>
       {% endfor %}
