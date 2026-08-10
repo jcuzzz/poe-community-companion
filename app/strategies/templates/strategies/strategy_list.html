@@ -1,0 +1,56 @@
+{% extends "tracker/base.html" %}
+{% load static %}
+{% block title %}Strategies &middot; {{ brand_name }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/strategies.css' %}">{% endblock %}
+{% block content %}
+  <div class="page-head-row">
+    <div>
+      <h1>Farming strategies</h1>
+      <p class="text-muted">The guild's shared library of atlas strats &mdash; trees, scarabs, and how to print currency.</p>
+    </div>
+    {% if not is_archived_view %}
+      <a class="btn btn-primary" href="{% url 'strategy_create' %}">Post a strategy</a>
+    {% endif %}
+  </div>
+
+  {% if all_tags %}
+    <div class="strat-tagbar">
+      <a class="pill{% if not tag %} is-active{% endif %}" href="{% url 'strategy_list' %}">All</a>
+      {% for t in all_tags %}
+        <a class="pill{% if t == tag %} is-active{% endif %}" href="{% url 'strategy_list' %}?tag={{ t|urlencode }}">{{ t }}</a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if strategies %}
+    <div class="card-grid cols-2 strat-grid">
+      {% for strategy in strategies %}
+        <article class="card strat-card{% if not strategy.is_published %} is-draft{% endif %}">
+          <div class="strat-card-head">
+            <h2><a href="{% url 'strategy_detail' strategy.slug %}">{{ strategy.title }}</a></h2>
+            <form method="post" action="{% url 'strategy_vote' strategy.slug %}" class="strat-vote-form">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="list">
+              <button type="submit" class="strat-vote{% if strategy.id in voted_ids %} is-voted{% endif %}"
+                      title="{% if strategy.id in voted_ids %}Remove vote{% else %}Upvote{% endif %}">
+                &#9650; {{ strategy.vote_count }}
+              </button>
+            </form>
+          </div>
+          {% if strategy.summary %}<p class="strat-summary">{{ strategy.summary }}</p>{% endif %}
+          <div class="strat-meta">
+            {% if strategy.kind == "external" %}<span class="pill">External guide</span>{% endif %}
+            {% if not strategy.is_published %}<span class="pill pill-draft">Draft</span>{% endif %}
+            {% for t in strategy.tag_list %}<span class="strat-tag">{{ t }}</span>{% endfor %}
+          </div>
+          <p class="strat-byline text-muted">by {{ strategy.author.username }} &middot; updated {{ strategy.updated_at|date:"j M" }}</p>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <span class="icon" aria-hidden="true">&#128506;</span>
+      No strategies yet{% if tag %} for &ldquo;{{ tag }}&rdquo;{% endif %} &mdash; be the first to share one.
+    </div>
+  {% endif %}
+{% endblock %}

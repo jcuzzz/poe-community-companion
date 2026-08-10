@@ -108,6 +108,21 @@ HTMX), deployed via Docker/Caddy on a Proxmox LXC. See [../runbooks/](../runbook
   advisory uphold/reject vote with a live tally; an admin still makes the final
   call (implements the plan's mirror-tier majority-vote idea).
 
+## Farming strategies (feature module)
+- **Strategy library** (`/strategies/`, `strategies` Django app) — members share
+  farming strategies per league: write-up (plain text, links auto-linked), tags
+  with filter bar, one-line summary, drafts (unpublished = author/staff only).
+  `kind=external` catalogues an outside guide (maxroll/poeplanner/video URL).
+- **Variants** — ordered budget/endgame tiers or progression steps per strategy:
+  scarab list (one-per-line for now; structured picker planned), map-device
+  craft, investment / expected-return text, notes. `atlas_tree` JSON slot ready
+  for the tree viewer/editor (phase 3+, see
+  [design/farming-strategies.md](design/farming-strategies.md)).
+- **Votes** — one upvote per member per strategy; library sorts by votes.
+- **First feature-module toggle**: `FEATURE_STRATEGIES=0` hides the nav entry
+  and 404s all module URLs (`settings.FEATURES`, `tracker/features.py`
+  `@feature_required`, `features` template context var).
+
 ## Integrations
 - **Discord webhook** (optional; `DISCORD_WEBHOOK_URL`) — announces a new
   first-place claim and a contested claim to a channel, once each. Fail-safe

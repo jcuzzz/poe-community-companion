@@ -44,4 +44,6 @@ def league(request):
         # distinguish "hasn't started yet" from "no start date configured".
         "league_starts_in_days": (start - now).days if start and start > now else None,
         "pending_review_count": pending,
+        # Feature-module toggles (settings.FEATURES) — templates gate nav on these.
+        "features": settings.FEATURES,
     }

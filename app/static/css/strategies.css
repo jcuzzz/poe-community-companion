@@ -1,0 +1,107 @@
+/* Farming-strategy library. Token-driven; hard edges per the app style. */
+
+.page-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.strat-tagbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.75rem 0 1.25rem;
+}
+.strat-tagbar .pill { text-decoration: none; }
+.strat-tagbar .pill.is-active {
+  background: var(--color-gold-dim, #8a6d2f);
+  color: var(--color-bg, #14100b);
+  border-color: var(--color-gold-bright, #d4af5a);
+}
+
+.strat-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.strat-card-head h2,
+.strat-card-head h3 { margin: 0; }
+.strat-card.is-draft { opacity: 0.75; }
+.strat-summary { margin: 0.4rem 0 0.6rem; }
+
+.strat-vote {
+  border: 1px solid var(--color-border-strong, #4a3d28);
+  background: var(--color-bg-raised, #1d1712);
+  color: var(--color-parchment-dim, #b9a98c);
+  padding: 0.2rem 0.6rem;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.strat-vote:hover { border-color: var(--color-gold-dim, #8a6d2f); }
+.strat-vote.is-voted {
+  color: var(--color-gold-bright, #d4af5a);
+  border-color: var(--color-gold-dim, #8a6d2f);
+}
+.strat-vote-form { display: inline; }
+
+.strat-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.5rem 0;
+}
+.strat-tag {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--color-border, #33291b);
+  color: var(--color-parchment-dim, #b9a98c);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+a.strat-tag:hover { border-color: var(--color-gold-dim, #8a6d2f); }
+
+.strat-byline { font-size: 0.85rem; margin: 0.35rem 0 0; }
+
+.strat-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.strat-actions form { display: inline; }
+
+.strat-body { padding: 1rem 1.25rem; margin: 1rem 0 1.5rem; }
+
+.strat-facts { margin: 0.5rem 0; }
+.strat-facts div {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+}
+.strat-facts dt {
+  min-width: 9rem;
+  color: var(--color-parchment-dim, #b9a98c);
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+.strat-facts dd { margin: 0; }
+
+.strat-subhead {
+  margin: 0.75rem 0 0.25rem;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  color: var(--color-parchment-dim, #b9a98c);
+}
+.strat-scarabs {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.strat-form { max-width: 46rem; }
+.strat-form .help-text { font-size: 0.8rem; margin: 0.2rem 0 0; }

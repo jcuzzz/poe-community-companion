@@ -36,7 +36,17 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "tracker",
+    "strategies",
 ]
+
+# --- Feature modules -------------------------------------------------------
+# Squad Achieves is one companion app made of toggleable modules. Operators
+# disable a module per instance (e.g. a gauntlet event that doesn't want the
+# strategy library): disabled = no nav entry, its URLs 404. See
+# docs/design/farming-strategies.md.
+FEATURES = {
+    "strategies": env_bool("FEATURE_STRATEGIES", True),
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

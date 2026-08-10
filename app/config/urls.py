@@ -20,6 +20,8 @@ ADMIN_PATH = os.environ.get("DJANGO_ADMIN_PATH", "manage-league").strip("/")
 
 urlpatterns = [
     path(f"{ADMIN_PATH}/", admin.site.urls),
+    # Feature module: farming-strategy library (views 404 when the flag is off).
+    path("strategies/", include("strategies.urls")),
     path("", include("tracker.urls")),
 ]
 

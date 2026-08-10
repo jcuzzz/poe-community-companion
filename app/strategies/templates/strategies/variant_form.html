@@ -1,0 +1,34 @@
+{% extends "tracker/base.html" %}
+{% load static %}
+{% block title %}{% if is_new %}Add variant{% else %}Edit variant{% endif %} &middot; {{ brand_name }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/strategies.css' %}">{% endblock %}
+{% block content %}
+  <h1>{% if is_new %}Add a variant{% else %}Edit &ldquo;{{ variant.name }}&rdquo;{% endif %}</h1>
+  <p class="text-muted">Variant of <a href="{% url 'strategy_detail' strategy.slug %}">{{ strategy.title }}</a> &mdash; e.g. a Budget or Endgame tier, or a step in a progression.</p>
+
+  {% if form.non_field_errors %}
+    <div class="form-errors">
+      <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+
+  <form method="post" novalidate class="strat-form">
+    {% csrf_token %}
+    {% for field in form.visible_fields %}
+      <div class="form-row">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="text-muted help-text">{{ field.help_text }}</p>{% endif %}
+        {% if field.errors %}<ul class="field-errors">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% if is_new %}Add variant{% else %}Save changes{% endif %}</button>
+      <a class="btn" href="{% url 'strategy_detail' strategy.slug %}">Cancel</a>
+      {% if not is_new %}
+        <button type="submit" name="action" value="delete" class="btn btn-danger"
+                onclick="return confirm('Remove this variant?');">Remove variant</button>
+      {% endif %}
+    </div>
+  </form>
+{% endblock %}

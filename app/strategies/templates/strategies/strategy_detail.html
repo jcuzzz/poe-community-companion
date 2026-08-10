@@ -1,0 +1,90 @@
+{% extends "tracker/base.html" %}
+{% load static %}
+{% block title %}{{ strategy.title }} &middot; {{ brand_name }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/strategies.css' %}">{% endblock %}
+{% block content %}
+  <div class="page-head-row">
+    <div>
+      <h1>{{ strategy.title }}</h1>
+      <p class="strat-byline text-muted">
+        by {{ strategy.author.username }} &middot; updated {{ strategy.updated_at|date:"j M Y" }}
+        {% if strategy.kind == "external" %} &middot; <span class="pill">External guide</span>{% endif %}
+        {% if not strategy.is_published %} &middot; <span class="pill pill-draft">Draft</span>{% endif %}
+      </p>
+    </div>
+    <div class="strat-actions">
+      <form method="post" action="{% url 'strategy_vote' strategy.slug %}" class="strat-vote-form">
+        {% csrf_token %}
+        <button type="submit" class="strat-vote{% if has_voted %} is-voted{% endif %}">
+          &#9650; {{ vote_count }}
+        </button>
+      </form>
+      {% if can_edit %}
+        <a class="btn btn-sm" href="{% url 'strategy_edit' strategy.slug %}">Edit</a>
+        <form method="post" action="{% url 'strategy_delete' strategy.slug %}"
+              onsubmit="return confirm('Delete this strategy and all its variants?');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if strategy.tag_list %}
+    <div class="strat-meta">
+      {% for t in strategy.tag_list %}
+        <a class="strat-tag" href="{% url 'strategy_list' %}?tag={{ t|urlencode }}">{{ t }}</a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if strategy.external_url %}
+    <p><a class="btn" href="{{ strategy.external_url }}" rel="noopener noreferrer" target="_blank">Open external guide &#8599;</a></p>
+  {% endif %}
+
+  {% if strategy.body %}
+    <div class="card strat-body">{{ strategy.body|urlize|linebreaks }}</div>
+  {% endif %}
+
+  <div class="page-head-row">
+    <h2>Variants</h2>
+    {% if can_edit %}
+      <a class="btn btn-sm" href="{% url 'strategy_variant_create' strategy.slug %}">Add variant</a>
+    {% endif %}
+  </div>
+
+  {% if variants %}
+    <div class="card-grid cols-2">
+      {% for variant in variants %}
+        <article class="card strat-variant">
+          <div class="strat-card-head">
+            <h3>{{ variant.name }}</h3>
+            {% if can_edit %}
+              <a class="inline-btn" href="{% url 'strategy_variant_edit' strategy.slug variant.pk %}">Edit</a>
+            {% endif %}
+          </div>
+          <dl class="strat-facts">
+            {% if variant.investment %}<div><dt>Investment</dt><dd>{{ variant.investment }}</dd></div>{% endif %}
+            {% if variant.expected_return %}<div><dt>Expected return</dt><dd>{{ variant.expected_return }}</dd></div>{% endif %}
+            {% if variant.map_device %}<div><dt>Map device</dt><dd>{{ variant.map_device }}</dd></div>{% endif %}
+          </dl>
+          {% if variant.scarabs %}
+            <h4 class="strat-subhead">Scarabs</h4>
+            <ul class="strat-scarabs">
+              {% for scarab in variant.scarabs %}<li>{{ scarab }}</li>{% endfor %}
+            </ul>
+          {% endif %}
+          {% if variant.notes %}<div class="strat-notes">{{ variant.notes|urlize|linebreaks }}</div>{% endif %}
+          {% if variant.atlas_tree.nodes %}
+            <p class="text-muted">Atlas tree: {{ variant.atlas_tree.nodes|length }} points ({{ variant.atlas_tree.version }})</p>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <span class="icon" aria-hidden="true">&#127793;</span>
+      No variants yet{% if can_edit %} &mdash; add a Budget or Endgame tier{% endif %}.
+    </div>
+  {% endif %}
+{% endblock %}

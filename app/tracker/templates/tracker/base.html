@@ -41,6 +41,9 @@
           <li><a href="{% url 'leaderboard' %}"{% if cur == 'leaderboard' %} aria-current="page"{% endif %}>Leaderboard</a></li>
           <li><a href="{% url 'roster' %}"{% if cur == 'roster' or cur == 'character_detail' %} aria-current="page"{% endif %}>Characters</a></li>
           <li><a href="{% url 'ladder_board' %}"{% if cur == 'ladder_board' %} aria-current="page"{% endif %}>Ladder</a></li>
+          {% if features.strategies %}
+          <li><a href="{% url 'strategy_list' %}"{% if cur == 'strategy_list' %} aria-current="page"{% endif %}>Strategies</a></li>
+          {% endif %}
           {% if user.is_authenticated %}
             <li><a href="{% url 'activity_feed' %}"{% if cur == 'activity_feed' %} aria-current="page"{% endif %}>Activity</a></li>
             <li><a href="{% url 'submission_create' %}"{% if cur == 'submission_create' %} aria-current="page"{% endif %}>Submit</a></li>
