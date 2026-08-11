@@ -24,11 +24,30 @@ dead league yields nothing and a quiet one yields a few less than the full set.
 Passing several leagues merges their catalogues, which is the cheap way to get
 complete coverage.
 
+Descriptions (the in-game tooltip mod lines) come from a second source, the
+poewiki cargo API::
+
+    GET https://www.poewiki.net/w/api.php?action=cargoquery&tables=items
+        &fields=items.name,items.description
+        &where=items.class_id="MapFragment" AND items.name LIKE "%Scarab%"
+
+``items.description`` is the explicit mod text ("Area contains an additional
+Abyss"); ``items.explicit_stat_text`` is null for scarabs, which is why we read
+``description``. The text arrives HTML-escaped with ``<span class="keyword">``
+wrappers and ``<br>`` line breaks — :func:`clean_description` undoes all that.
+There is no usable stack/"Limit:" field in the cargo schema (``stack_size``,
+``max_stack_size`` and ``limit`` all error), so the bundle carries mod lines
+only. The wiki lists a few retired scarabs too; extras are simply ignored.
+
+If the wiki call fails the build still succeeds: descriptions already present in
+the existing bundle are preserved and a warning goes to stderr.
+
 Output schema (contract with ``app/strategies/scarabs.py``)::
 
     {"version": "<label>",
      "scarabs": {"<name>": {"icon": "<https://web.poecdn.com/...>",
-                            "group": "<family>"}}}
+                            "group": "<family>",
+                            "desc": "<mod lines, \\n-joined>"}}}
 
 ``group`` is the scarab family: the word immediately before "Scarab", since every
 name is ``"<Family> Scarab"`` or ``"<Family> Scarab of <Suffix>"``. The nine
@@ -38,7 +57,9 @@ family-less ones ("Scarab of Adversaries", ...) land in the "Scarab" group.
 from __future__ import annotations
 
 import argparse
+import html
 import json
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -47,6 +68,7 @@ from pathlib import Path
 
 API = "https://poe.ninja/poe1/api/economy/exchange/current/overview"
 LEAGUES_API = "https://poe.ninja/poe1/api/economy/leagues"
+WIKI_API = "https://www.poewiki.net/w/api.php"
 CDN = "https://web.poecdn.com"
 USER_AGENT = "poe-community-companion/1.0 (self-hosted)"
 
@@ -74,6 +96,63 @@ def fetch_catalogue(league: str) -> list[dict]:
     return list((payload or {}).get("items") or [])
 
 
+_BREAK = re.compile(r"<br\s*/?>|</?p>", re.IGNORECASE)
+_TAG = re.compile(r"<[^>]+>")
+_WIKI_LINK = re.compile(r"\[\[(?:[^\]|]*\|)?([^\]|]*)\]\]")
+
+
+def clean_description(raw: str) -> str:
+    """Wiki description -> plain in-game text, newline-joined mod lines."""
+    if not raw:
+        return ""
+    text = html.unescape(str(raw))
+    text = html.unescape(text)  # the API double-escapes the span markup
+    text = _BREAK.sub("\n", text)
+    text = _WIKI_LINK.sub(r"\1", text)
+    text = _TAG.sub("", text)
+    lines = [" ".join(line.split()) for line in text.split("\n")]
+    return "\n".join(line for line in lines if line)
+
+
+def fetch_descriptions() -> dict[str, str]:
+    """``{scarab name: description}`` from the poewiki cargo API."""
+    params = {
+        "action": "cargoquery",
+        "format": "json",
+        "tables": "items",
+        "fields": "items.name,items.description",
+        "where": 'items.class_id="MapFragment" AND items.name LIKE "%Scarab%"',
+        "limit": "500",
+    }
+    payload = fetch(f"{WIKI_API}?{urllib.parse.urlencode(params)}")
+    rows = (payload or {}).get("cargoquery")
+    if not rows:
+        error = (payload or {}).get("error") or {}
+        raise ValueError(f"cargoquery returned no rows: {error.get('info') or payload}")
+    descriptions = {}
+    for row in rows:
+        title = row.get("title") or {}
+        name = (title.get("name") or "").strip()
+        text = clean_description(title.get("description") or "")
+        if name and text:
+            descriptions[name] = text
+    return descriptions
+
+
+def existing_descriptions(path: Path) -> dict[str, str]:
+    """Descriptions in the bundle we are about to overwrite (fallback source)."""
+    try:
+        with path.open(encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    return {
+        name: entry.get("desc", "")
+        for name, entry in (data.get("scarabs") or {}).items()
+        if entry.get("desc")
+    }
+
+
 def family_of(name: str) -> str:
     """Family = the word before "Scarab" ("Titanic Scarab of Legend" -> "Titanic").
 
@@ -96,7 +175,12 @@ def icon_url(image: str) -> str:
     return CDN + ("" if image.startswith("/") else "/") + image
 
 
-def build(catalogues: list[list[dict]], version: str) -> dict:
+def build(
+    catalogues: list[list[dict]],
+    version: str,
+    descriptions: dict[str, str] | None = None,
+) -> dict:
+    descriptions = descriptions or {}
     scarabs: dict[str, dict] = {}
     for catalogue in catalogues:
         for entry in catalogue:
@@ -105,7 +189,14 @@ def build(catalogues: list[list[dict]], version: str) -> dict:
             if not name or "Scarab" not in name.split() or not icon:
                 continue
             # First league wins; later ones only fill gaps.
-            scarabs.setdefault(name, {"icon": icon, "group": family_of(name)})
+            scarabs.setdefault(
+                name,
+                {
+                    "icon": icon,
+                    "group": family_of(name),
+                    "desc": descriptions.get(name, ""),
+                },
+            )
     return {"version": version, "scarabs": dict(sorted(scarabs.items()))}
 
 
@@ -137,7 +228,19 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{league}: {exc} (known leagues: {valid})", file=sys.stderr)
             return 1
 
-    data = build(catalogues, version)
+    out = Path(args.out)
+    # Merge-preserve: the wiki is a nice-to-have, never a build blocker.
+    descriptions = existing_descriptions(out)
+    try:
+        descriptions.update(fetch_descriptions())
+    except (OSError, ValueError) as exc:
+        print(
+            f"warning: poewiki descriptions unavailable ({exc}); "
+            f"keeping {len(descriptions)} existing description(s)",
+            file=sys.stderr,
+        )
+
+    data = build(catalogues, version, descriptions)
     count = len(data["scarabs"])
     if count < 80 and not args.force:
         # Refuse rather than clobber a good bundle with a near-empty one
@@ -149,14 +252,21 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    out = Path(args.out)
     out.write_text(
         json.dumps(data, separators=(",", ":"), ensure_ascii=False), encoding="utf-8"
     )
     groups = {s["group"] for s in data["scarabs"].values()}
+    missing = sorted(n for n, s in data["scarabs"].items() if not s["desc"])
+    if missing:
+        print(
+            f"warning: {len(missing)} scarab(s) without a description: "
+            + ", ".join(missing),
+            file=sys.stderr,
+        )
     print(
         f"{out}: {out.stat().st_size / 1024:.0f} KB, {count} scarabs, "
-        f"{len(groups)} families, version {data['version']}"
+        f"{len(groups)} families, {count - len(missing)} described, "
+        f"version {data['version']}"
     )
     return 0
 

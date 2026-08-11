@@ -32,12 +32,13 @@ def load() -> dict:
 
 @lru_cache(maxsize=1)
 def all_scarabs() -> list[dict]:
-    """``[{"name", "icon", "group"}, ...]`` sorted by (group, name)."""
+    """``[{"name", "icon", "group", "desc"}, ...]`` sorted by (group, name)."""
     entries = [
         {
             "name": name,
             "icon": entry.get("icon", ""),
             "group": entry.get("group", ""),
+            "desc": entry.get("desc", ""),
         }
         for name, entry in (load().get("scarabs") or {}).items()
     ]
@@ -72,6 +73,29 @@ def icon_for(name: str) -> str:
         if stripped != name:
             return icon_for(stripped)
     return icon if icon.startswith(_ICON_PREFIX) else ""
+
+
+@lru_cache(maxsize=1)
+def _desc_by_lower_name() -> dict[str, str]:
+    return {s["name"].lower(): s["desc"] for s in all_scarabs()}
+
+
+def description_for(name: str) -> str:
+    """In-game description (mod lines, ``\\n``-joined) for a scarab; "" if unknown.
+
+    Same matching rules as :func:`icon_for`: exact, then case-insensitive, then
+    with a legacy quantity suffix stripped.
+    """
+    if not name:
+        return ""
+    name = str(name).strip()
+    entry = (load().get("scarabs") or {}).get(name)
+    desc = entry.get("desc", "") if entry else _desc_by_lower_name().get(name.lower(), "")
+    if not desc:
+        stripped = _QTY_SUFFIX.sub("", name)
+        if stripped != name:
+            return description_for(stripped)
+    return desc
 
 
 @lru_cache(maxsize=1)

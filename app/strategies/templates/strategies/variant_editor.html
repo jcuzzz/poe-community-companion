@@ -13,9 +13,15 @@
         &mdash; click tree nodes to allocate; one Save stores the tree and the fields together.
       </p>
     </div>
-    {% if share_url %}
-      <a class="btn btn-sm" href="{{ share_url }}" rel="noopener noreferrer" target="_blank">Open on pathofexile.com &#8599;</a>
-    {% endif %}
+    <div class="variant-head-actions">
+      {% if share_url %}
+        <a class="btn btn-sm" href="{{ share_url }}" rel="noopener noreferrer" target="_blank">Open on pathofexile.com &#8599;</a>
+      {% endif %}
+      {% comment %}Same form (see form="variant-editor-form"), so this posts the
+      tree and the fields exactly like the bottom button.{% endcomment %}
+      <button type="submit" name="action" value="save" class="btn btn-primary"
+              form="variant-editor-form" data-save-mirror>Save variant</button>
+    </div>
   </div>
 
   {% if tree_error %}
@@ -28,7 +34,7 @@
   {% endif %}
 
   {# One form: tree nodes, the import round-trip and every variant field post together. #}
-  <form method="post" novalidate class="variant-editor">
+  <form method="post" novalidate class="variant-editor" id="variant-editor-form">
     {% csrf_token %}
     {% scarab_list as scarabs %}{{ scarabs|json_script:"scarab-data" }}
 
@@ -112,4 +118,23 @@
   </form>
 
   <script src="{% static 'js/atlas_tree.js' %}" defer></script>
+  <script>
+    // atlas_tree.js disables exactly one save button (a single querySelector on
+    // .atlas-save-row), so the top copy mirrors the bottom one's disabled state
+    // instead of the tree knowing about it.
+    (function () {
+      "use strict";
+      var bottom = document.querySelector(".atlas-save-row button[value=save]");
+      var top = document.querySelector("[data-save-mirror]");
+      if (!bottom || !top) { return; }
+      function sync() {
+        top.disabled = bottom.disabled;
+        top.title = bottom.title;
+      }
+      new MutationObserver(sync).observe(bottom, {
+        attributes: true, attributeFilter: ["disabled", "title"],
+      });
+      sync();
+    })();
+  </script>
 {% endblock %}

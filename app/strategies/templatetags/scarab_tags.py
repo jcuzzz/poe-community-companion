@@ -25,9 +25,15 @@ def scarab_icon(name: str) -> str:
     return scarabs.icon_for(name)
 
 
+@register.filter(name="scarab_desc")
+def scarab_desc(name: str) -> str:
+    """In-game description for a scarab name, "" when unknown."""
+    return scarabs.description_for(name)
+
+
 @register.simple_tag(name="scarab_list")
 def scarab_list() -> list[dict]:
-    """Every scarab as ``{"name", "icon", "group"}``, sorted by (group, name)."""
+    """Every scarab as ``{"name", "icon", "group", "desc"}``, sorted by (group, name)."""
     return scarabs.all_scarabs()
 
 

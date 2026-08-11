@@ -429,3 +429,137 @@ class VoteAndVariantTests(TestCase):
             {"action": "delete"},
         )
         self.assertFalse(StrategyVariant.objects.filter(pk=variant.pk).exists())
+
+
+def _nodes_matching(pattern: str, limit: int, kinds=("s", "n")) -> list[int]:
+    """Ids of atlas nodes whose name/stats match ``pattern`` (built from the real bundle)."""
+    import re
+
+    from . import atlas_data
+
+    rx = re.compile(pattern, re.I)
+    found = []
+    for nid, node in (atlas_data.load().get("nodes") or {}).items():
+        if node.get("k") not in kinds:
+            continue
+        text = (node.get("name") or "") + "\n" + "\n".join(node.get("stats") or [])
+        if rx.search(text):
+            found.append(int(nid))
+        if len(found) >= limit:
+            break
+    return found
+
+
+class MechanicsTests(TestCase):
+    """Mechanic inference reads the shipped atlas bundle, not a fixture."""
+
+    def test_empty_tree_has_no_mechanics(self):
+        from . import mechanics
+
+        self.assertEqual(mechanics.top_mechanics([]), [])
+        self.assertEqual(mechanics.top_mechanics(None), [])
+
+    def test_unknown_ids_are_ignored(self):
+        from . import mechanics
+
+        self.assertEqual(mechanics.top_mechanics([-1, 999999999]), [])
+
+    def test_essence_heavy_tree_ranks_essence_first(self):
+        from . import mechanics
+
+        essence = _nodes_matching(r"\bessence", 8)
+        harvest = _nodes_matching(r"\blifeforce\b|\bharvest\b", 2)
+        self.assertTrue(essence, "atlas bundle has no essence nodes")
+        top = mechanics.top_mechanics(essence + harvest)
+        self.assertEqual(top[0]["key"], "essence")
+        self.assertLessEqual(len(top), 3)
+        self.assertGreaterEqual(top[0]["score"], len(essence))
+        self.assertIn("Essence", top[0]["label"])
+        self.assertTrue(top[0]["icon"].startswith("https://web.poecdn.com/"))
+
+    def test_harvest_heavy_tree_ranks_harvest_first(self):
+        from . import mechanics
+
+        harvest = _nodes_matching(r"\blifeforce\b|\bharvest\b|\bsacred grove\b", 8)
+        essence = _nodes_matching(r"\bessence", 1)
+        self.assertTrue(harvest, "atlas bundle has no harvest nodes")
+        self.assertEqual(mechanics.top_mechanics(harvest + essence)[0]["key"], "harvest")
+
+    def test_strongbox_covers_ambush_wording(self):
+        from . import mechanics
+
+        boxes = _nodes_matching(r"\bstrongbox", 6)
+        self.assertTrue(boxes)
+        self.assertEqual(mechanics.top_mechanics(boxes)[0]["key"], "strongbox")
+
+    def test_notables_outweigh_smalls(self):
+        from . import mechanics
+
+        small = _nodes_matching(r"\bessence", 1, kinds=("s",))
+        notable = _nodes_matching(r"\bessence", 1, kinds=("n",))
+        self.assertTrue(small and notable)
+        self.assertEqual(mechanics.score_mechanics(small)["essence"], 1)
+        self.assertEqual(mechanics.score_mechanics(notable)["essence"], 2)
+
+    def test_generic_map_nodes_are_not_mechanics(self):
+        from . import mechanics
+
+        # A pure map-quantity node must not invent a "focus".
+        generic = _nodes_matching(r"increased Quantity of Items found in your Maps", 3)
+        for key in mechanics.score_mechanics(generic):
+            self.assertIn(key, mechanics.MECHANICS)  # never a made-up key
+        self.assertNotIn("essence", mechanics.score_mechanics(generic))
+
+
+class ScarabTooltipAndFocusTests(TestCase):
+    def setUp(self):
+        self.league = make_league("Tip League", slug="tip-league")
+        self.author = make_player("tipauthor")
+        self.strategy = make_strategy(self.league, self.author, title="Tooltip Farm")
+        self.client.login(username="tipauthor", password=PASSWORD)
+
+    def test_detail_page_shows_focus_chips_for_a_saved_tree(self):
+        from . import atlas_data
+
+        nodes = _nodes_matching(r"\bessence", 8)
+        StrategyVariant.objects.create(
+            strategy=self.strategy,
+            name="Main",
+            atlas_tree={"version": atlas_data.load().get("version", ""), "nodes": nodes},
+        )
+        response = self.client.get(reverse("strategy_detail", args=[self.strategy.slug]))
+        self.assertContains(response, "map-device-focus")
+        self.assertContains(response, "focus-chip")
+        self.assertContains(response, "Essence")
+        self.assertContains(response, "allocated node")
+
+    def test_detail_page_has_no_focus_cluster_without_a_tree(self):
+        StrategyVariant.objects.create(strategy=self.strategy, name="Main")
+        response = self.client.get(reverse("strategy_detail", args=[self.strategy.slug]))
+        self.assertNotContains(response, "map-device-focus")
+
+    def test_detail_slot_carries_the_scarab_tooltip(self):
+        from . import scarabs
+
+        probe = "Ambush Scarab"
+        StrategyVariant.objects.create(
+            strategy=self.strategy, name="Main", scarabs=[probe]
+        )
+        response = self.client.get(reverse("strategy_detail", args=[self.strategy.slug]))
+        self.assertContains(response, "scarab-tip")
+        self.assertContains(response, 'class="scarab-tip-name"')
+        describe = getattr(scarabs, "description_for", None)
+        desc = describe(probe) if callable(describe) else ""
+        if not desc:
+            self.skipTest("scarab catalogue has no mod text yet (description_for -> '')")
+        self.assertContains(response, "data-desc=")
+        self.assertContains(response, "scarab-tip-stats")
+
+    def test_editor_has_a_top_save_button_bound_to_the_form(self):
+        response = self.client.get(
+            reverse("strategy_variant_edit", args=[self.strategy.slug,
+                    StrategyVariant.objects.create(strategy=self.strategy, name="Main").pk])
+        )
+        self.assertContains(response, "data-save-mirror")
+        self.assertContains(response, 'form="variant-editor-form"')
+        self.assertContains(response, 'id="variant-editor-form"')

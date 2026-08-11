@@ -34,6 +34,24 @@ class BundleShapeTests(unittest.TestCase):
                 self.assertTrue(entry["icon"].startswith("https://web.poecdn.com/"))
                 self.assertTrue(entry["group"])
 
+    def test_every_entry_has_an_in_game_description(self):
+        empty = sorted(n for n, e in self.data["scarabs"].items() if not e.get("desc"))
+        total = len(self.data["scarabs"])
+        self.assertGreaterEqual(
+            total - len(empty),
+            110,
+            f"{len(empty)} of {total} scarabs have no description: {empty}",
+        )
+
+    def test_descriptions_carry_no_markup(self):
+        for name, entry in self.data["scarabs"].items():
+            with self.subTest(scarab=name):
+                desc = entry.get("desc", "")
+                self.assertNotIn("<", desc)
+                self.assertNotIn("&lt;", desc)
+                self.assertNotIn("[[", desc)
+                self.assertEqual(desc, desc.strip())
+
     def test_group_is_the_word_before_scarab(self):
         for name, entry in self.data["scarabs"].items():
             with self.subTest(scarab=name):
@@ -48,7 +66,7 @@ class LoaderApiTests(unittest.TestCase):
         entries = scarabs.all_scarabs()
         self.assertEqual(len(entries), len(scarabs.load()["scarabs"]))
         for entry in entries:
-            self.assertEqual(set(entry), {"name", "icon", "group"})
+            self.assertEqual(set(entry), {"name", "icon", "group", "desc"})
         keys = [(e["group"], e["name"]) for e in entries]
         self.assertEqual(keys, sorted(keys))
 
@@ -72,6 +90,29 @@ class LoaderApiTests(unittest.TestCase):
     def test_icon_for_unknown_is_empty(self):
         self.assertEqual(scarabs.icon_for("Not A Scarab"), "")
         self.assertEqual(scarabs.icon_for(""), "")
+
+    def test_description_for_exact_match(self):
+        sample = scarabs.all_scarabs()[0]
+        self.assertEqual(scarabs.description_for(sample["name"]), sample["desc"])
+        self.assertTrue(sample["desc"])
+
+    def test_description_for_is_case_insensitive(self):
+        sample = scarabs.all_scarabs()[0]
+        self.assertEqual(scarabs.description_for(sample["name"].upper()), sample["desc"])
+        self.assertEqual(scarabs.description_for(sample["name"].lower()), sample["desc"])
+
+    def test_description_for_strips_legacy_quantity_suffix(self):
+        known = scarabs.all_scarabs()[0]["name"]
+        self.assertEqual(
+            scarabs.description_for(f"{known} x2"), scarabs.description_for(known)
+        )
+        self.assertEqual(
+            scarabs.description_for(f"{known} X13"), scarabs.description_for(known)
+        )
+
+    def test_description_for_unknown_is_empty(self):
+        self.assertEqual(scarabs.description_for("Not A Scarab"), "")
+        self.assertEqual(scarabs.description_for(""), "")
 
     def test_groups(self):
         families = scarabs.groups()
@@ -100,6 +141,28 @@ class TemplateTagTests(SimpleTestCase):
             "{% load scarab_tags %}[{{ name|scarab_icon }}]"
         ).render(Context({"name": "Nonexistent Scarab of Nothing"}))
         self.assertEqual(rendered, "[]")
+
+    def test_scarab_desc_filter_resolves(self):
+        sample = scarabs.all_scarabs()[0]
+        rendered = Template(
+            "{% load scarab_tags %}{{ name|scarab_desc }}"
+        ).render(Context({"name": sample["name"]}))
+        self.assertEqual(rendered, sample["desc"])
+
+    def test_scarab_desc_filter_unknown_is_empty(self):
+        rendered = Template(
+            "{% load scarab_tags %}[{{ name|scarab_desc }}]"
+        ).render(Context({"name": "Nonexistent Scarab of Nothing"}))
+        self.assertEqual(rendered, "[]")
+
+    def test_scarab_list_entries_carry_desc(self):
+        rendered = Template(
+            "{% load scarab_tags %}{% scarab_list as items %}"
+            "{% for item in items %}{{ item.desc|length }},{% endfor %}"
+        ).render(Context({}))
+        lengths = [int(part) for part in rendered.split(",") if part]
+        self.assertEqual(len(lengths), len(scarabs.all_scarabs()))
+        self.assertTrue(all(lengths))
 
     def test_scarab_list_tag_returns_python_list(self):
         rendered = Template(

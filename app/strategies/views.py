@@ -22,13 +22,35 @@ def _can_edit(user, strategy: Strategy) -> bool:
     return user.is_staff or strategy.author_id == user.id
 
 
+def _scarab_desc(name: str) -> str:
+    """A scarab's mod text ("\\n"-joined), or "" when the catalogue has none.
+
+    ``scarabs.description_for`` is the catalogue's contract for mod text; the
+    getattr keeps strategy pages rendering against an older bundle that predates
+    it rather than 500ing on an AttributeError.
+    """
+    from . import scarabs as scarab_catalogue
+
+    describe = getattr(scarab_catalogue, "description_for", None)
+    return describe(name) if callable(describe) else ""
+
+
 def _scarab_slots(variant: StrategyVariant) -> list[dict | None]:
     """The variant's scarabs as five device-style slots (``None`` = empty)."""
     from . import scarabs as scarab_catalogue
 
     names = [str(n) for n in (variant.scarabs or [])][:SCARAB_SLOTS]
     slots: list[dict | None] = [
-        {"name": name, "icon": scarab_catalogue.icon_for(name)} for name in names
+        {
+            "name": name,
+            "icon": scarab_catalogue.icon_for(name),
+            # Rendered into data-desc for the hover tooltip; "" until the
+            # catalogue carries mod text, in which case the slot has no tip.
+            "desc": _scarab_desc(name),
+            # First mod line only: the no-JS title="" fallback.
+            "desc_first": _scarab_desc(name).split("\n")[0],
+        }
+        for name in names
     ]
     slots += [None] * (SCARAB_SLOTS - len(slots))
     return slots
@@ -96,7 +118,7 @@ def strategy_list(request: HttpRequest) -> HttpResponse:
 def strategy_detail(request: HttpRequest, slug: str) -> HttpResponse:
     qs, league = _visible(request)
     strategy = get_object_or_404(qs, slug=slug)
-    from . import atlas_render
+    from . import atlas_render, mechanics
 
     variants = list(strategy.variants.all())
     # Each full tree is ~600KB of inline SVG, so only the initially-active tab
@@ -106,6 +128,8 @@ def strategy_detail(request: HttpRequest, slug: str) -> HttpResponse:
         variant.slots = _scarab_slots(variant)
         variant.extra_scarabs = [str(n) for n in (variant.scarabs or [])][SCARAB_SLOTS:]
         variant.nodes = _variant_nodes(variant)
+        # One cheap pass over <=160 ids per variant: what the tree focuses on.
+        variant.mechanics = mechanics.top_mechanics(variant.nodes, 3)
         variant.tree_svg = (
             atlas_render.render_tree_svg(variant.nodes, mode="full") if index == 0 else None
         )

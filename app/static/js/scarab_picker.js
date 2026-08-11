@@ -112,6 +112,54 @@
     var search = panel.querySelector(".scarab-search");
     var results = panel.querySelector(".scarab-results");
 
+    // ---- shared tooltip --------------------------------------------------
+    // One element for the whole picker, repositioned on hover/focus: slots and
+    // every search row share it, so a 400-row list costs nothing extra.
+    var tip = document.createElement("div");
+    tip.className = "scarab-tip scarab-tip-float";
+    tip.setAttribute("role", "tooltip");
+    tip.hidden = true;
+    tip.innerHTML = '<span class="scarab-tip-name"></span><span class="scarab-tip-stats"></span>';
+    var tipName = tip.querySelector(".scarab-tip-name");
+    var tipStats = tip.querySelector(".scarab-tip-stats");
+    wrap.appendChild(tip);
+
+    function showTip(anchor, name) {
+      var info = byName[name] || {};
+      tipName.textContent = name;
+      tipStats.textContent = "";
+      (info.desc ? String(info.desc).split("\n") : []).forEach(function (line, i) {
+        if (i) { tipStats.appendChild(document.createElement("br")); }
+        tipStats.appendChild(document.createTextNode(line));
+      });
+      tip.hidden = false;
+      var box = anchor.getBoundingClientRect();
+      var base = wrap.getBoundingClientRect();
+      if (anchor.classList.contains("scarab-row")) {
+        // Beside the list: under a row it would cover the next results.
+        var panelBox = panel.getBoundingClientRect();
+        tip.style.left = (panelBox.right - base.left + 6) + "px";
+        tip.style.top = (box.top - base.top) + "px";
+      } else {
+        tip.style.left = (box.left - base.left) + "px";
+        tip.style.top = (box.bottom - base.top + 4) + "px";
+      }
+    }
+
+    function hideTip() { tip.hidden = true; }
+
+    function bindTip(el, getName) {
+      ["mouseenter", "focus"].forEach(function (evt) {
+        el.addEventListener(evt, function () {
+          var name = getName();
+          if (name) { showTip(el, name); }
+        });
+      });
+      ["mouseleave", "blur"].forEach(function (evt) {
+        el.addEventListener(evt, hideTip);
+      });
+    }
+
     var extrasBox = document.createElement("div");
     extrasBox.className = "scarab-extras";
     wrap.appendChild(extrasBox);
@@ -173,6 +221,7 @@
         cell.appendChild(rm);
 
         (function (idx, btnEl, rmEl) {
+          bindTip(btnEl, function () { return slots[idx]; });
           btnEl.addEventListener("click", function (ev) {
             ev.preventDefault();
             openPanel(idx);
@@ -199,9 +248,10 @@
         btn.innerHTML = "";
         if (name) {
           cell.classList.add("is-filled");
-          cell.title = name;
-          btn.title = name;
           var info = byName[name] || {};
+          // The rich tooltip replaces the native one where we have mod text.
+          cell.title = info.desc ? "" : name;
+          btn.title = info.desc ? "" : name;
           if (info.icon) {
             var img = document.createElement("img");
             img.src = info.icon;
@@ -279,6 +329,7 @@
     }
 
     function closePanel() {
+      hideTip();
       panel.hidden = true;
       activeIndex = -1;
       cursor = -1;
@@ -290,6 +341,7 @@
       var matches = data.filter(function (s) {
         return !q || s.name.toLowerCase().indexOf(q) !== -1;
       });
+      hideTip();
       results.innerHTML = "";
       rowEls = [];
       cursor = -1;
@@ -337,6 +389,7 @@
           nm.className = "scarab-row-name";
           nm.textContent = s.name;
           row.appendChild(nm);
+          bindTip(row, function () { return s.name; });
           row.addEventListener("click", function (ev) {
             ev.preventDefault();
             choose(s.name);

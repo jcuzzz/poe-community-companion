@@ -81,8 +81,11 @@
           <div class="map-device-slots">
         <div class="scarab-slots scarab-slots-static">
           {% for slot in variant.slots %}
-            <div class="scarab-slot{% if slot %} is-filled{% endif %}">
-              <span class="scarab-slot-face">
+            <div class="scarab-slot{% if slot %} is-filled{% endif %}"{% if slot and slot.desc %} data-desc="{{ slot.desc }}"{% endif %}>
+              {% comment %}Filled slots are focusable so the hover tooltip is
+              reachable from the keyboard; title="" is the no-JS/no-CSS
+              fallback.{% endcomment %}
+              <span class="scarab-slot-face"{% if slot %} tabindex="0" title="{{ slot.name }}{% if slot.desc_first %}&#10;{{ slot.desc_first }}{% endif %}"{% endif %}>
                 {% if slot %}
                   {% if slot.icon %}
                     <img class="scarab-slot-icon" src="{{ slot.icon }}" alt="" loading="lazy">
@@ -94,10 +97,35 @@
                   <span class="scarab-slot-plus" aria-hidden="true">&middot;</span>
                 {% endif %}
               </span>
+              {% if slot %}
+                <span class="scarab-tip" role="tooltip">
+                  <span class="scarab-tip-name">{{ slot.name }}</span>
+                  {% if slot.desc %}<span class="scarab-tip-stats">{{ slot.desc|linebreaksbr }}</span>{% endif %}
+                </span>
+              {% endif %}
             </div>
           {% endfor %}
         </div>
           </div>
+          {% if variant.mechanics %}
+            {% comment %}"Focus": what the saved tree actually invests in,
+            squared to the same 76px as the slots so it reads as one row.{% endcomment %}
+            <div class="map-device-focus">
+              <span class="map-device-focus-label">Focus</span>
+              <div class="focus-chips">
+                {% for m in variant.mechanics %}
+                  <div class="focus-chip" title="{{ m.label }}: {{ m.count }} allocated node{{ m.count|pluralize }} (focus score {{ m.score }})">
+                    {% if m.icon %}
+                      <img class="focus-chip-icon" src="{{ m.icon }}" alt="" loading="lazy">
+                    {% else %}
+                      <span class="focus-chip-abbr">{{ m.label|slice:":2" }}</span>
+                    {% endif %}
+                    <span class="focus-chip-name">{{ m.label }}</span>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
           {% if variant.influence %}
             <div class="map-device-influence">
               <span class="influence-chip is-on" title="{{ variant.influence.label }}">

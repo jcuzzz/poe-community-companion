@@ -326,3 +326,11 @@ a.strat-tag:hover { border-color: var(--color-gold-dim, #8a6d2f); }
   margin-left: auto;
   margin-bottom: 0.35rem;
 }
+
+/* Editor page head: share link + the top "Save variant" copy. */
+.variant-head-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
