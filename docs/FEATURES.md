@@ -117,11 +117,31 @@ HTMX), deployed via Docker/Caddy on a Proxmox LXC. See [../runbooks/](../runbook
   structured scarab setup, map-device craft, investment / expected-return text,
   notes, and an atlas tree (see below and
   [design/farming-strategies.md](design/farming-strategies.md)).
-- **Scarab picker** — 5 map-device-style slots with a searchable, family-grouped
-  dropdown over the full 116-scarab database (icons hotlinked from poecdn;
-  data from poe.ninja's economy API via `scripts/build_scarab_data.py`, which
-  also carries the ids phase-5 live pricing will join on). Legacy free-text
-  lines are preserved; scarab icons render on strategy cards.
+- **One-page UX** — the strategy page shows everything per variant: the full
+  interactive tree inline, the map device, facts and notes; multiple variants
+  are tabs with trees lazy-loaded per tab. Authors get a single combined
+  editor (tree + scarab picker + all fields, one Save, save button top and
+  bottom); "Add variant" creates and jumps straight in.
+- **Scarab picker & map device** — 5 device-style slots (CSS bronze-bevel
+  frame) with a searchable, family-grouped dropdown over the full 116-scarab
+  database (icons hotlinked from poecdn; `scripts/build_scarab_data.py` from
+  poe.ninja's economy API + in-game mod-text descriptions from the poewiki
+  cargo API). In-game-style **tooltips** (name + mod lines) on slots, picker
+  rows and strategy pages. Round **boss influence** toggles (Maven / Eater /
+  Exarch, `StrategyVariant.device_influence`) with GGG art; free-text
+  "Device craft" field alongside. Legacy free-text lines are preserved.
+- **Live pricing (poe.ninja)** — `manage.py fetch_ninja_prices` (6-hourly
+  systemd timer `poe-tracker-ninja.timer`) caches scarab prices + the divine
+  rate per league in `NinjaPrice`; strategy pages show a computed "Scarab
+  cost" (`~27c` / `~1.4 div`) with per-scarab tooltip and staleness note, and
+  the editor live-sums the device as slots change. Requires the active
+  league's `ggg_id` (e.g. "Allflame"); with no cached prices the feature is
+  silently absent.
+- **Focus chips** — `strategies/mechanics.py` reads the saved tree and ranks
+  league mechanics (18 cue sets; notables ×2, keystones ×3); the top 3 render
+  as square chips with real atlas node art next to the device.
+- **Library cards** — fully clickable tiles with a condensed device strip
+  (scarab icons, top-3 mechanic icons, influence) for at-a-glance browsing.
 - **Votes** — one upvote per member per strategy; library sorts by votes.
 - **Atlas tree viewer + editor** — each variant carries a 3.29 atlas passive
   tree rendered with the complete official artwork: painted atlas background,
@@ -157,11 +177,18 @@ HTMX), deployed via Docker/Caddy on a Proxmox LXC. See [../runbooks/](../runbook
   [../runbooks/operations.md](../runbooks/operations.md).
 
 ## Data models
-`User`, `InviteCode`, `Character`, `Achievement`, `AllowlistItem`, `Submission`,
-`ProofImage`, `Award`, `AuditEntry`, `SubmissionComment`, `SubmissionReaction`,
-`ContestVote`.
+Tracker: `User`, `InviteCode`, `Character`, `Achievement`, `AchievementTemplate(+Item)`,
+`AllowlistItem`, `Submission`, `ProofImage`, `Award`, `AuditEntry`,
+`SubmissionComment`, `SubmissionReaction`, `ContestVote`, `League`,
+`MemberProfile`, `CharacterSnapshot`, `LadderCharacter`, `PoeConnection`,
+`DashboardConfig`.
+Strategies: `Strategy`, `StrategyVariant`, `StrategyVote`, `NinjaPrice`.
 
 ## Test coverage
-~107 tests: scoring rules, played-time parsing, upload validation, auth gating,
+425 tests: scoring rules, played-time parsing, upload validation, auth gating,
 CSRF, submission/review workflow, invites, blocking, on-behalf, media-behind-login,
-activity/export/share-card, and the social features.
+activity/export/share-card, social features, leagues, roster/PoB parsing, ladder,
+OAuth (mocked), dashboard config, and the full strategies module (feature
+flags, CRUD/permissions, atlas data/codec/renderer incl. per-arc geometry
+checks, scarab catalogue/descriptions, mechanics inference, pricing with
+mocked poe.ninja).
