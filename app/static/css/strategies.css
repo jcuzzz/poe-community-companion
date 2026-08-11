@@ -58,6 +58,44 @@
 }
 .strat-summary { margin: 0.4rem 0 0.6rem; }
 
+/* Condensed map device on a library card: recessed mini-slots in one row,
+   wrapping on narrow screens. Deliberately un-positioned and un-layered so the
+   stretched title link's ::after still sits on top and the whole card stays
+   clickable straight through the icons. */
+.device-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0 0 0.6rem;
+}
+.device-strip-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  overflow: hidden;
+  border: 1px solid #5c4a22;
+  background: linear-gradient(180deg, #0c0a07 0%, #171208 100%);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+.device-strip-slot > img,
+.device-strip-slot > .strip-icon {
+  width: 22px;
+  height: 22px;
+  display: block;
+  object-fit: contain;
+}
+.device-strip-slot.is-mechanic { border-color: #6b5528; }
+.device-strip-slot.is-influence { border-color: var(--color-gold-dim, #8a6d2f); }
+.device-strip-abbr {
+  font-size: 0.6rem;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--color-gold, #c9a24a);
+}
+
 .strat-vote {
   border: 1px solid var(--color-border-strong, #4a3d28);
   background: var(--color-bg-raised, #1d1712);

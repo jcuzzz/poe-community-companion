@@ -115,8 +115,8 @@
               <div class="focus-chips">
                 {% for m in variant.mechanics %}
                   <div class="focus-chip" title="{{ m.label }}: {{ m.count }} allocated node{{ m.count|pluralize }} (focus score {{ m.score }})">
-                    {% if m.icon %}
-                      <img class="focus-chip-icon" src="{{ m.icon }}" alt="" loading="lazy">
+                    {% if m.icon_svg %}
+                      {{ m.icon_svg }}
                     {% else %}
                       <span class="focus-chip-abbr">{{ m.label|slice:":2" }}</span>
                     {% endif %}

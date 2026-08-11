@@ -475,7 +475,44 @@ class MechanicsTests(TestCase):
         self.assertLessEqual(len(top), 3)
         self.assertGreaterEqual(top[0]["score"], len(essence))
         self.assertIn("Essence", top[0]["label"])
-        self.assertTrue(top[0]["icon"].startswith("https://web.poecdn.com/"))
+        # Art comes from the atlas bundle itself: an inline sprite crop, not a
+        # scarab image URL.
+        svg = top[0]["icon_svg"]
+        self.assertTrue(svg.startswith('<svg class="focus-icon"'), svg)
+        self.assertIn("<image href=", svg)
+        self.assertIn("preserveAspectRatio", svg)
+        self.assertTrue(top[0]["icon_key"])
+
+    def test_icon_comes_from_the_best_weighted_matching_node(self):
+        from . import atlas_data, mechanics
+
+        notable = _nodes_matching(r"\bessence", 1, kinds=("n",))
+        small = _nodes_matching(r"\bessence", 1, kinds=("s",))
+        self.assertTrue(notable and small)
+        nodes = atlas_data.load()["nodes"]
+        top = mechanics.top_mechanics(small + notable)[0]
+        self.assertEqual(top["icon_key"], nodes[str(notable[0])]["icon"])
+
+    def test_icon_svg_is_an_inset_crop_of_the_sheet(self):
+        from . import atlas_data, mechanics
+
+        coords = atlas_data.load()["sprites"]["coords"]
+        key = next(k for k, c in coords.items() if c[2] > 2 and c[3] > 2 and c[4] > 2)
+        sheet_key, sx, sy, sw, sh = coords[key]
+        sheet = atlas_data.load()["sprites"]["sheets"][sheet_key]
+        svg = mechanics.icon_svg_for(key)
+        self.assertIn(f'viewBox="{sx + 1} {sy + 1} {sw - 2} {sh - 2}"', svg)
+        self.assertIn(sheet["url"].replace("&", "&amp;"), svg)
+        self.assertEqual(mechanics.icon_svg_for("not/a/real/icon.png"), "")
+
+    def test_no_scarab_dependency(self):
+        import inspect
+
+        from . import mechanics
+
+        source = inspect.getsource(mechanics)
+        self.assertNotIn("import scarabs", source)
+        self.assertFalse(hasattr(mechanics, "icon_for"))
 
     def test_harvest_heavy_tree_ranks_harvest_first(self):
         from . import mechanics
@@ -532,6 +569,9 @@ class ScarabTooltipAndFocusTests(TestCase):
         self.assertContains(response, "focus-chip")
         self.assertContains(response, "Essence")
         self.assertContains(response, "allocated node")
+        # The chip wears atlas art (inline sprite crop), never scarab imagery.
+        self.assertContains(response, '<svg class="focus-icon"')
+        self.assertNotContains(response, "focus-chip-icon")
 
     def test_detail_page_has_no_focus_cluster_without_a_tree(self):
         StrategyVariant.objects.create(strategy=self.strategy, name="Main")
@@ -554,6 +594,36 @@ class ScarabTooltipAndFocusTests(TestCase):
             self.skipTest("scarab catalogue has no mod text yet (description_for -> '')")
         self.assertContains(response, "data-desc=")
         self.assertContains(response, "scarab-tip-stats")
+
+    def test_list_card_shows_the_condensed_device_strip(self):
+        from . import atlas_data
+
+        StrategyVariant.objects.create(
+            strategy=self.strategy,
+            name="Main",
+            scarabs=["Ambush Scarab", "Harvest Scarab"],
+            device_influence="maven",
+            atlas_tree={
+                "version": atlas_data.load().get("version", ""),
+                "nodes": _nodes_matching(r"\bessence", 6),
+            },
+        )
+        response = self.client.get(reverse("strategy_list"))
+        self.assertContains(response, "device-strip")
+        self.assertContains(response, 'title="Ambush Scarab"')
+        self.assertContains(response, '<svg class="strip-icon"')  # focus mini-icon
+        self.assertContains(response, "is-influence")  # boss influence mini-icon
+        # Condensed: only filled slots — two scarabs mean exactly two scarab
+        # squares, and no placeholder for the three unused ones.
+        body = response.content.decode()
+        plain = body.count("device-strip-slot") - body.count("device-strip-slot is-")
+        self.assertEqual(plain, 2)
+
+    def test_list_card_without_a_device_has_no_strip(self):
+        response = self.client.get(reverse("strategy_list"))
+        self.assertNotContains(response, "device-strip")
+        StrategyVariant.objects.create(strategy=self.strategy, name="Empty")
+        self.assertNotContains(self.client.get(reverse("strategy_list")), "device-strip")
 
     def test_editor_has_a_top_save_button_bound_to_the_form(self):
         response = self.client.get(

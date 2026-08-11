@@ -40,6 +40,38 @@
             </form>
           </div>
           {% if strategy.summary %}<p class="strat-summary">{{ strategy.summary }}</p>{% endif %}
+          {% if strategy.device_strip %}
+            {% comment %}Condensed map device: the primary variant's scarabs,
+            what its tree focuses on, and the boss influence — only the filled
+            slots, so the row stays scannable when browsing.{% endcomment %}
+            <div class="device-strip" aria-hidden="true">
+              {% for s in strategy.device_strip.scarab_icons %}
+                <span class="device-strip-slot" title="{{ s.name }}">
+                  {% if s.icon %}
+                    <img src="{{ s.icon }}" alt="" loading="lazy">
+                  {% else %}
+                    <span class="device-strip-abbr">{{ s.name|slice:":2" }}</span>
+                  {% endif %}
+                </span>
+              {% endfor %}
+              {% for m in strategy.device_strip.mechanics %}
+                <span class="device-strip-slot is-mechanic" title="{{ m.label }}">
+                  {% if m.icon_svg %}
+                    {{ m.icon_svg }}
+                  {% else %}
+                    <span class="device-strip-abbr">{{ m.label|slice:":2" }}</span>
+                  {% endif %}
+                </span>
+              {% endfor %}
+              {% if strategy.device_strip.influence %}
+                <span class="device-strip-slot is-influence" title="{{ strategy.device_strip.influence.label }}">
+                  {% if strategy.device_strip.influence.icon %}
+                    <img src="{{ strategy.device_strip.influence.icon }}" alt="" loading="lazy">
+                  {% endif %}
+                </span>
+              {% endif %}
+            </div>
+          {% endif %}
           <div class="strat-meta">
             {% if strategy.kind == "external" %}<span class="pill">External guide</span>{% endif %}
             {% if not strategy.is_published %}<span class="pill pill-draft">Draft</span>{% endif %}

@@ -74,6 +74,42 @@ def _share_url(allocated) -> str:
         return ""
 
 
+STRIP_SCARABS = 5
+STRIP_MECHANICS = 3
+
+
+def _device_strip(strategy: Strategy) -> dict | None:
+    """A condensed map device for a library card, or ``None`` when empty.
+
+    Reads the strategy's *primary* variant (first by the model's ordering, taken
+    from the prefetched list so this costs no extra query) and renders only what
+    is filled in: up to five scarab icons, up to three focus mechanics, and the
+    boss influence. A strategy with no variant, or one whose device is blank,
+    gets no strip at all.
+    """
+    from . import mechanics
+    from . import scarabs as scarab_catalogue
+
+    variants = list(strategy.variants.all())
+    if not variants:
+        return None
+    variant = variants[0]
+    names = [str(n) for n in (variant.scarabs or [])][:STRIP_SCARABS]
+    strip = {
+        "scarab_icons": [
+            {"name": name, "icon": scarab_catalogue.icon_for(name)} for name in names
+        ],
+        # One cheap pass over <=160 node ids; a library page is tens of cards.
+        "mechanics": mechanics.top_mechanics(
+            _variant_nodes(variant), STRIP_MECHANICS, icon_class="strip-icon"
+        ),
+        "influence": variant.influence,
+    }
+    if not (strip["scarab_icons"] or strip["mechanics"] or strip["influence"]):
+        return None
+    return strip
+
+
 def _visible(request: HttpRequest):
     """Published strategies in the viewing league (authors/staff see their drafts)."""
     league = get_viewing_league(request)
@@ -92,14 +128,20 @@ def strategy_list(request: HttpRequest) -> HttpResponse:
     tag = request.GET.get("tag", "").strip()
     if tag:
         qs = qs.filter(tags__icontains=tag)
-    qs = qs.annotate(vote_count=Count("votes")).order_by("-vote_count", "-updated_at")
+    qs = (
+        qs.annotate(vote_count=Count("votes"))
+        .prefetch_related("variants")  # one extra query for every card's device strip
+        .order_by("-vote_count", "-updated_at")
+    )
     strategies = list(qs)
+    for strategy in strategies:
+        strategy.device_strip = _device_strip(strategy)
     voted_ids = set(
         StrategyVote.objects.filter(user=request.user, strategy__in=strategies).values_list(
             "strategy_id", flat=True
         )
     )
-    all_tags = sorted({t for s in qs for t in s.tag_list})
+    all_tags = sorted({t for s in strategies for t in s.tag_list})
     return render(
         request,
         "strategies/strategy_list.html",

@@ -360,6 +360,14 @@
     inset 0 -1px 0 rgba(216, 178, 96, 0.16);
 }
 .focus-chip-icon { width: 36px; height: 36px; object-fit: contain; }
+/* Atlas node art: a standalone <svg> cropping the sprite sheet, sized to read
+   at chip scale (the source crops are ~64-68px, so 48px is a slight downscale). */
+.focus-chip .focus-icon {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: block;
+}
 .focus-chip-abbr {
   font-size: 1.1rem;
   color: var(--color-gold, #c9a24a);
