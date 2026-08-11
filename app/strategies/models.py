@@ -5,6 +5,10 @@ variants holding free-form scarab/device text and a tree payload slot, and
 member votes. The atlas-tree editor, structured scarab picker and poe.ninja
 pricing bolt onto these in later phases (variant.atlas_tree / scarab slots are
 already JSON so the schema won't need rework).
+
+Phase 5 adds :class:`NinjaPrice`, the poe.ninja price cache. It deliberately
+does not FK to ``tracker.League``: poe.ninja names leagues its own way, so the
+cache is keyed on that string and resolved by :mod:`strategies.pricing`.
 """
 
 from __future__ import annotations
@@ -128,6 +132,35 @@ class StrategyVariant(models.Model):
     def influence(self) -> dict | None:
         """``{"key", "label", "icon"}`` for the device influence, else ``None``."""
         return influence_info(self.device_influence)
+
+
+class NinjaPrice(models.Model):
+    """One item's chaos price in one league, as last seen on poe.ninja.
+
+    Written only by the ``fetch_ninja_prices`` command (systemd timer, every 6h)
+    and read only through :mod:`strategies.pricing`. ``item_id`` is poe.ninja's
+    own id — the slugified item name ("titanic-scarab-of-legend") — which is how
+    scarab rows join back to catalogue names; "divine" is the Divine Orb row that
+    gives the chaos→divine conversion. Rows are never deleted when an item drops
+    out of the feed: a stale ``fetched_at`` is more informative than a gap.
+    """
+
+    league = models.CharField(
+        max_length=80, help_text="poe.ninja league id, e.g. \"Allflame\"."
+    )
+    item_id = models.SlugField(max_length=120)
+    name = models.CharField(max_length=120)
+    chaos_value = models.FloatField()
+    fetched_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["league", "item_id"], name="unique_price_per_league")
+        ]
+        indexes = [models.Index(fields=["league"], name="ninjaprice_league_idx")]
+
+    def __str__(self) -> str:
+        return f"{self.name} @ {self.chaos_value}c ({self.league})"
 
 
 class StrategyVote(models.Model):

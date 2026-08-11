@@ -1,13 +1,41 @@
 # Farming Strategies module
 
-Status: design agreed 2026-08-10. **Phases 1–4 SHIPPED 2026-08-11**: feature
+Status: design agreed 2026-08-10. **Phases 1–5 SHIPPED 2026-08-11**: feature
 flags + strategy library (phase 1), structured scarab picker (phase 2 — 116
 scarabs from poe.ninja's `economy/exchange` API, NOT the retired
 `/api/data/itemoverview`; picker syncs into the untouched `scarabs_text` form
 field), atlas tree viewer/editor with full artwork, arc connectors, PoB-style
 path-allocate/prune and transform-based pan/zoom (phases 3+4 — see "Atlas tree
-implementation notes"). Phase 5 (poe.ninja pricing; join `lines` on scarab
-`id` from the same endpoint) is next, then a featured flag.
+implementation notes"), poe.ninja auto-pricing (phase 5 — see below). Phase 6
+(votes/tag filters/featured flag) is next.
+
+## poe.ninja pricing (phase 5, as built)
+
+`NinjaPrice(league, item_id, name, chaos_value, fetched_at)` (migration 0003,
+unique on league+item_id) caches one row per priced item; `league` is the
+**poe.ninja league string**, not an FK — resolved from the active
+`tracker.League`'s `ggg_id` (falling back to `name`), so `Current League` with
+`ggg_id="Allflame"` prices correctly. `manage.py fetch_ninja_prices` (systemd
+`poe-tracker-ninja.timer`, every 6h, wrapper `deploy/fetch-ninja-prices.sh`)
+fetches `.../economy/exchange/current/overview?league=<L>&type=Scarab` plus
+`&type=Currency`, keeping only the Divine Orb row from the latter; items that
+drop out of the feed keep their stale row rather than disappearing.
+Field facts pinned against the live Allflame feed: **`lines` is a list** joined
+to `items` on `id`, and the chaos price is **`primaryValue`** (there is no
+buy/sell pair; `maxVolumeRate` is a trading-pair depth hint, not a price). The
+`id` is the slugified name with apostrophes dropped —
+`titanic-scarab-of-legend`, `awakeners-orb` — which is exactly how
+`strategies/pricing.py` joins price rows back to catalogue names; the Divine Orb
+row is the short id `divine` (198.9c at ship time). A live run priced **115 of
+the 116 catalogue scarabs** in Allflame (only actually-traded items are listed).
+`strategies/pricing.py` also owns `variant_cost` (sum over the five device
+slots, duplicates counted, legacy `"Name x3"` suffixes expanded, overflow
+excluded) and `format_cost` (chaos, switching to `~1.4 div` at half a divine).
+The strategy detail page adds a "Scarab cost" fact with a per-scarab `title`
+breakdown and a `timesince` staleness note (`humanize` is not installed, so not
+`naturaltime`); the variant editor embeds the league's price map as a
+`json_script` and `scarab_picker.js` live-sums it on every slot change. With no
+cached rows the whole feature is simply absent — no errors, no empty boxes.
 
 ## Atlas tree implementation notes (as built)
 
@@ -113,7 +141,7 @@ whole repo. Cross-instance shared libraries would fight Model A single-tenancy
 3. Tree data pipeline (3.29 export → slim JSON + sprites) + read-only SVG
    viewer + GGG/poeplanner import.
 4. Editor interactions (allocate/deallocate, budget, save per variant).
-5. poe.ninja pricing job + computed cost/profit.
+5. poe.ninja pricing job + computed cost/profit. ✅
 6. Votes/favorites, tag filters, "featured" flag.
 
 ## Open questions

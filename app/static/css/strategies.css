@@ -380,3 +380,11 @@ a.strat-tag:hover { border-color: var(--color-gold-dim, #8a6d2f); }
   align-items: center;
   flex-wrap: wrap;
 }
+
+/* --- poe.ninja scarab cost (detail page fact row) ----------------------- */
+
+.strat-cost { cursor: help; }        /* the title="" carries the per-scarab breakdown */
+.strat-cost-src {
+  font-size: 0.78rem;
+  margin-left: 0.35rem;
+}

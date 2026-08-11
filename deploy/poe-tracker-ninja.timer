@@ -1,0 +1,16 @@
+# Installed alongside poe-tracker-ninja.service (see its header).
+# Check with: systemctl list-timers poe-tracker-ninja.timer
+[Unit]
+Description=Refresh poe.ninja scarab prices every few hours
+
+[Timer]
+# Every 6 hours, offset off the hour and jittered so it doesn't collide with the
+# build poller or the nightly backup. poe.ninja is a free community service:
+# this is one request pair per run (Scarab + Currency), with a descriptive
+# User-Agent, which is as polite as it gets.
+OnCalendar=*-*-* 00/6:25:00
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

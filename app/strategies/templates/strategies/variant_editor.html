@@ -37,6 +37,9 @@
   <form method="post" novalidate class="variant-editor" id="variant-editor-form">
     {% csrf_token %}
     {% scarab_list as scarabs %}{{ scarabs|json_script:"scarab-data" }}
+    {% comment %}Only emitted once prices have actually been fetched for this
+    league; scarab_picker.js checks for it and stays inert when it's absent.{% endcomment %}
+    {% if price_map %}{{ price_map|json_script:"scarab-prices" }}{% endif %}
 
     {% comment %}The map device reads first, like the in-game one: five slots
     plus the round boss-influence buttons, then the tree it feeds.{% endcomment %}
@@ -44,6 +47,7 @@
       <div class="map-device-slots">
         <div id="scarab-picker" data-textarea-id="{{ form.scarabs_text.id_for_label }}"></div>
         {{ form.scarabs_text }}
+        <p class="scarab-cost" data-scarab-cost hidden></p>
         {% if form.scarabs_text.errors %}
           <ul class="field-errors">{% for error in form.scarabs_text.errors %}<li>{{ error }}</li>{% endfor %}</ul>
         {% endif %}

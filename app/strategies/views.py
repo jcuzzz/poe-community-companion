@@ -56,6 +56,33 @@ def _scarab_slots(variant: StrategyVariant) -> list[dict | None]:
     return slots
 
 
+def _variant_cost_display(variant: StrategyVariant, price_data: dict) -> dict | None:
+    """Live scarab cost for a variant's device, ready for the template.
+
+    ``{"label": "~1.4 div", "tooltip": "Name — 12c\\n…", "fetched_at": dt}`` or
+    ``None`` when there is nothing to price (no cached prices, empty device).
+    The tooltip is the per-scarab breakdown, so the number is auditable without
+    a second page.
+    """
+    from . import pricing
+
+    cost = pricing.variant_cost(variant, price_data)
+    if cost is None:
+        return None
+    lines = [
+        f"{name} — {pricing.format_cost(value, price_data.get('divine_chaos')).lstrip('~')}"
+        if value is not None
+        else f"{name} — no price"
+        for name, value in cost["per_scarab"]
+    ]
+    return {
+        "label": pricing.format_cost(cost["chaos"], price_data.get("divine_chaos")),
+        "tooltip": "\n".join(lines),
+        "missing": cost["missing"],
+        "fetched_at": price_data.get("fetched_at"),
+    }
+
+
 def _variant_nodes(variant: StrategyVariant) -> list:
     return variant.atlas_tree.get("nodes", []) if isinstance(variant.atlas_tree, dict) else []
 
@@ -160,8 +187,11 @@ def strategy_list(request: HttpRequest) -> HttpResponse:
 def strategy_detail(request: HttpRequest, slug: str) -> HttpResponse:
     qs, league = _visible(request)
     strategy = get_object_or_404(qs, slug=slug)
-    from . import atlas_render, mechanics
+    from . import atlas_render, mechanics, pricing
 
+    # One query for the whole page; empty when nothing has been fetched yet, in
+    # which case every variant simply has no cost block.
+    price_data = pricing.prices_for_league(strategy.league)
     variants = list(strategy.variants.all())
     # Each full tree is ~600KB of inline SVG, so only the initially-active tab
     # is server-rendered; the rest fetch their tree from variant_tree_partial
@@ -176,6 +206,7 @@ def strategy_detail(request: HttpRequest, slug: str) -> HttpResponse:
             atlas_render.render_tree_svg(variant.nodes, mode="full") if index == 0 else None
         )
         variant.share_url = _share_url(variant.nodes)
+        variant.cost = _variant_cost_display(variant, price_data)
     return render(
         request,
         "strategies/strategy_detail.html",
@@ -324,7 +355,7 @@ def variant_edit(request: HttpRequest, slug: str, pk: int) -> HttpResponse:
     """
     import json as _json
 
-    from . import atlas_codec, atlas_data, atlas_render, influences
+    from . import atlas_codec, atlas_data, atlas_render, influences, pricing
 
     qs, _ = _visible(request)
     strategy = get_object_or_404(qs, slug=slug)
@@ -388,6 +419,14 @@ def variant_edit(request: HttpRequest, slug: str, pk: int) -> HttpResponse:
                 return redirect("strategy_detail", slug=strategy.slug)
 
     allocated = attempted if attempted is not None else _variant_nodes(variant)
+    # {name: chaos} + the divine rate, embedded for the picker's live sum. None
+    # (no cached prices) leaves the json_script out entirely and the JS inert.
+    price_data = pricing.prices_for_league(strategy.league)
+    price_map = (
+        {"prices": price_data["prices"], "divine_chaos": price_data["divine_chaos"]}
+        if price_data["prices"]
+        else None
+    )
     return render(
         request,
         "strategies/variant_editor.html",
@@ -405,6 +444,7 @@ def variant_edit(request: HttpRequest, slug: str, pk: int) -> HttpResponse:
                 form["device_influence"].value() or "" if form.is_bound else variant.device_influence
             ),
             "tree_error": error,
+            "price_map": price_map,
             "cur": "strategy_list",
         },
     )

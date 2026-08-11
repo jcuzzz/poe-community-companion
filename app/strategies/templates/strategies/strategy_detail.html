@@ -149,6 +149,17 @@
           {% if variant.investment %}<div><dt>Investment</dt><dd>{{ variant.investment }}</dd></div>{% endif %}
           {% if variant.expected_return %}<div><dt>Expected return</dt><dd>{{ variant.expected_return }}</dd></div>{% endif %}
           {% if variant.map_device %}<div><dt>Device craft</dt><dd>{{ variant.map_device }}</dd></div>{% endif %}
+          {% if variant.cost %}
+            {% comment %}The live floor: what the five slotted scarabs cost right
+            now. The author's Investment/Expected return above stay put — they're
+            the human summary, this is the machine one.{% endcomment %}
+            <div><dt>Scarab cost</dt>
+              <dd class="strat-cost" title="{{ variant.cost.tooltip }}">
+                {{ variant.cost.label }}
+                <span class="strat-cost-src text-muted">(poe.ninja, updated {{ variant.cost.fetched_at|timesince }} ago)</span>
+              </dd>
+            </div>
+          {% endif %}
         </dl>
 
         {% if variant.notes %}<div class="strat-notes">{{ variant.notes|urlize|linebreaks }}</div>{% endif %}

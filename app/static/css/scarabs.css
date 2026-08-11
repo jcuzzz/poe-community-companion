@@ -381,3 +381,13 @@
   max-height: 2.2em;
   overflow: hidden;
 }
+
+/* --- live cost under the editor's device ------------------------------- */
+/* Hidden (via the [hidden] attribute) until the picker has both prices and a
+   filled slot, so a league with no cached prices shows nothing at all. */
+.scarab-cost {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-gold, #c9a24a);
+  cursor: help;
+}

@@ -56,6 +56,53 @@
     var byName = Object.create(null);
     data.forEach(function (s) { if (s && s.name) { byName[s.name] = s; } });
 
+    // ---- live poe.ninja cost (optional) ----------------------------------
+    // Prices ride along in a json_script the view only renders once something
+    // has been fetched for the league; with no element (or no target <p>) this
+    // whole block is a no-op and the picker behaves exactly as before.
+    var prices = null;
+    var divineChaos = null;
+    var priceEl = document.getElementById("scarab-prices");
+    if (priceEl) {
+      try {
+        var payload = JSON.parse(priceEl.textContent) || {};
+        prices = payload.prices || null;
+        divineChaos = payload.divine_chaos || null;
+      } catch (e) { prices = null; }
+    }
+    var costEl = document.querySelector("[data-scarab-cost]");
+
+    function formatCost(chaos) {
+      // Mirror of strategies.pricing.format_cost: divine from half a divine up.
+      if (divineChaos && chaos >= divineChaos * 0.5) {
+        return "~" + (chaos / divineChaos).toFixed(1) + " div";
+      }
+      return chaos >= 1 ? "~" + Math.round(chaos) + "c" : "~" + chaos.toFixed(1) + "c";
+    }
+
+    function renderCost() {
+      if (!costEl || !prices) { return; }
+      var names = slots.filter(function (n) { return !!n; });
+      if (!names.length) { costEl.hidden = true; return; }
+      var total = 0;
+      var missing = 0;
+      var lines = [];
+      names.forEach(function (name) {
+        var value = prices[name];
+        if (typeof value === "number") {
+          total += value;
+          lines.push(name + " — " + formatCost(value).slice(1));
+        } else {
+          missing += 1;
+          lines.push(name + " — no price");
+        }
+      });
+      costEl.hidden = false;
+      costEl.textContent = "Est. scarab cost: " + formatCost(total) +
+        (missing ? " (" + missing + " unpriced)" : "");
+      costEl.title = lines.join("\n");
+    }
+
     // ---- state -----------------------------------------------------------
     var slots = new Array(SLOT_COUNT).fill(null);   // scarab names or null
     var extras = [];                                 // unmatched / overflow lines
@@ -281,6 +328,9 @@
           rm.hidden = true;
         }
       });
+      // Every slot mutation lands here (pick, clear, textarea re-seed), so this
+      // is the single place the live cost needs recomputing.
+      renderCost();
     }
 
     function renderExtras() {
