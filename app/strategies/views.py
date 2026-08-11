@@ -15,8 +15,41 @@ from .forms import StrategyForm, StrategyVariantForm
 from .models import Strategy, StrategyVariant, StrategyVote
 
 
+SCARAB_SLOTS = 5
+
+
 def _can_edit(user, strategy: Strategy) -> bool:
     return user.is_staff or strategy.author_id == user.id
+
+
+def _scarab_slots(variant: StrategyVariant) -> list[dict | None]:
+    """The variant's scarabs as five device-style slots (``None`` = empty)."""
+    from . import scarabs as scarab_catalogue
+
+    names = [str(n) for n in (variant.scarabs or [])][:SCARAB_SLOTS]
+    slots: list[dict | None] = [
+        {"name": name, "icon": scarab_catalogue.icon_for(name)} for name in names
+    ]
+    slots += [None] * (SCARAB_SLOTS - len(slots))
+    return slots
+
+
+def _variant_nodes(variant: StrategyVariant) -> list:
+    return variant.atlas_tree.get("nodes", []) if isinstance(variant.atlas_tree, dict) else []
+
+
+def _share_url(allocated) -> str:
+    """GGG share link for ``allocated``; "" when the stored ids are unusable.
+
+    The stored JSON is admin-editable, so a bad id list must degrade to "no
+    share link", never a 500.
+    """
+    from . import atlas_codec
+
+    try:
+        return atlas_codec.encode_ggg_url(allocated) if allocated else ""
+    except ValueError:
+        return ""
 
 
 def _visible(request: HttpRequest):
@@ -66,10 +99,17 @@ def strategy_detail(request: HttpRequest, slug: str) -> HttpResponse:
     from . import atlas_render
 
     variants = list(strategy.variants.all())
-    for variant in variants:
-        nodes = variant.atlas_tree.get("nodes") if isinstance(variant.atlas_tree, dict) else None
-        if nodes:
-            variant.tree_thumb = atlas_render.render_tree_svg(nodes, mode="thumb")
+    # Each full tree is ~600KB of inline SVG, so only the initially-active tab
+    # is server-rendered; the rest fetch their tree from variant_tree_partial
+    # the first time their tab is opened.
+    for index, variant in enumerate(variants):
+        variant.slots = _scarab_slots(variant)
+        variant.extra_scarabs = [str(n) for n in (variant.scarabs or [])][SCARAB_SLOTS:]
+        variant.nodes = _variant_nodes(variant)
+        variant.tree_svg = (
+            atlas_render.render_tree_svg(variant.nodes, mode="full") if index == 0 else None
+        )
+        variant.share_url = _share_url(variant.nodes)
     return render(
         request,
         "strategies/strategy_detail.html",
@@ -162,72 +202,27 @@ def strategy_vote(request: HttpRequest, slug: str) -> HttpResponse:
 
 @feature_required("strategies")
 @login_required
-def variant_tree(request: HttpRequest, slug: str, pk: int) -> HttpResponse:
-    """Atlas tree viewer (everyone) / editor (author & staff) for one variant.
+def variant_tree_partial(request: HttpRequest, slug: str, pk: int) -> HttpResponse:
+    """Read-only tree viewer for one variant, as an HTML fragment.
 
-    Saves happen as POSTs of a JSON node-id list (the editor's hidden field) or
-    an imported share link; both are validated server-side before storing.
+    The strategy detail page fetches this the first time a variant tab is
+    opened, so only one ~600KB tree is ever in the initial document.
     """
-    import json as _json
-
-    from . import atlas_codec, atlas_data, atlas_render
+    from . import atlas_render
 
     qs, _ = _visible(request)
     strategy = get_object_or_404(qs, slug=slug)
     variant = get_object_or_404(StrategyVariant, pk=pk, strategy=strategy)
-    can_edit = _can_edit(request.user, strategy)
-    error = None
-    attempted = None  # a rejected submission, re-rendered so the edit isn't lost
-
-    if request.method == "POST":
-        if not can_edit:
-            raise Http404
-        if request.POST.get("action") == "import":
-            try:
-                ids = atlas_codec.decode_atlas_url(request.POST.get("tree_url", ""))
-            except ValueError as exc:
-                ids, error = None, str(exc)
-        else:
-            try:
-                ids = [int(n) for n in _json.loads(request.POST.get("nodes", "[]"))]
-            except (ValueError, TypeError, RecursionError, OverflowError):
-                ids, error = None, "Could not read the allocated nodes — try again."
-        if ids is not None:
-            valid_ids, error = atlas_data.validate_allocation(ids)
-            if error is None:
-                variant.atlas_tree = {
-                    "version": atlas_data.load()["version"],
-                    "nodes": valid_ids,
-                }
-                variant.save(update_fields=["atlas_tree"])
-                messages.success(request, f"Atlas tree saved ({len(valid_ids)} points).")
-                return redirect("strategy_variant_tree", slug=strategy.slug, pk=variant.pk)
-            # Keep only ids the renderer knows so the rejected set still draws.
-            attempted = [i for i in ids if i in atlas_data.node_ids()]
-
-    stored = variant.atlas_tree.get("nodes", []) if isinstance(variant.atlas_tree, dict) else []
-    allocated = attempted if attempted is not None else stored
-    # The stored JSON is admin-editable, so treat it as untrusted: a bad id list
-    # must degrade to "no share link", never a 500.
-    try:
-        share_url = atlas_codec.encode_ggg_url(allocated) if allocated else ""
-    except ValueError:
-        share_url = ""
-    mode = "edit" if can_edit else "view"
+    nodes = _variant_nodes(variant)
     return render(
         request,
-        "strategies/variant_tree.html",
+        "strategies/_variant_tree_view.html",
         {
             "strategy": strategy,
             "variant": variant,
-            "mode": mode,
-            "can_edit": can_edit,
-            "tree_svg": atlas_render.render_tree_svg(allocated, mode="full"),
-            "graph_data": atlas_render.graph_data() if can_edit else None,
-            "allocated_json": _json.dumps(allocated),
-            "share_url": share_url,
-            "tree_error": error,
-            "cur": "strategy_list",
+            "nodes": nodes,
+            "tree_svg": atlas_render.render_tree_svg(nodes, mode="full"),
+            "share_url": _share_url(nodes),
         },
     )
 
@@ -235,44 +230,111 @@ def variant_tree(request: HttpRequest, slug: str, pk: int) -> HttpResponse:
 @feature_required("strategies")
 @login_required
 def variant_create(request: HttpRequest, slug: str) -> HttpResponse:
+    """Create an empty variant and drop the author straight into the editor."""
     qs, _ = _visible(request)
     strategy = get_object_or_404(qs, slug=slug)
     if not _can_edit(request.user, strategy):
         raise Http404
-    form = StrategyVariantForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        variant = form.save(commit=False)
-        variant.strategy = strategy
-        variant.save()
-        messages.success(request, f'Variant "{variant.name}" added.')
-        return redirect("strategy_detail", slug=strategy.slug)
-    return render(
-        request,
-        "strategies/variant_form.html",
-        {"form": form, "strategy": strategy, "is_new": True, "cur": "strategy_list"},
+    count = strategy.variants.count()
+    variant = StrategyVariant.objects.create(
+        strategy=strategy,
+        name="Main" if count == 0 else f"Variant {count + 1}",
+        order=count,
     )
+    messages.success(request, f'Variant "{variant.name}" added — set it up below.')
+    return redirect("strategy_variant_edit", slug=strategy.slug, pk=variant.pk)
 
 
 @feature_required("strategies")
 @login_required
 def variant_edit(request: HttpRequest, slug: str, pk: int) -> HttpResponse:
+    """The one variant editor: fields + scarab picker + atlas tree, one Save.
+
+    A single POST carries the ``StrategyVariantForm`` fields and the tree's
+    hidden node-id JSON; both are validated before anything is written, and a
+    rejection re-renders with the attempted allocation and the typed-in field
+    values intact. ``action=import`` is a round-trip that only loads a shared
+    tree into the editor — the user still has to Save.
+    """
+    import json as _json
+
+    from . import atlas_codec, atlas_data, atlas_render
+
     qs, _ = _visible(request)
     strategy = get_object_or_404(qs, slug=slug)
     if not _can_edit(request.user, strategy):
-        raise Http404
+        # Their read view is the strategy page now.
+        return redirect("strategy_detail", slug=strategy.slug)
     variant = get_object_or_404(StrategyVariant, pk=pk, strategy=strategy)
-    form = StrategyVariantForm(request.POST or None, instance=variant)
+
+    form = StrategyVariantForm(instance=variant)
+    error = None
+    attempted = None  # a rejected/imported node set, re-rendered so it isn't lost
+
     if request.method == "POST":
-        if request.POST.get("action") == "delete":
+        action = request.POST.get("action", "save")
+        if action == "delete":
             variant.delete()
             messages.success(request, "Variant removed.")
             return redirect("strategy_detail", slug=strategy.slug)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Variant updated.")
-            return redirect("strategy_detail", slug=strategy.slug)
+
+        # Bind the form either way so typed-in values survive an import
+        # round-trip or a tree rejection.
+        form = StrategyVariantForm(request.POST, instance=variant)
+        if action == "import":
+            form.is_valid()  # populate cleaned_data / show field errors, don't save
+            try:
+                ids = atlas_codec.decode_atlas_url(request.POST.get("tree_url", ""))
+            except ValueError as exc:
+                ids, error = None, str(exc)
+            if ids is not None:
+                valid_ids, error = atlas_data.validate_allocation(ids)
+                if error is None:
+                    attempted = valid_ids
+                    messages.info(
+                        request,
+                        f"Imported {len(valid_ids)} points — press Save to keep them.",
+                    )
+                else:
+                    attempted = [i for i in ids if i in atlas_data.node_ids()]
+        else:
+            try:
+                ids = [int(n) for n in _json.loads(request.POST.get("nodes", "[]"))]
+            except (ValueError, TypeError, RecursionError, OverflowError):
+                ids, error = None, "Could not read the allocated nodes — try again."
+            valid_ids = None
+            if ids is not None:
+                valid_ids, error = atlas_data.validate_allocation(ids)
+                if error is not None:
+                    # Keep only ids the renderer knows so the rejected set draws.
+                    attempted = [i for i in ids if i in atlas_data.node_ids()]
+            if error is None and form.is_valid():
+                saved = form.save(commit=False)
+                saved.atlas_tree = (
+                    {"version": atlas_data.load()["version"], "nodes": valid_ids}
+                    if valid_ids
+                    else {}
+                )
+                saved.save()
+                messages.success(
+                    request, f'Saved "{saved.name}" ({len(valid_ids or [])} atlas points).'
+                )
+                return redirect("strategy_detail", slug=strategy.slug)
+
+    allocated = attempted if attempted is not None else _variant_nodes(variant)
     return render(
         request,
-        "strategies/variant_form.html",
-        {"form": form, "strategy": strategy, "variant": variant, "is_new": False, "cur": "strategy_list"},
+        "strategies/variant_editor.html",
+        {
+            "strategy": strategy,
+            "variant": variant,
+            "form": form,
+            "mode": "edit",
+            "tree_svg": atlas_render.render_tree_svg(allocated, mode="full"),
+            "graph_data": atlas_render.graph_data(),
+            "allocated_json": _json.dumps(allocated),
+            "share_url": _share_url(allocated),
+            "tree_error": error,
+            "cur": "strategy_list",
+        },
     )

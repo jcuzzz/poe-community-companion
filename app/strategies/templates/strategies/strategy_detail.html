@@ -55,45 +55,121 @@
   </div>
 
   {% if variants %}
-    <div class="card-grid cols-2">
-      {% for variant in variants %}
-        <article class="card strat-variant">
-          <div class="strat-card-head">
-            <h3>{{ variant.name }}</h3>
-            {% if can_edit %}
-              <a class="inline-btn" href="{% url 'strategy_variant_edit' strategy.slug variant.pk %}">Edit</a>
-            {% endif %}
+    {% if variants|length > 1 %}
+      <div class="variant-tabs" role="tablist" data-variant-tabs>
+        {% for variant in variants %}
+          <button type="button" class="variant-tab{% if forloop.first %} is-active{% endif %}"
+                  role="tab" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                  aria-controls="variant-panel-{{ variant.pk }}"
+                  data-variant-target="variant-panel-{{ variant.pk }}">{{ variant.name }}</button>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% for variant in variants %}
+      <section class="card strat-variant" id="variant-panel-{{ variant.pk }}" role="tabpanel"
+               {% if variants|length > 1 and not forloop.first %}hidden{% endif %}>
+        <div class="strat-card-head">
+          <h3>{{ variant.name }}</h3>
+          {% if can_edit %}
+            <a class="btn btn-sm" href="{% url 'strategy_variant_edit' strategy.slug variant.pk %}">Edit</a>
+          {% endif %}
+        </div>
+
+        <h4 class="strat-subhead">Scarabs</h4>
+        <div class="scarab-slots scarab-slots-static">
+          {% for slot in variant.slots %}
+            <div class="scarab-slot{% if slot %} is-filled{% endif %}">
+              <span class="scarab-slot-face">
+                {% if slot %}
+                  {% if slot.icon %}
+                    <img class="scarab-slot-icon" src="{{ slot.icon }}" alt="" loading="lazy">
+                  {% else %}
+                    <span class="scarab-slot-abbr">{{ slot.name|slice:":2" }}</span>
+                  {% endif %}
+                  <span class="scarab-slot-name">{{ slot.name }}</span>
+                {% else %}
+                  <span class="scarab-slot-plus" aria-hidden="true">&middot;</span>
+                {% endif %}
+              </span>
+            </div>
+          {% endfor %}
+        </div>
+        {% if variant.extra_scarabs %}
+          <ul class="strat-scarabs strat-scarabs-extra">
+            {% for scarab in variant.extra_scarabs %}
+              <li>{% with icon=scarab|scarab_icon %}{% if icon %}<img class="scarab-inline-icon" src="{{ icon }}" alt="" loading="lazy">{% endif %}{% endwith %}<span>{{ scarab }}</span></li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        <dl class="strat-facts">
+          {% if variant.investment %}<div><dt>Investment</dt><dd>{{ variant.investment }}</dd></div>{% endif %}
+          {% if variant.expected_return %}<div><dt>Expected return</dt><dd>{{ variant.expected_return }}</dd></div>{% endif %}
+          {% if variant.map_device %}<div><dt>Map device</dt><dd>{{ variant.map_device }}</dd></div>{% endif %}
+        </dl>
+
+        {% if variant.notes %}<div class="strat-notes">{{ variant.notes|urlize|linebreaks }}</div>{% endif %}
+
+        <h4 class="strat-subhead">Atlas tree</h4>
+        {% if variant.tree_svg %}
+          {% include "strategies/_variant_tree_view.html" with nodes=variant.nodes tree_svg=variant.tree_svg share_url=variant.share_url %}
+        {% else %}
+          {# Lazily fetched on first tab open: one ~600KB tree per document is plenty. #}
+          <div class="atlas-lazy" data-tree-url="{% url 'strategy_variant_tree_partial' strategy.slug variant.pk %}">
+            <p class="text-muted">Loading atlas tree&hellip;</p>
           </div>
-          <dl class="strat-facts">
-            {% if variant.investment %}<div><dt>Investment</dt><dd>{{ variant.investment }}</dd></div>{% endif %}
-            {% if variant.expected_return %}<div><dt>Expected return</dt><dd>{{ variant.expected_return }}</dd></div>{% endif %}
-            {% if variant.map_device %}<div><dt>Map device</dt><dd>{{ variant.map_device }}</dd></div>{% endif %}
-          </dl>
-          {% if variant.scarabs %}
-            <h4 class="strat-subhead">Scarabs</h4>
-            <ul class="strat-scarabs">
-              {% for scarab in variant.scarabs %}
-                <li>{% with icon=scarab|scarab_icon %}{% if icon %}<img class="scarab-inline-icon" src="{{ icon }}" alt="" loading="lazy">{% endif %}{% endwith %}<span>{{ scarab }}</span></li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-          {% if variant.notes %}<div class="strat-notes">{{ variant.notes|urlize|linebreaks }}</div>{% endif %}
-          {% if variant.atlas_tree.nodes %}
-            <a class="atlas-thumb-link" href="{% url 'strategy_variant_tree' strategy.slug variant.pk %}"
-               title="View atlas tree">
-              {{ variant.tree_thumb }}
-              <span class="text-muted">Atlas tree &middot; {{ variant.atlas_tree.nodes|length }} points</span>
-            </a>
-          {% elif can_edit %}
-            <p><a class="btn btn-sm" href="{% url 'strategy_variant_tree' strategy.slug variant.pk %}">Set atlas tree</a></p>
-          {% endif %}
-        </article>
-      {% endfor %}
-    </div>
+        {% endif %}
+      </section>
+    {% endfor %}
   {% else %}
     <div class="empty-state">
       <span class="icon" aria-hidden="true">&#127793;</span>
       No variants yet{% if can_edit %} &mdash; add a Budget or Endgame tier{% endif %}.
     </div>
   {% endif %}
+
+  <script src="{% static 'js/atlas_tree.js' %}" defer></script>
+  <script>
+    // Variant tabs: plain show/hide, plus a one-shot fetch of the tree markup
+    // for every tab but the first (the server only inlines one tree).
+    (function () {
+      "use strict";
+      var tabs = document.querySelector("[data-variant-tabs]");
+      if (!tabs) return;
+
+      function loadTree(panel) {
+        var lazy = panel.querySelector(".atlas-lazy[data-tree-url]");
+        if (!lazy) return;
+        var url = lazy.getAttribute("data-tree-url");
+        lazy.removeAttribute("data-tree-url"); // never fetch the same tree twice
+        fetch(url, { credentials: "same-origin" })
+          .then(function (r) {
+            if (!r.ok) throw new Error(r.status);
+            return r.text();
+          })
+          .then(function (html) {
+            lazy.innerHTML = html;
+            if (window.initAtlasTrees) window.initAtlasTrees(lazy);
+          })
+          .catch(function () {
+            lazy.innerHTML = '<p class="text-muted">Could not load the atlas tree.</p>';
+          });
+      }
+
+      tabs.addEventListener("click", function (evt) {
+        var btn = evt.target.closest("[data-variant-target]");
+        if (!btn) return;
+        tabs.querySelectorAll("[data-variant-target]").forEach(function (b) {
+          var on = b === btn;
+          b.classList.toggle("is-active", on);
+          b.setAttribute("aria-selected", on ? "true" : "false");
+          var panel = document.getElementById(b.getAttribute("data-variant-target"));
+          if (panel) panel.hidden = !on;
+        });
+        var active = document.getElementById(btn.getAttribute("data-variant-target"));
+        if (active) loadTree(active);
+      });
+    })();
+  </script>
 {% endblock %}

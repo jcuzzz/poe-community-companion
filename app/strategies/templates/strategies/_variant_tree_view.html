@@ -1,0 +1,16 @@
+{% comment %}Read-only atlas tree viewer for one variant. Rendered inline on the
+strategy page for the first variant, and fetched by the tab JS for the rest.{% endcomment %}
+<div class="atlas-wrap" data-atlas-tree data-mode="view">
+  <div class="atlas-toolbar">
+    <span class="atlas-count-static text-muted">{{ nodes|length }} point{{ nodes|length|pluralize }}</span>
+    <button type="button" class="btn btn-sm" data-atlas-home>Reset view</button>
+    {% if share_url %}
+      <a class="btn btn-sm" href="{{ share_url }}" rel="noopener noreferrer" target="_blank">Open on pathofexile.com &#8599;</a>
+    {% endif %}
+  </div>
+  {{ tree_svg }}
+  <div class="atlas-tip" hidden>
+    <div class="atlas-tip-name"></div>
+    <div class="atlas-tip-stats"></div>
+  </div>
+</div>

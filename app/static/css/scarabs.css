@@ -20,7 +20,10 @@
 .scarab-slot.is-active { border-color: var(--color-gold-bright, #e8c76c); }
 .scarab-slot.is-filled { background: #221b12; }
 
-.scarab-slot-btn {
+/* .scarab-slot-btn is the picker's clickable face; .scarab-slot-face is the
+   identical read-only face used on the strategy detail page. */
+.scarab-slot-btn,
+.scarab-slot-face {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -36,6 +39,8 @@
   cursor: pointer;
   overflow: hidden;
 }
+.scarab-slot-face { cursor: default; }
+.scarab-slots-static .scarab-slot:hover { border-color: var(--color-border-strong, #55462c); }
 .scarab-slot-btn:focus-visible { outline: 1px solid var(--color-gold-bright, #e8c76c); outline-offset: -3px; }
 
 .scarab-slot-icon { width: 36px; height: 36px; object-fit: contain; }

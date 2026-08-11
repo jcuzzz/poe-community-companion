@@ -151,108 +151,190 @@ class VoteAndVariantTests(TestCase):
         self.client.post(url)
         self.assertEqual(StrategyVote.objects.count(), 0)
 
-    def test_variant_create_parses_scarab_lines(self):
+    def test_variant_create_makes_a_variant_and_opens_the_editor(self):
         self.client.login(username="vauthor", password=PASSWORD)
-        response = self.client.post(
-            reverse("strategy_variant_create", args=[self.strategy.slug]),
-            {
-                "name": "Endgame",
-                "order": "1",
-                "map_device": "Shrines",
-                "investment": "25c/map",
-                "expected_return": "3 div/hr",
-                "notes": "Juice it.",
-                "scarabs_text": "Winged Harvest Scarab\n\n  Titanic Scarab x2  \n",
-            },
+        response = self.client.get(
+            reverse("strategy_variant_create", args=[self.strategy.slug])
         )
-        variant = StrategyVariant.objects.get(name="Endgame")
-        self.assertRedirects(response, reverse("strategy_detail", args=[self.strategy.slug]))
-        self.assertEqual(variant.scarabs, ["Winged Harvest Scarab", "Titanic Scarab x2"])
+        variant = StrategyVariant.objects.get(strategy=self.strategy)
+        self.assertEqual(variant.name, "Main")
+        self.assertRedirects(
+            response,
+            reverse("strategy_variant_edit", args=[self.strategy.slug, variant.pk]),
+        )
+
+    def test_second_variant_is_numbered(self):
+        self.client.login(username="vauthor", password=PASSWORD)
+        StrategyVariant.objects.create(strategy=self.strategy, name="Main")
+        self.client.get(reverse("strategy_variant_create", args=[self.strategy.slug]))
+        self.assertTrue(
+            StrategyVariant.objects.filter(strategy=self.strategy, name="Variant 2").exists()
+        )
 
     def test_non_author_cannot_add_variant(self):
         response = self.client.get(
             reverse("strategy_variant_create", args=[self.strategy.slug])
         )
         self.assertEqual(response.status_code, 404)
+        self.assertFalse(StrategyVariant.objects.exists())
 
-    def test_tree_page_view_mode_for_non_author(self):
+    def test_detail_page_shows_tree_and_scarab_slots_inline(self):
+        StrategyVariant.objects.create(
+            strategy=self.strategy,
+            name="Endgame",
+            scarabs=["Winged Harvest Scarab"],
+            atlas_tree={"version": "3.29.1", "nodes": [64048]},
+        )
+        response = self.client.get(reverse("strategy_detail", args=[self.strategy.slug]))
+        self.assertContains(response, "data-atlas-tree")
+        self.assertContains(response, 'data-mode="view"')
+        self.assertContains(response, "scarab-slots-static")
+        self.assertContains(response, "Winged Harvest Scarab")
+
+    def test_detail_page_inlines_only_the_first_tree(self):
+        # Each full tree is ~600KB, so extra variants lazy-load theirs.
+        for name in ("Main", "Budget"):
+            StrategyVariant.objects.create(
+                strategy=self.strategy,
+                name=name,
+                atlas_tree={"version": "3.29.1", "nodes": [64048]},
+            )
+        response = self.client.get(reverse("strategy_detail", args=[self.strategy.slug]))
+        body = response.content.decode()
+        self.assertEqual(body.count("data-atlas-tree"), 1)
+        self.assertEqual(body.count('class="atlas-lazy"'), 1)
+        self.assertIn("variant-tabs", body)
+
+    def test_tree_partial_renders_a_viewer_fragment(self):
+        variant = StrategyVariant.objects.create(
+            strategy=self.strategy,
+            name="Endgame",
+            atlas_tree={"version": "3.29.1", "nodes": [64048]},
+        )
+        response = self.client.get(
+            reverse("strategy_variant_tree_partial", args=[self.strategy.slug, variant.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-mode="view"')
+        self.assertNotContains(response, "<html")
+
+    def test_old_tree_url_redirects_to_the_editor(self):
         variant = StrategyVariant.objects.create(strategy=self.strategy, name="Endgame")
         response = self.client.get(
             reverse("strategy_variant_tree", args=[self.strategy.slug, variant.pk])
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'data-mode="view"')
-        self.assertNotContains(response, "Save tree")
-
-    def test_tree_save_rejects_non_author(self):
-        variant = StrategyVariant.objects.create(strategy=self.strategy, name="Endgame")
-        response = self.client.post(
-            reverse("strategy_variant_tree", args=[self.strategy.slug, variant.pk]),
-            {"action": "save", "nodes": "[64048]"},
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(
+            response.url, reverse("strategy_variant_edit", args=[self.strategy.slug, variant.pk])
         )
-        self.assertEqual(response.status_code, 404)
 
-    def test_tree_save_and_import(self):
-        from . import atlas_codec, atlas_data
+    def test_editor_redirects_non_author(self):
+        variant = StrategyVariant.objects.create(strategy=self.strategy, name="Endgame")
+        url = reverse("strategy_variant_edit", args=[self.strategy.slug, variant.pk])
+        response = self.client.get(url)
+        self.assertRedirects(response, reverse("strategy_detail", args=[self.strategy.slug]))
+        # ...and cannot save through it either.
+        response = self.client.post(url, {"action": "save", "name": "Hax", "nodes": "[64048]"})
+        self.assertEqual(response.status_code, 302)
+        variant.refresh_from_db()
+        self.assertEqual(variant.name, "Endgame")
+        self.assertEqual(variant.atlas_tree, {})
+
+    def _editor_post(self, **overrides):
+        data = {
+            "action": "save",
+            "name": "Endgame",
+            "order": "1",
+            "map_device": "Shrines",
+            "investment": "25c/map",
+            "expected_return": "3 div/hr",
+            "notes": "Juice it.",
+            "scarabs_text": "Winged Harvest Scarab\n\n  Titanic Scarab x2  \n",
+            "nodes": "[64048]",
+        }
+        data.update(overrides)
+        return data
+
+    def test_single_save_stores_fields_and_tree_together(self):
+        from . import atlas_data
 
         self.client.login(username="vauthor", password=PASSWORD)
-        variant = StrategyVariant.objects.create(strategy=self.strategy, name="Endgame")
-        url = reverse("strategy_variant_tree", args=[self.strategy.slug, variant.pk])
-
-        # Direct save of a valid single node adjacent to the start hub.
-        response = self.client.post(url, {"action": "save", "nodes": "[64048]"})
-        self.assertRedirects(response, url)
+        variant = StrategyVariant.objects.create(strategy=self.strategy, name="Draft")
+        url = reverse("strategy_variant_edit", args=[self.strategy.slug, variant.pk])
+        response = self.client.post(url, self._editor_post())
+        self.assertRedirects(response, reverse("strategy_detail", args=[self.strategy.slug]))
         variant.refresh_from_db()
+        self.assertEqual(variant.name, "Endgame")
+        self.assertEqual(variant.scarabs, ["Winged Harvest Scarab", "Titanic Scarab x2"])
         self.assertEqual(variant.atlas_tree["nodes"], [64048])
         self.assertEqual(variant.atlas_tree["version"], atlas_data.load()["version"])
 
-        # Import via a GGG share link round-trip.
-        share = atlas_codec.encode_ggg_url([64048])
-        response = self.client.post(url, {"action": "import", "tree_url": share})
-        self.assertRedirects(response, url)
-
-        # Editor page renders in edit mode with the graph payload.
-        response = self.client.get(url)
-        self.assertContains(response, 'data-mode="edit"')
-        self.assertContains(response, "atlas-graph-data")
-
-    def test_tree_save_rejects_disconnected_and_bad_input(self):
+    def test_editor_renders_fields_and_editable_tree(self):
         self.client.login(username="vauthor", password=PASSWORD)
         variant = StrategyVariant.objects.create(strategy=self.strategy, name="Endgame")
-        url = reverse("strategy_variant_tree", args=[self.strategy.slug, variant.pk])
+        response = self.client.get(
+            reverse("strategy_variant_edit", args=[self.strategy.slug, variant.pk])
+        )
+        self.assertContains(response, 'data-mode="edit"')
+        self.assertContains(response, "atlas-graph-data")
+        self.assertContains(response, "id_scarabs_text")
+        self.assertContains(response, "id_map_device")
 
-        response = self.client.post(url, {"action": "save", "nodes": "not-json"})
-        self.assertEqual(response.status_code, 200)  # re-renders with error
+    def test_import_loads_the_tree_and_keeps_typed_fields(self):
+        from . import atlas_codec
+
+        self.client.login(username="vauthor", password=PASSWORD)
+        variant = StrategyVariant.objects.create(strategy=self.strategy, name="Endgame")
+        share = atlas_codec.encode_ggg_url([64048])
+        response = self.client.post(
+            reverse("strategy_variant_edit", args=[self.strategy.slug, variant.pk]),
+            self._editor_post(action="import", tree_url=share, name="Typed Name", nodes="[]"),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "[64048]")  # imported tree is loaded
+        self.assertContains(response, "Typed Name")  # unsaved field survives
         variant.refresh_from_db()
-        self.assertEqual(variant.atlas_tree, {})
+        self.assertEqual(variant.atlas_tree, {})  # import alone saves nothing
 
-        response = self.client.post(url, {"action": "import", "tree_url": "https://evil.example/x"})
+    def test_bad_import_link_reports_an_error(self):
+        self.client.login(username="vauthor", password=PASSWORD)
+        variant = StrategyVariant.objects.create(strategy=self.strategy, name="Endgame")
+        response = self.client.post(
+            reverse("strategy_variant_edit", args=[self.strategy.slug, variant.pk]),
+            self._editor_post(action="import", tree_url="https://evil.example/x"),
+        )
         self.assertEqual(response.status_code, 200)
         variant.refresh_from_db()
         self.assertEqual(variant.atlas_tree, {})
 
-    def test_tree_page_survives_garbage_stored_atlas_tree(self):
+    def test_save_rejects_bad_node_input(self):
+        self.client.login(username="vauthor", password=PASSWORD)
+        variant = StrategyVariant.objects.create(strategy=self.strategy, name="Endgame")
+        url = reverse("strategy_variant_edit", args=[self.strategy.slug, variant.pk])
+
+        response = self.client.post(url, self._editor_post(nodes="not-json"))
+        self.assertEqual(response.status_code, 200)  # re-renders with error
+        variant.refresh_from_db()
+        self.assertEqual(variant.atlas_tree, {})
+        self.assertEqual(variant.name, "Endgame")  # nothing saved on a rejection
+
+        response = self.client.post(url, self._editor_post(nodes="[" * 20000 + "]" * 20000))
+        self.assertEqual(response.status_code, 200)
+        variant.refresh_from_db()
+        self.assertEqual(variant.atlas_tree, {})
+
+    def test_editor_survives_garbage_stored_atlas_tree(self):
         # atlas_tree is admin-editable JSON: out-of-range ids must not 500.
+        self.client.login(username="vauthor", password=PASSWORD)
         variant = StrategyVariant.objects.create(
             strategy=self.strategy,
             name="Garbage",
             atlas_tree={"version": "3.29.1", "nodes": [999999]},
         )
         response = self.client.get(
-            reverse("strategy_variant_tree", args=[self.strategy.slug, variant.pk])
+            reverse("strategy_variant_edit", args=[self.strategy.slug, variant.pk])
         )
         self.assertEqual(response.status_code, 200)
-
-    def test_tree_save_survives_deeply_nested_json(self):
-        self.client.login(username="vauthor", password=PASSWORD)
-        variant = StrategyVariant.objects.create(strategy=self.strategy, name="Deep")
-        response = self.client.post(
-            reverse("strategy_variant_tree", args=[self.strategy.slug, variant.pk]),
-            {"action": "save", "nodes": "[" * 20000 + "]" * 20000},
-        )
-        self.assertEqual(response.status_code, 200)
-        variant.refresh_from_db()
-        self.assertEqual(variant.atlas_tree, {})
 
     def test_rejected_save_rerenders_attempted_allocation(self):
         # An over-budget/disconnected submission must come back to the editor,
@@ -275,13 +357,15 @@ class VoteAndVariantTests(TestCase):
             and not set(atlas_data.adjacency().get(i, [])) & ({64048} | atlas_data.start_nodes())
         )
         response = self.client.post(
-            reverse("strategy_variant_tree", args=[self.strategy.slug, variant.pk]),
-            {"action": "save", "nodes": f"[64048, {far}]"},
+            reverse("strategy_variant_edit", args=[self.strategy.slug, variant.pk]),
+            self._editor_post(nodes=f"[64048, {far}]", name="Kept Name"),
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f"[64048, {far}]")  # attempted set round-trips
+        self.assertContains(response, "Kept Name")  # typed fields survive
         variant.refresh_from_db()
         self.assertEqual(variant.atlas_tree["nodes"], [64048])  # stored untouched
+        self.assertEqual(variant.name, "Endgame")
 
     def test_variant_delete_action(self):
         self.client.login(username="vauthor", password=PASSWORD)

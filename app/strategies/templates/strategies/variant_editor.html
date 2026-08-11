@@ -1,0 +1,79 @@
+{% extends "tracker/base.html" %}
+{% load static scarab_tags %}
+{% block title %}Edit {{ variant.name }} &middot; {{ brand_name }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/strategies.css' %}">
+<link rel="stylesheet" href="{% static 'css/scarabs.css' %}">
+<script defer src="{% static 'js/scarab_picker.js' %}"></script>{% endblock %}
+{% block content %}
+  <div class="page-head-row">
+    <div>
+      <h1>Edit &ldquo;{{ variant.name }}&rdquo;</h1>
+      <p class="text-muted">
+        Variant of <a href="{% url 'strategy_detail' strategy.slug %}">{{ strategy.title }}</a>
+        &mdash; click tree nodes to allocate; one Save stores the tree and the fields together.
+      </p>
+    </div>
+    {% if share_url %}
+      <a class="btn btn-sm" href="{{ share_url }}" rel="noopener noreferrer" target="_blank">Open on pathofexile.com &#8599;</a>
+    {% endif %}
+  </div>
+
+  {% if tree_error %}
+    <div class="form-errors"><ul><li>{{ tree_error }}</li></ul></div>
+  {% endif %}
+  {% if form.non_field_errors %}
+    <div class="form-errors">
+      <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+
+  {# One form: tree nodes, the import round-trip and every variant field post together. #}
+  <form method="post" novalidate class="variant-editor">
+    {% csrf_token %}
+    {% scarab_list as scarabs %}{{ scarabs|json_script:"scarab-data" }}
+
+    <div class="atlas-import-row">
+      <input type="text" name="tree_url" placeholder="Paste a pathofexile.com or poeplanner.com atlas tree link to import"
+             aria-label="Atlas tree link">
+      <button type="submit" name="action" value="import" class="btn btn-sm" formnovalidate>Import</button>
+    </div>
+
+    <div class="atlas-wrap" data-atlas-tree data-mode="edit">
+      <div class="atlas-toolbar">
+        <span class="atlas-count" data-atlas-count></span>
+        <button type="button" class="btn btn-sm" data-atlas-home>Reset view</button>
+        <button type="button" class="btn btn-sm" data-atlas-clear>Clear all</button>
+      </div>
+      {{ tree_svg }}
+      <div class="atlas-tip" hidden>
+        <div class="atlas-tip-name"></div>
+        <div class="atlas-tip-stats"></div>
+      </div>
+      <input type="hidden" name="nodes" value="{{ allocated_json }}" data-atlas-field>
+    </div>
+    {{ graph_data|json_script:"atlas-graph-data" }}
+
+    <div class="strat-form variant-fields">
+      {% for field in form.visible_fields %}
+        <div class="form-row{% if field.name == 'scarabs_text' %} form-row-scarabs{% endif %}">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {% if field.name == "scarabs_text" %}
+            <div id="scarab-picker" data-textarea-id="{{ field.id_for_label }}"></div>
+          {% endif %}
+          {{ field }}
+          {% if field.help_text %}<p class="text-muted help-text">{{ field.help_text }}</p>{% endif %}
+          {% if field.errors %}<ul class="field-errors">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="form-actions atlas-save-row">
+      <button type="submit" name="action" value="save" class="btn btn-primary">Save variant</button>
+      <a class="btn" href="{% url 'strategy_detail' strategy.slug %}">Cancel</a>
+      <button type="submit" name="action" value="delete" class="btn btn-danger" formnovalidate
+              onclick="return confirm('Remove this variant?');">Remove variant</button>
+    </div>
+  </form>
+
+  <script src="{% static 'js/atlas_tree.js' %}" defer></script>
+{% endblock %}

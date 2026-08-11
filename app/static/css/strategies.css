@@ -257,3 +257,38 @@ a.strat-tag:hover { border-color: var(--color-gold-dim, #8a6d2f); }
   background: #0b0910;
 }
 .atlas-thumb-link span { display: block; margin-top: 0.25rem; font-size: 0.85rem; }
+
+/* --- Variant tabs (strategy detail) ------------------------------------ */
+
+.variant-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.5rem 0 -1px;
+}
+.variant-tab {
+  border: 1px solid var(--color-border, #33291b);
+  border-bottom-color: transparent;
+  background: var(--color-bg-raised, #1a1610);
+  color: var(--color-parchment-dim, #b8a888);
+  font: inherit;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+}
+.variant-tab:hover { color: var(--color-gold-bright, #e8c76c); }
+.variant-tab.is-active {
+  color: var(--color-gold-bright, #e8c76c);
+  border-color: var(--color-border-strong, #4a3d28);
+  background: var(--color-bg-card, #1c1710);
+}
+
+.strat-variant .strat-facts { margin-top: 0.75rem; }
+.strat-scarabs-extra { margin-top: 0.5rem; }
+.atlas-count-static { font-size: 0.85rem; }
+.atlas-lazy { min-height: 6rem; }
+
+/* --- Combined variant editor ------------------------------------------- */
+
+.variant-editor .variant-fields { margin-top: 1rem; }
+.variant-editor .atlas-import-row { margin-bottom: 0.5rem; }
+.atlas-import-row input[type="text"] { flex: 1; min-width: 0; }

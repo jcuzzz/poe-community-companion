@@ -42,6 +42,10 @@ class StrategyVariantForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # The scarab picker belongs with the setup, not after the notes box.
+        self.order_fields(
+            ["name", "order", "scarabs_text", "map_device", "investment", "expected_return", "notes"]
+        )
         if self.instance.pk and self.instance.scarabs:
             self.fields["scarabs_text"].initial = "\n".join(self.instance.scarabs)
 
