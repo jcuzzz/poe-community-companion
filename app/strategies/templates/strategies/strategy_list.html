@@ -44,7 +44,10 @@
             {% comment %}Condensed map device: the primary variant's scarabs,
             what its tree focuses on, and the boss influence — only the filled
             slots, so the row stays scannable when browsing.{% endcomment %}
-            <div class="device-strip" aria-hidden="true">
+            {% comment %}The strip is a link (not a span) raised above the
+            card's stretched-link overlay so its title tooltips can surface;
+            it points at the same place, tabindex -1 keeps tab order clean.{% endcomment %}
+            <a class="device-strip" href="{% url 'strategy_detail' strategy.slug %}" tabindex="-1" aria-hidden="true">
               {% for s in strategy.device_strip.scarab_icons %}
                 <span class="device-strip-slot" title="{{ s.name }}">
                   {% if s.icon %}
@@ -70,7 +73,7 @@
                   {% endif %}
                 </span>
               {% endif %}
-            </div>
+            </a>
           {% endif %}
           <div class="strat-meta">
             {% if strategy.kind == "external" %}<span class="pill">External guide</span>{% endif %}
