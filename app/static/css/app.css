@@ -1326,11 +1326,13 @@ html[data-season="allflame"] body::before {
   z-index: -1;
   pointer-events: none;
   background-color: var(--color-bg);
+  /* Painted abyssal-smoke artwork (Assets/Concept -> static/img, jpg'd).
+     It is already near-black, so the scrims above it are light: a touch of
+     side shading and a bottom fade so long pages stay readable. */
   background-image:
-    linear-gradient(90deg, rgba(2, 7, 7, 0.20), rgba(2, 7, 7, 0.02) 45%, rgba(2, 7, 7, 0.32)),
-    radial-gradient(ellipse 88% 58% at 72% 2%, rgba(42, 133, 112, 0.11), transparent 66%),
-    linear-gradient(180deg, rgba(4, 10, 10, 0.03), rgba(1, 5, 5, 0.70)),
-    url("../img/allflame-contours.svg");
+    linear-gradient(90deg, rgba(2, 7, 7, 0.14), rgba(2, 7, 7, 0.0) 45%, rgba(2, 7, 7, 0.20)),
+    linear-gradient(180deg, rgba(4, 10, 10, 0.10), rgba(1, 5, 5, 0.45)),
+    url("../img/allflame-bg.jpg");
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
