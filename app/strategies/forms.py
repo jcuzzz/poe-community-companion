@@ -37,15 +37,38 @@ class StrategyVariantForm(forms.ModelForm):
 
     class Meta:
         model = StrategyVariant
-        fields = ["name", "order", "map_device", "investment", "expected_return", "notes"]
-        widgets = {"notes": forms.Textarea(attrs={"rows": 6})}
+        fields = [
+            "name",
+            "order",
+            "device_influence",
+            "map_device",
+            "investment",
+            "expected_return",
+            "notes",
+        ]
+        widgets = {
+            "notes": forms.Textarea(attrs={"rows": 6}),
+            # Rendered as the device's round influence buttons by the template.
+            "device_influence": forms.RadioSelect,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # The scarab picker belongs with the setup, not after the notes box.
+        # The scarab picker and the influence buttons are the map device: they
+        # render together at the top of the editor, ahead of the text fields.
         self.order_fields(
-            ["name", "order", "scarabs_text", "map_device", "investment", "expected_return", "notes"]
+            [
+                "scarabs_text",
+                "device_influence",
+                "name",
+                "order",
+                "map_device",
+                "investment",
+                "expected_return",
+                "notes",
+            ]
         )
+        self.fields["device_influence"].required = False
         if self.instance.pk and self.instance.scarabs:
             self.fields["scarabs_text"].initial = "\n".join(self.instance.scarabs)
 

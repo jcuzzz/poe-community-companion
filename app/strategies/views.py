@@ -258,7 +258,7 @@ def variant_edit(request: HttpRequest, slug: str, pk: int) -> HttpResponse:
     """
     import json as _json
 
-    from . import atlas_codec, atlas_data, atlas_render
+    from . import atlas_codec, atlas_data, atlas_render, influences
 
     qs, _ = _visible(request)
     strategy = get_object_or_404(qs, slug=slug)
@@ -334,6 +334,10 @@ def variant_edit(request: HttpRequest, slug: str, pk: int) -> HttpResponse:
             "graph_data": atlas_render.graph_data(),
             "allocated_json": _json.dumps(allocated),
             "share_url": _share_url(allocated),
+            "influence_options": influences.options(),
+            "selected_influence": (
+                form["device_influence"].value() or "" if form.is_bound else variant.device_influence
+            ),
             "tree_error": error,
             "cur": "strategy_list",
         },

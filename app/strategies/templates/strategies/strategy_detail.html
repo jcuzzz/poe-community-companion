@@ -76,7 +76,9 @@
           {% endif %}
         </div>
 
-        <h4 class="strat-subhead">Scarabs</h4>
+        <h4 class="strat-subhead">Map device</h4>
+        <div class="map-device map-device-static">
+          <div class="map-device-slots">
         <div class="scarab-slots scarab-slots-static">
           {% for slot in variant.slots %}
             <div class="scarab-slot{% if slot %} is-filled{% endif %}">
@@ -95,6 +97,18 @@
             </div>
           {% endfor %}
         </div>
+          </div>
+          {% if variant.influence %}
+            <div class="map-device-influence">
+              <span class="influence-chip is-on" title="{{ variant.influence.label }}">
+                {% if variant.influence.icon %}
+                  <img src="{{ variant.influence.icon }}" alt="" loading="lazy">
+                {% endif %}
+              </span>
+              <span class="influence-name">{{ variant.influence.label }}</span>
+            </div>
+          {% endif %}
+        </div>
         {% if variant.extra_scarabs %}
           <ul class="strat-scarabs strat-scarabs-extra">
             {% for scarab in variant.extra_scarabs %}
@@ -106,7 +120,7 @@
         <dl class="strat-facts">
           {% if variant.investment %}<div><dt>Investment</dt><dd>{{ variant.investment }}</dd></div>{% endif %}
           {% if variant.expected_return %}<div><dt>Expected return</dt><dd>{{ variant.expected_return }}</dd></div>{% endif %}
-          {% if variant.map_device %}<div><dt>Map device</dt><dd>{{ variant.map_device }}</dd></div>{% endif %}
+          {% if variant.map_device %}<div><dt>Device craft</dt><dd>{{ variant.map_device }}</dd></div>{% endif %}
         </dl>
 
         {% if variant.notes %}<div class="strat-notes">{{ variant.notes|urlize|linebreaks }}</div>{% endif %}

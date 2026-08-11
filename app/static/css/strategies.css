@@ -30,6 +30,32 @@
 .strat-card-head h2,
 .strat-card-head h3 { margin: 0; }
 .strat-card.is-draft { opacity: 0.75; }
+
+/* Whole-tile click: the title link's ::after covers the card. Anything that
+   must stay independently clickable (the vote button) is raised above it. */
+.strat-grid .strat-card {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.strat-grid .strat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-gold-dim, #8a6d2f);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+.strat-grid .strat-card:focus-within {
+  border-color: var(--color-gold-bright, #d4af5a);
+}
+.stretched-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.strat-grid .strat-vote-form {
+  position: relative;
+  z-index: 2;
+}
 .strat-summary { margin: 0.4rem 0 0.6rem; }
 
 .strat-vote {
@@ -292,3 +318,11 @@ a.strat-tag:hover { border-color: var(--color-gold-dim, #8a6d2f); }
 .variant-editor .variant-fields { margin-top: 1rem; }
 .variant-editor .atlas-import-row { margin-bottom: 0.5rem; }
 .atlas-import-row input[type="text"] { flex: 1; min-width: 0; }
+
+/* The share-link import is a side errand, not a headline field: one compact
+   right-aligned row sitting just above the tree it imports into. */
+.atlas-import-compact {
+  max-width: 28rem;
+  margin-left: auto;
+  margin-bottom: 0.35rem;
+}

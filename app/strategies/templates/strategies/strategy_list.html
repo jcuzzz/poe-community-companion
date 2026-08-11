@@ -27,7 +27,9 @@
       {% for strategy in strategies %}
         <article class="card strat-card{% if not strategy.is_published %} is-draft{% endif %}">
           <div class="strat-card-head">
-            <h2><a href="{% url 'strategy_detail' strategy.slug %}">{{ strategy.title }}</a></h2>
+            {% comment %}The title stays the real link; ::after stretches it over
+            the whole tile, so the card is clickable with no JS row handler.{% endcomment %}
+            <h2><a class="stretched-link" href="{% url 'strategy_detail' strategy.slug %}">{{ strategy.title }}</a></h2>
             <form method="post" action="{% url 'strategy_vote' strategy.slug %}" class="strat-vote-form">
               {% csrf_token %}
               <input type="hidden" name="next" value="list">

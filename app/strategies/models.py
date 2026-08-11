@@ -14,6 +14,8 @@ from django.core.validators import URLValidator
 from django.db import models
 from django.utils.text import slugify
 
+from .influences import INFLUENCE_CHOICES, info as influence_info
+
 
 class Strategy(models.Model):
     class Kind(models.TextChoices):
@@ -94,7 +96,19 @@ class StrategyVariant(models.Model):
     # picker + poe.ninja pricing land.
     scarabs = models.JSONField(default=list, blank=True)
     map_device = models.CharField(
-        max_length=120, blank=True, help_text='Device craft, e.g. "Shrines" or "5 slots: ...".'
+        max_length=120,
+        blank=True,
+        verbose_name="Device craft",
+        help_text='The device craft itself, e.g. "Shrines" — not the scarabs.',
+    )
+    # The round influence button on the in-game device: none / Maven / Eater /
+    # Exarch. Kept as a plain CharField so "" (no influence) is the default.
+    device_influence = models.CharField(
+        max_length=12,
+        blank=True,
+        choices=INFLUENCE_CHOICES,
+        verbose_name="Boss influence",
+        help_text="Which endgame boss the device is set to invite.",
     )
     notes = models.TextField(blank=True)
     investment = models.CharField(
@@ -109,6 +123,11 @@ class StrategyVariant(models.Model):
 
     def __str__(self) -> str:
         return f"{self.strategy.title} — {self.name}"
+
+    @property
+    def influence(self) -> dict | None:
+        """``{"key", "label", "icon"}`` for the device influence, else ``None``."""
+        return influence_info(self.device_influence)
 
 
 class StrategyVote(models.Model):

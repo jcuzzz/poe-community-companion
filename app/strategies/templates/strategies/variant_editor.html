@@ -32,8 +32,44 @@
     {% csrf_token %}
     {% scarab_list as scarabs %}{{ scarabs|json_script:"scarab-data" }}
 
-    <div class="atlas-import-row">
-      <input type="text" name="tree_url" placeholder="Paste a pathofexile.com or poeplanner.com atlas tree link to import"
+    {% comment %}The map device reads first, like the in-game one: five slots
+    plus the round boss-influence buttons, then the tree it feeds.{% endcomment %}
+    <div class="map-device" role="group" aria-label="Map device">
+      <div class="map-device-slots">
+        <div id="scarab-picker" data-textarea-id="{{ form.scarabs_text.id_for_label }}"></div>
+        {{ form.scarabs_text }}
+        {% if form.scarabs_text.errors %}
+          <ul class="field-errors">{% for error in form.scarabs_text.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+      <div class="map-device-influence" data-influence-group>
+        <span class="map-device-influence-label">{{ form.device_influence.label }}</span>
+        {% comment %}Deselecting leaves no radio checked; this always-posted
+        empty value makes that submit as "" (QueryDict keeps the last).{% endcomment %}
+        <input type="hidden" name="device_influence" value="">
+        <div class="influence-buttons">
+          {% for opt in influence_options %}
+            <label class="influence-btn{% if opt.key == selected_influence %} is-on{% endif %}"
+                   title="{{ opt.label }}">
+              <input type="radio" name="device_influence" value="{{ opt.key }}"
+                     {% if opt.key == selected_influence %}checked{% endif %}
+                     aria-label="{{ opt.label }}">
+              {% if opt.icon %}
+                <img src="{{ opt.icon }}" alt="" loading="lazy">
+              {% else %}
+                <span class="influence-abbr">{{ opt.label|slice:":1" }}</span>
+              {% endif %}
+            </label>
+          {% endfor %}
+        </div>
+        {% if form.device_influence.errors %}
+          <ul class="field-errors">{% for error in form.device_influence.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="atlas-import-row atlas-import-compact">
+      <input type="text" name="tree_url" placeholder="Paste an atlas tree link to import"
              aria-label="Atlas tree link">
       <button type="submit" name="action" value="import" class="btn btn-sm" formnovalidate>Import</button>
     </div>
@@ -54,16 +90,16 @@
     {{ graph_data|json_script:"atlas-graph-data" }}
 
     <div class="strat-form variant-fields">
+      {# scarabs_text + device_influence are rendered above, inside the device. #}
       {% for field in form.visible_fields %}
-        <div class="form-row{% if field.name == 'scarabs_text' %} form-row-scarabs{% endif %}">
+        {% if field.name != "scarabs_text" and field.name != "device_influence" %}
+        <div class="form-row">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {% if field.name == "scarabs_text" %}
-            <div id="scarab-picker" data-textarea-id="{{ field.id_for_label }}"></div>
-          {% endif %}
           {{ field }}
           {% if field.help_text %}<p class="text-muted help-text">{{ field.help_text }}</p>{% endif %}
           {% if field.errors %}<ul class="field-errors">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
         </div>
+        {% endif %}
       {% endfor %}
     </div>
 

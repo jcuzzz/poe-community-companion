@@ -10,6 +10,37 @@
     else { document.addEventListener("DOMContentLoaded", fn); }
   }
 
+  // Round influence buttons: radio behaviour, but clicking the checked one
+  // again clears it back to "no influence".
+  ready(function () {
+    var group = document.querySelector("[data-influence-group]");
+    if (!group) { return; }
+    var labels = Array.prototype.slice.call(group.querySelectorAll(".influence-btn"));
+
+    function paint() {
+      labels.forEach(function (l) {
+        var input = l.querySelector("input");
+        l.classList.toggle("is-on", !!(input && input.checked));
+      });
+    }
+
+    labels.forEach(function (label) {
+      var input = label.querySelector("input");
+      if (!input) { return; }
+      // mousedown fires before the browser applies the radio selection, so
+      // "was it already checked?" is still answerable here.
+      input.addEventListener("mousedown", function () { input.dataset.wasOn = input.checked ? "1" : ""; });
+      input.addEventListener("click", function () {
+        if (input.dataset.wasOn === "1") { input.checked = false; }
+        input.dataset.wasOn = "";
+        paint();
+      });
+      input.addEventListener("change", paint);
+      input.addEventListener("keyup", paint);
+    });
+    paint();
+  });
+
   ready(function () {
     var root = document.getElementById("scarab-picker");
     if (!root) { return; }

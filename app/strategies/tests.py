@@ -367,6 +367,60 @@ class VoteAndVariantTests(TestCase):
         self.assertEqual(variant.atlas_tree["nodes"], [64048])  # stored untouched
         self.assertEqual(variant.name, "Endgame")
 
+    def test_influence_saves_through_the_editor(self):
+        self.client.login(username="vauthor", password=PASSWORD)
+        variant = StrategyVariant.objects.create(strategy=self.strategy, name="Draft")
+        url = reverse("strategy_variant_edit", args=[self.strategy.slug, variant.pk])
+        self.client.post(url, self._editor_post(device_influence="maven"))
+        variant.refresh_from_db()
+        self.assertEqual(variant.device_influence, "maven")
+        self.assertEqual(variant.influence["label"], "Maven")
+        self.assertTrue(variant.influence["icon"].startswith("https://web.poecdn.com/"))
+        # Deselecting posts "" and clears it again.
+        self.client.post(url, self._editor_post(device_influence=""))
+        variant.refresh_from_db()
+        self.assertEqual(variant.device_influence, "")
+        self.assertIsNone(variant.influence)
+
+    def test_influence_rejects_garbage(self):
+        self.client.login(username="vauthor", password=PASSWORD)
+        variant = StrategyVariant.objects.create(strategy=self.strategy, name="Draft")
+        response = self.client.post(
+            reverse("strategy_variant_edit", args=[self.strategy.slug, variant.pk]),
+            self._editor_post(device_influence="shaper-of-worlds"),
+        )
+        self.assertEqual(response.status_code, 200)  # re-renders with the error
+        variant.refresh_from_db()
+        self.assertEqual(variant.device_influence, "")
+        self.assertEqual(variant.name, "Draft")  # nothing saved on a rejection
+
+    def test_editor_renders_the_device_with_influence_buttons(self):
+        self.client.login(username="vauthor", password=PASSWORD)
+        variant = StrategyVariant.objects.create(strategy=self.strategy, name="Endgame")
+        response = self.client.get(
+            reverse("strategy_variant_edit", args=[self.strategy.slug, variant.pk])
+        )
+        self.assertContains(response, "map-device")
+        self.assertContains(response, "atlas-import-compact")
+        for key in ("maven", "eater", "exarch"):
+            self.assertContains(response, 'value="%s"' % key)
+
+    def test_detail_page_renders_the_influence(self):
+        StrategyVariant.objects.create(
+            strategy=self.strategy, name="Endgame", device_influence="eater"
+        )
+        response = self.client.get(reverse("strategy_detail", args=[self.strategy.slug]))
+        self.assertContains(response, "Eater of Worlds")
+        self.assertContains(response, "https://web.poecdn.com/")
+        self.assertContains(response, "map-device")
+
+    def test_list_tile_links_to_the_strategy(self):
+        response = self.client.get(reverse("strategy_list"))
+        self.assertContains(response, "stretched-link")
+        self.assertContains(
+            response, 'href="%s"' % reverse("strategy_detail", args=[self.strategy.slug])
+        )
+
     def test_variant_delete_action(self):
         self.client.login(username="vauthor", password=PASSWORD)
         variant = StrategyVariant.objects.create(strategy=self.strategy, name="Budget")
