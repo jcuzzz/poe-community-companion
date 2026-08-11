@@ -173,6 +173,17 @@
 
   <script src="{% static 'js/atlas_tree.js' %}" defer></script>
   <script>
+    // The slot title attribute is only the no-JS fallback tooltip; with JS
+    // running, the rich CSS .scarab-tip shows on hover and the native title
+    // would double up on top of it — so strip titles from slots that have one.
+    (function () {
+      "use strict";
+      document.querySelectorAll(".scarab-slot [title]").forEach(function (el) {
+        if (el.closest(".scarab-slot").querySelector(".scarab-tip")) el.removeAttribute("title");
+      });
+    })();
+  </script>
+  <script>
     // Variant tabs: plain show/hide, plus a one-shot fetch of the tree markup
     // for every tab but the first (the server only inlines one tree).
     (function () {
