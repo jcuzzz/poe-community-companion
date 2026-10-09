@@ -9,7 +9,7 @@ Fetches the Scarab and Currency exchange overviews (see
 :class:`~strategies.models.NinjaPrice` per priced item. Rows for items that
 vanish from the feed are left alone — their ``fetched_at`` shows the staleness.
 
-Meant to run on a timer (``deploy/poe-tracker-ninja.timer``, every 6h). Network
+Meant to run on a timer (``deploy/poe-community-companion-ninja.timer``, every 6h). Network
 trouble is a one-line stderr message and exit 1, never a traceback.
 """
 

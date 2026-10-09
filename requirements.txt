@@ -1,4 +1,4 @@
-# Pinned runtime dependencies for Squad Achieves.
+# Pinned runtime dependencies for PoE Community Companion.
 # Python target: 3.13-slim (see Dockerfile). Django 6.0 supports 3.12-3.14;
 # 3.13 is used because it has mature manylinux wheels for Pillow today,
 # whereas 3.14 wheel coverage is still catching up at time of writing.

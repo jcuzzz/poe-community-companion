@@ -28,6 +28,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from . import league_api, notifications, scoring
+from .access import public_read
 from .leagues import get_active_league, get_viewing_league, set_viewing_league
 from .forms import (
     CharacterForm,
@@ -66,7 +67,6 @@ def _is_staff(user: User) -> bool:
 # --- League selection -----------------------------------------------------
 
 
-@login_required
 def set_league(request: HttpRequest) -> HttpResponse:
     """Set which league the visitor is viewing (site-wide selector). This only
     changes what they *see*; submissions always go to the active league."""
@@ -189,7 +189,7 @@ class TrackerPasswordChangeView(PasswordChangeView):
 # --- Dashboard / read pages --------------------------------------------
 
 
-@login_required
+@public_read
 def dashboard(request: HttpRequest) -> HttpResponse:
     viewing = get_viewing_league(request)
     standings = scoring.leaderboard(viewing)
@@ -360,7 +360,7 @@ def _progression_series(league) -> dict | None:
     }
 
 
-@login_required
+@public_read
 def achievement_list(request: HttpRequest) -> HttpResponse:
     viewing = get_viewing_league(request)
     achievements = Achievement.objects.filter(active=True, league=viewing)
@@ -368,7 +368,7 @@ def achievement_list(request: HttpRequest) -> HttpResponse:
     return render(request, "tracker/achievement_list.html", {"cards": cards})
 
 
-@login_required
+@public_read
 def achievement_detail(request: HttpRequest, slug: str) -> HttpResponse:
     # Slugs are unique per league, so resolve within the league being viewed.
     viewing = get_viewing_league(request)
@@ -387,7 +387,7 @@ def achievement_detail(request: HttpRequest, slug: str) -> HttpResponse:
     )
 
 
-@login_required
+@public_read
 def leaderboard_view(request: HttpRequest) -> HttpResponse:
     viewing = get_viewing_league(request)
     rows = scoring.leaderboard(viewing)
@@ -400,7 +400,7 @@ def leaderboard_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@login_required
+@public_read
 def player_profile(request: HttpRequest, username: str) -> HttpResponse:
     profile_user = get_object_or_404(User, username=username, is_player=True)
     viewing = get_viewing_league(request)
@@ -513,7 +513,7 @@ def submission_create(request: HttpRequest, slug: str | None = None) -> HttpResp
     return render(request, "tracker/submission_form.html", context)
 
 
-@login_required
+@public_read
 def submission_detail(request: HttpRequest, pk: int) -> HttpResponse:
     submission = get_object_or_404(
         Submission.objects.select_related("user", "character", "achievement").prefetch_related(
@@ -874,7 +874,7 @@ def healthz(request: HttpRequest) -> HttpResponse:
 # --- Activity feed -------------------------------------------------------
 
 
-@login_required
+@public_read
 def activity_feed(request: HttpRequest) -> HttpResponse:
     """Chronological league activity, built from the audit log."""
     viewing = get_viewing_league(request)
@@ -891,7 +891,7 @@ def activity_feed(request: HttpRequest) -> HttpResponse:
 # --- Exports -------------------------------------------------------------
 
 
-@login_required
+@public_read
 def leaderboard_export(request: HttpRequest, fmt: str) -> HttpResponse:
     """Download the leaderboard as CSV or JSON."""
     rows = scoring.leaderboard(get_viewing_league(request))
@@ -924,7 +924,7 @@ def leaderboard_export(request: HttpRequest, fmt: str) -> HttpResponse:
 # --- Share card (Pillow-rendered PNG) ------------------------------------
 
 
-@login_required
+@public_read
 def share_card(request: HttpRequest, pk: int) -> HttpResponse:
     """A dark parchment / gold PNG summarising a submission, for sharing."""
     from PIL import Image, ImageDraw, ImageFont

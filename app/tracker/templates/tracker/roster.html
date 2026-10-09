@@ -7,8 +7,8 @@
   </h1>
 
   <p class="text-muted">
-    The guild's exiles, at a glance. Click a character for the full build, or
-    <a href="{% url 'character_detail' user.username %}">import your own</a> with a Path of Building code.
+    The guild's exiles, at a glance. Click a character for the full build{% if user.is_authenticated %}, or
+    <a href="{% url 'character_detail' user.username %}">import your own</a> with a Path of Building code{% endif %}.
   </p>
 
   <form class="roster-filter-bar" method="get">

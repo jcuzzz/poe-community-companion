@@ -8,7 +8,7 @@
       <h1>Farming strategies</h1>
       <p class="text-muted">The guild's shared library of atlas strats &mdash; trees, scarabs, and how to print currency.</p>
     </div>
-    {% if not is_archived_view %}
+    {% if user.is_authenticated and not is_archived_view %}
       <a class="btn btn-primary" href="{% url 'strategy_create' %}">Post a strategy</a>
     {% endif %}
   </div>
@@ -30,14 +30,18 @@
             {% comment %}The title stays the real link; ::after stretches it over
             the whole tile, so the card is clickable with no JS row handler.{% endcomment %}
             <h2><a class="stretched-link" href="{% url 'strategy_detail' strategy.slug %}">{{ strategy.title }}</a></h2>
-            <form method="post" action="{% url 'strategy_vote' strategy.slug %}" class="strat-vote-form">
-              {% csrf_token %}
-              <input type="hidden" name="next" value="list">
-              <button type="submit" class="strat-vote{% if strategy.id in voted_ids %} is-voted{% endif %}"
-                      title="{% if strategy.id in voted_ids %}Remove vote{% else %}Upvote{% endif %}">
-                &#9650; {{ strategy.vote_count }}
-              </button>
-            </form>
+            {% if user.is_authenticated %}
+              <form method="post" action="{% url 'strategy_vote' strategy.slug %}" class="strat-vote-form">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="list">
+                <button type="submit" class="strat-vote{% if strategy.id in voted_ids %} is-voted{% endif %}"
+                        title="{% if strategy.id in voted_ids %}Remove vote{% else %}Upvote{% endif %}">
+                  &#9650; {{ strategy.vote_count }}
+                </button>
+              </form>
+            {% else %}
+              <span class="strat-vote" title="Votes">&#9650; {{ strategy.vote_count }}</span>
+            {% endif %}
           </div>
           {% if strategy.summary %}<p class="strat-summary">{{ strategy.summary }}</p>{% endif %}
           {% if strategy.device_strip %}

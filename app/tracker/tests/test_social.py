@@ -14,13 +14,13 @@ PASSWORD = "correct-horse-battery-42"
 
 class CommentTests(TestCase):
     def setUp(self):
-        self.author = make_player("jcuz")
+        self.author = make_player("alice")
         self.other = make_player("bob")
         self.achievement = make_achievement()
         self.submission = make_submission(self.author, self.achievement)
 
     def test_add_comment(self):
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
         response = self.client.post(
             reverse("comment_add", args=[self.submission.pk]), {"body": "nice one"}
         )
@@ -31,7 +31,7 @@ class CommentTests(TestCase):
         self.assertEqual(comment.body, "nice one")
 
     def test_empty_comment_rejected(self):
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
         response = self.client.post(
             reverse("comment_add", args=[self.submission.pk]), {"body": "   "}
         )
@@ -39,7 +39,7 @@ class CommentTests(TestCase):
         self.assertEqual(SubmissionComment.objects.count(), 0)
 
     def test_too_long_comment_rejected(self):
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
         response = self.client.post(
             reverse("comment_add", args=[self.submission.pk]), {"body": "x" * 1001}
         )
@@ -50,7 +50,7 @@ class CommentTests(TestCase):
         comment = SubmissionComment.objects.create(
             submission=self.submission, author=self.author, body="hi"
         )
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
         response = self.client.post(
             reverse("comment_delete", args=[self.submission.pk, comment.pk])
         )
@@ -83,10 +83,10 @@ class CommentTests(TestCase):
 
 class ReactionTests(TestCase):
     def setUp(self):
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
         self.achievement = make_achievement()
         self.submission = make_submission(self.player, self.achievement)
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
 
     def test_toggle_on_then_off(self):
         url = reverse("reaction_toggle", args=[self.submission.pk])
@@ -117,7 +117,7 @@ class ReactionTests(TestCase):
 
 class ContestVoteTests(TestCase):
     def setUp(self):
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
         self.voter = make_player("bob")
         self.achievement = make_achievement()
         self.client.login(username="bob", password=PASSWORD)

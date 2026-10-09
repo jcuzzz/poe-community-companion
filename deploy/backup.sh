@@ -1,15 +1,15 @@
 #!/bin/sh
-# Wrapper invoked by the poe-tracker-backup systemd service (and usable
+# Wrapper invoked by the poe-community-companion-backup systemd service (and usable
 # directly / from cron). Runs the SQLite-safe backup command inside the
 # app container via the compose "backup" profile, which covers the DB and
 # the media directory together per plan.md's backup requirement.
 #
 # Cron alternative (if you prefer cron over systemd timers), run as the
 # deploying user's crontab:
-#   17 3 * * * /opt/poe-tracker/deploy/backup.sh >> /var/log/poe-tracker-backup.log 2>&1
+#   17 3 * * * /opt/poe-community-companion/deploy/backup.sh >> /var/log/poe-community-companion-backup.log 2>&1
 set -e
 
-APP_DIR="${APP_DIR:-/opt/poe-tracker}"
+APP_DIR="${APP_DIR:-/opt/poe-community-companion}"
 cd "$APP_DIR"
 
 echo "[backup.sh] $(date -Is) starting backup"

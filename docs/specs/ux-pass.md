@@ -2,7 +2,7 @@
 
 **Status: shipped 2026-07-26.** Greenlit decisions: all three tiers; "Not submitted"
 removed entirely; roster cards class/level only; art = user avatars + original CSS
-crests (no bundled GGG assets, per the open-source plan). Delivered via 3 parallel
+crests (no bundled GGG assets). Delivered via 3 parallel
 subagents (boards / dashboard / roster-profile) over a shared crest partial. 153 tests.
 **Remaining follow-up:** a deep light-theme audit of the *legacy* stylesheets
 (proofs.css / firsts.css / social.css) — the new UX CSS is theme-aware, but those
@@ -14,11 +14,10 @@ older files still have hardcoded dark colours.
 
 Feedback: the applied pass still looks "AI-made" (too soft) and underwhelming (sparse
 live data). New decisions:
-- **PoE artwork is now ALLOWED** (reversing plan.md's no-art rule), used the way
+- **PoE artwork is now ALLOWED** (reversing the earlier no-art rule), used the way
   poe.ninja / Craft of Exile do: class/ascendancy **avatars** and **item icons**,
   **hotlinked from GGG's CDN `web.poecdn.com`** (item icons come from the API `icon`
-  field). Nothing bundled in the repo → still OSS-clean. Update the footer's "No PoE
-  artwork used" line and plan.md accordingly during the redesign.
+  field). Nothing bundled in the repo → still OSS-clean.
 - **Hard edges, not soft.** PoE's UI is angular/framed. Strip `border-radius`
   (→ 0 / minimal) globally; move to sharp bordered panels. Biggest lever against the
   generic look.

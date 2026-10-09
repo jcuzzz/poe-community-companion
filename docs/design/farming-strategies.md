@@ -16,7 +16,7 @@ unique on league+item_id) caches one row per priced item; `league` is the
 **poe.ninja league string**, not an FK — resolved from the active
 `tracker.League`'s `ggg_id` (falling back to `name`), so `Current League` with
 `ggg_id="Allflame"` prices correctly. `manage.py fetch_ninja_prices` (systemd
-`poe-tracker-ninja.timer`, every 6h, wrapper `deploy/fetch-ninja-prices.sh`)
+`poe-community-companion-ninja.timer`, every 6h, wrapper `deploy/fetch-ninja-prices.sh`)
 fetches `.../economy/exchange/current/overview?league=<L>&type=Scarab` plus
 `&type=Currency`, keeping only the Divine Orb row from the latter; items that
 drop out of the feed keep their stale row rather than disappearing.
@@ -93,7 +93,7 @@ First feature to ship under the new **feature-module toggle system**.
 applicable to ladder/spectator features. Per-league overrides are a possible
 follow-on, not v1.
 
-Rationale (agreed): Squad Achieves is one group-size-agnostic companion app;
+Rationale (agreed): The app is one group-size-agnostic companion app;
 modules keep any single mode (e.g. gauntlet event instance) uncluttered.
 A separately-packaged plugin system is overkill for self-hosters deploying the
 whole repo. Cross-instance shared libraries would fight Model A single-tenancy

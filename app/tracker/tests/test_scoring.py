@@ -10,7 +10,7 @@ from .factories import make_achievement, make_character, make_player, make_submi
 
 class ScoringTests(TestCase):
     def setUp(self):
-        self.jcuz = make_player("jcuz")
+        self.alice = make_player("alice")
         self.bob = make_player("bob")
         self.carol = make_player("carol")
         self.divine = make_achievement("First Divine Orb", slug="first-divine-orb")
@@ -24,7 +24,7 @@ class ScoringTests(TestCase):
         return next(r["points"] for r in scoring.leaderboard() if r["player"] == player)
 
     def test_single_submission_sweeps_every_bonus(self):
-        sub = make_submission(self.jcuz, self.divine)
+        sub = make_submission(self.alice, self.divine)
         scoring.recalculate()
 
         self.assertEqual(
@@ -37,12 +37,12 @@ class ScoringTests(TestCase):
                 Award.Type.LOWEST_LEVEL,
             },
         )
-        self.assertEqual(self.points_for(self.jcuz), 2 + 5 + 3 + 2 + 1)
+        self.assertEqual(self.points_for(self.alice), 2 + 5 + 3 + 2 + 1)
 
     def test_bonuses_split_across_players(self):
         """The plan's worked example: first+fastest vs lowest level+fewest kills."""
         first = make_submission(
-            self.jcuz, self.divine, hours_in=30, played_hours=18.7, kills=21340, level=79
+            self.alice, self.divine, hours_in=30, played_hours=18.7, kills=21340, level=79
         )
         later = make_submission(
             self.bob, self.divine, hours_in=50, played_hours=22.25, kills=16820, level=74
@@ -57,12 +57,12 @@ class ScoringTests(TestCase):
             self.awards_for(later),
             {Award.Type.COMPLETION, Award.Type.FEWEST_KILLS, Award.Type.LOWEST_LEVEL},
         )
-        self.assertEqual(self.points_for(self.jcuz), 2 + 5 + 3)
+        self.assertEqual(self.points_for(self.alice), 2 + 5 + 3)
         self.assertEqual(self.points_for(self.bob), 2 + 2 + 1)
 
     def test_first_ranks_by_obtained_at_not_submitted_at(self):
         early_claim = make_submission(self.bob, self.divine, hours_in=10)
-        make_submission(self.jcuz, self.divine, hours_in=40)
+        make_submission(self.alice, self.divine, hours_in=40)
         scoring.recalculate()
 
         self.assertIn(Award.Type.FIRST, self.awards_for(early_claim))
@@ -77,13 +77,13 @@ class ScoringTests(TestCase):
             with self.subTest(status=status):
                 Award.objects.all().delete()
                 Submission.objects.all().delete()
-                make_submission(self.jcuz, self.divine, status=status)
+                make_submission(self.alice, self.divine, status=status)
                 scoring.recalculate()
                 self.assertEqual(Award.objects.count(), 0)
-                self.assertEqual(self.points_for(self.jcuz), 0)
+                self.assertEqual(self.points_for(self.alice), 0)
 
     def test_ties_share_the_bonus(self):
-        a = make_submission(self.jcuz, self.divine, hours_in=20, played_hours=10, kills=500, level=60)
+        a = make_submission(self.alice, self.divine, hours_in=20, played_hours=10, kills=500, level=60)
         b = make_submission(
             self.bob, self.divine, hours_in=30, played_hours=10, kills=500, level=60
         )
@@ -101,12 +101,12 @@ class ScoringTests(TestCase):
         # A player may log the same achievement more than once; a later, more
         # efficient run still earns the efficiency medals.
         earliest = make_submission(
-            self.jcuz, self.divine, character=make_character(self.jcuz), hours_in=10, played_hours=30
+            self.alice, self.divine, character=make_character(self.alice), hours_in=10, played_hours=30
         )
         efficient = make_submission(
-            self.jcuz,
+            self.alice,
             self.divine,
-            character=make_character(self.jcuz),
+            character=make_character(self.alice),
             hours_in=60,
             played_hours=5,
         )
@@ -121,20 +121,20 @@ class ScoringTests(TestCase):
         self.assertNotIn(Award.Type.COMPLETION, self.awards_for(efficient))
 
     def test_completion_counts_once_per_player_across_resubmissions(self):
-        make_submission(self.jcuz, self.divine, character=make_character(self.jcuz), hours_in=10)
-        make_submission(self.jcuz, self.divine, character=make_character(self.jcuz), hours_in=20)
-        make_submission(self.jcuz, self.divine, character=make_character(self.jcuz), hours_in=30)
+        make_submission(self.alice, self.divine, character=make_character(self.alice), hours_in=10)
+        make_submission(self.alice, self.divine, character=make_character(self.alice), hours_in=20)
+        make_submission(self.alice, self.divine, character=make_character(self.alice), hours_in=30)
         scoring.recalculate()
 
         self.assertEqual(
             Award.objects.filter(
-                submission__user=self.jcuz, award_type=Award.Type.COMPLETION
+                submission__user=self.alice, award_type=Award.Type.COMPLETION
             ).count(),
             1,
         )
 
     def test_recalculate_is_idempotent(self):
-        make_submission(self.jcuz, self.divine)
+        make_submission(self.alice, self.divine)
         make_submission(self.bob, self.divine, hours_in=40)
         scoring.recalculate()
         first_pass = scoring.leaderboard()
@@ -147,18 +147,18 @@ class ScoringTests(TestCase):
         )
 
     def test_unapproving_removes_the_points(self):
-        sub = make_submission(self.jcuz, self.divine)
+        sub = make_submission(self.alice, self.divine)
         scoring.recalculate()
-        self.assertGreater(self.points_for(self.jcuz), 0)
+        self.assertGreater(self.points_for(self.alice), 0)
 
         sub.status = Submission.Status.CONTESTED
         sub.save(update_fields=["status"])
         scoring.recalculate()
-        self.assertEqual(self.points_for(self.jcuz), 0)
+        self.assertEqual(self.points_for(self.alice), 0)
 
     def test_per_achievement_recalculate_leaves_others_alone(self):
         mirror = make_achievement("First Mirror of Kalandra", slug="first-mirror")
-        divine_sub = make_submission(self.jcuz, self.divine)
+        divine_sub = make_submission(self.alice, self.divine)
         mirror_sub = make_submission(self.bob, mirror)
         scoring.recalculate()
         mirror_awards = self.awards_for(mirror_sub)
@@ -170,7 +170,7 @@ class ScoringTests(TestCase):
     def test_blank_stats_still_score_but_skip_those_medals(self):
         # A player logs the achievement with no /played, /kills or level.
         bare = make_submission(
-            self.jcuz, self.divine, played_hours=None, kills=None, level=None
+            self.alice, self.divine, played_hours=None, kills=None, level=None
         )
         full = make_submission(
             self.bob, self.divine, hours_in=40, played_hours=10, kills=500, level=60
@@ -190,7 +190,7 @@ class ScoringTests(TestCase):
         self.assertIn(Award.Type.LOWEST_LEVEL, full_awards)
 
     def test_all_blank_stats_award_no_efficiency_medals(self):
-        make_submission(self.jcuz, self.divine, played_hours=None, kills=None, level=None)
+        make_submission(self.alice, self.divine, played_hours=None, kills=None, level=None)
         scoring.recalculate()
         self.assertEqual(
             Award.objects.filter(
@@ -205,7 +205,7 @@ class ScoringTests(TestCase):
 
     def test_base_points_are_per_achievement(self):
         rare = make_achievement("First Mirror of Kalandra", slug="first-mirror", base_points=6)
-        sub = make_submission(self.jcuz, rare)
+        sub = make_submission(self.alice, rare)
         scoring.recalculate()
 
         completion = sub.awards.get(award_type=Award.Type.COMPLETION)
@@ -214,44 +214,44 @@ class ScoringTests(TestCase):
 
 class LeaderboardTests(TestCase):
     def setUp(self):
-        self.jcuz = make_player("jcuz")
+        self.alice = make_player("alice")
         self.bob = make_player("bob")
         self.dave = make_player("dave")
         self.divine = make_achievement("First Divine Orb", slug="first-divine-orb")
         self.mirror = make_achievement("First Mirror of Kalandra", slug="first-mirror")
 
     def test_ranks_ties_equally(self):
-        make_submission(self.jcuz, self.divine, hours_in=10)
+        make_submission(self.alice, self.divine, hours_in=10)
         make_submission(self.bob, self.mirror, hours_in=10)
         scoring.recalculate()
 
         rows = {r["player"].username: r for r in scoring.leaderboard()}
-        self.assertEqual(rows["jcuz"]["rank"], rows["bob"]["rank"])
+        self.assertEqual(rows["alice"]["rank"], rows["bob"]["rank"])
         self.assertEqual(rows["dave"]["rank"], 3)
         self.assertEqual(rows["dave"]["points"], 0)
 
     def test_champion_is_none_until_someone_scores(self):
         self.assertIsNone(scoring.champion())
-        make_submission(self.jcuz, self.divine)
+        make_submission(self.alice, self.divine)
         scoring.recalculate()
-        self.assertEqual(scoring.champion()["player"], self.jcuz)
+        self.assertEqual(scoring.champion()["player"], self.alice)
 
     def test_every_player_appears_even_with_no_submissions(self):
         self.assertEqual(len(scoring.leaderboard()), 3)
 
     def test_medal_counts(self):
-        make_submission(self.jcuz, self.divine, hours_in=10)
-        make_submission(self.jcuz, self.mirror, hours_in=12)
+        make_submission(self.alice, self.divine, hours_in=10)
+        make_submission(self.alice, self.mirror, hours_in=12)
         scoring.recalculate()
 
-        row = next(r for r in scoring.leaderboard() if r["player"] == self.jcuz)
+        row = next(r for r in scoring.leaderboard() if r["player"] == self.alice)
         self.assertEqual(row["firsts"], 2)
         self.assertEqual(row["completions"], 2)
 
 
 class AchievementStandingsTests(TestCase):
     def setUp(self):
-        self.jcuz = make_player("jcuz")
+        self.alice = make_player("alice")
         self.bob = make_player("bob")
         self.divine = make_achievement("First Divine Orb", slug="first-divine-orb")
 
@@ -263,7 +263,7 @@ class AchievementStandingsTests(TestCase):
         self.assertNotIn("not_submitted", card)
 
     def test_winner_and_rows(self):
-        winner = make_submission(self.jcuz, self.divine, hours_in=10)
+        winner = make_submission(self.alice, self.divine, hours_in=10)
         make_submission(self.bob, self.divine, hours_in=20)
         scoring.recalculate()
 
@@ -272,13 +272,13 @@ class AchievementStandingsTests(TestCase):
         self.assertEqual(card["approved_count"], 2)
 
     def test_drafts_are_hidden(self):
-        make_submission(self.jcuz, self.divine, status=Submission.Status.DRAFT)
+        make_submission(self.alice, self.divine, status=Submission.Status.DRAFT)
         card = scoring.achievement_standings(self.divine)
         self.assertEqual(card["submissions"], [])
         self.assertEqual(card["entries"], [])
 
     def test_pending_shows_but_does_not_win(self):
-        make_submission(self.jcuz, self.divine, status=Submission.Status.PENDING)
+        make_submission(self.alice, self.divine, status=Submission.Status.PENDING)
         card = scoring.achievement_standings(self.divine)
         self.assertEqual(len(card["submissions"]), 1)
         self.assertIsNone(card["winner"])
@@ -288,8 +288,8 @@ class AchievementStandingsTests(TestCase):
         """A player with two approved entries still shows their other (non-winning)
         entry in `entries`; the winning submission is excluded because it's already
         shown once, highlighted, in the winner banner above the list."""
-        first = make_submission(self.jcuz, self.divine, hours_in=10)
-        second = make_submission(self.jcuz, self.divine, hours_in=20, character=make_character(self.jcuz))
+        first = make_submission(self.alice, self.divine, hours_in=10)
+        second = make_submission(self.alice, self.divine, hours_in=20, character=make_character(self.alice))
         other = make_submission(self.bob, self.divine, hours_in=30)
         scoring.recalculate()
 
@@ -302,35 +302,35 @@ class AchievementStandingsTests(TestCase):
 
     def test_only_participants_appear(self):
         # Only players with an approved submission show anywhere on the board.
-        make_submission(self.jcuz, self.divine, hours_in=10)
+        make_submission(self.alice, self.divine, hours_in=10)
         scoring.recalculate()
 
         card = scoring.achievement_standings(self.divine)
         shown = {card["winner"].user_id} | {e.user_id for e in card["entries"]}
-        self.assertIn(self.jcuz.pk, shown)
+        self.assertIn(self.alice.pk, shown)
         self.assertNotIn(self.bob.pk, shown)
 
 
 class MedalsMatrixTests(TestCase):
     def setUp(self):
-        self.jcuz = make_player("jcuz")
+        self.alice = make_player("alice")
         self.bob = make_player("bob")
         self.divine = make_achievement("First Divine Orb", slug="first-divine-orb")
         self.mirror = make_achievement("Mirror Drop", slug="mirror-drop")
 
     def test_matrix_only_lists_players_with_awards(self):
-        make_submission(self.jcuz, self.divine, hours_in=10)
+        make_submission(self.alice, self.divine, hours_in=10)
         scoring.recalculate()
         matrix = scoring.medals_matrix(League.get_active())
         player_ids = {row["player"].pk for row in matrix["rows"]}
-        self.assertIn(self.jcuz.pk, player_ids)
+        self.assertIn(self.alice.pk, player_ids)
         self.assertNotIn(self.bob.pk, player_ids)
 
     def test_matrix_cells_flag_first_and_total(self):
-        make_submission(self.jcuz, self.divine, hours_in=10)
+        make_submission(self.alice, self.divine, hours_in=10)
         scoring.recalculate()
         matrix = scoring.medals_matrix(League.get_active())
-        row = next(r for r in matrix["rows"] if r["player"].pk == self.jcuz.pk)
+        row = next(r for r in matrix["rows"] if r["player"].pk == self.alice.pk)
         self.assertGreater(row["total"], 0)
         divine_cell = next(c for c in row["cells"] if c["achievement"].pk == self.divine.pk)
         self.assertTrue(divine_cell["first"])
@@ -338,7 +338,7 @@ class MedalsMatrixTests(TestCase):
         self.assertFalse(mirror_cell["earned"])
 
     def test_winner_is_still_first_award_holder(self):
-        winner = make_submission(self.jcuz, self.divine, hours_in=10)
+        winner = make_submission(self.alice, self.divine, hours_in=10)
         make_submission(self.bob, self.divine, hours_in=20)
         scoring.recalculate()
 

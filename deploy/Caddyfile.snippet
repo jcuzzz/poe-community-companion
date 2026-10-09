@@ -1,11 +1,8 @@
-# Squad Achieves — Caddy vhost snippet.
+# PoE Community Companion — Caddy vhost snippet.
 #
-# This is NOT a standalone Caddyfile. It is imported into the existing
-# Caddy config on the proxy LXC (192.0.2.22), alongside the Jellyfin
-# block in configs-sanitized/Caddyfile.example in the parent repo.
-# **Verify:** confirm how the parent repo's live Caddyfile is organized
-# (single file vs. `import` of per-site files under e.g. /etc/caddy/sites/)
-# and drop this block in using that same convention.
+# This is NOT a standalone Caddyfile. It is imported into your
+# existing Caddy config (single file, or an `import`ed per-site file).
+# Replace poe.example.com and the upstream address with your own.
 #
 # Caddy v2 automatically sets X-Forwarded-Proto (and X-Forwarded-For /
 # X-Forwarded-Host) on reverse_proxy — no manual header_up needed for that.
@@ -23,7 +20,8 @@ poe.example.com {
         max_size 15MB
     }
 
-    reverse_proxy 192.0.2.60:8000
+    # Same host as the container; use <host-lan-ip>:8000 if Caddy runs elsewhere.
+    reverse_proxy 127.0.0.1:8000
 
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains"
@@ -34,7 +32,7 @@ poe.example.com {
     }
 
     log {
-        output file /var/log/caddy/poe-tracker.access.log {
+        output file /var/log/caddy/poe-community-companion.access.log {
             roll_size 10mb
             roll_keep 5
             roll_keep_for 720h

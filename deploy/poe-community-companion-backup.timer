@@ -1,5 +1,5 @@
 [Unit]
-Description=Run Squad Achieves (poe-tracker) backup nightly
+Description=Run PoE Community Companion (poe-community-companion) backup nightly
 
 [Timer]
 OnCalendar=*-*-* 03:00:00

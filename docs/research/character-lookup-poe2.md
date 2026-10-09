@@ -62,7 +62,7 @@ For PoE 2, the only sanctioned programmatic lookups are:
   *default*.
 - **OAuth (option B) is optional, later, and heavy** — only worth it if members want
   live self-updating data and are willing to link accounts. Server-side Django suits
-  the Confidential Client model, but it's a large add for ~5 friends. Defer.
+  the Confidential Client model, but it's a large add for a small group. Defer.
 - **Implementation consequence:** the roster lookup service must branch on
   `league.game`. For `poe1` → public character-window fetch (existing plan). For
   `poe2` → skip auto-fetch, present the PoB2-paste path as primary. `CharacterSnapshot`

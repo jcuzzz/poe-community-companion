@@ -37,7 +37,7 @@ class AuthGateTests(TestCase):
     """Nothing is public. Five friends, invite only."""
 
     def setUp(self):
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
         self.achievement = make_achievement()
 
     def test_every_page_requires_login(self):
@@ -46,7 +46,7 @@ class AuthGateTests(TestCase):
             reverse("achievement_list"),
             reverse("achievement_detail", args=[self.achievement.slug]),
             reverse("leaderboard"),
-            reverse("player_profile", args=["jcuz"]),
+            reverse("player_profile", args=["alice"]),
             reverse("submission_create"),
             reverse("character_list"),
             reverse("account_settings"),
@@ -66,21 +66,21 @@ class AuthGateTests(TestCase):
         self.assertEqual(self.client.get("/accounts/signup/").status_code, 404)
 
     def test_review_queue_is_staff_only(self):
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
         response = self.client.get(reverse("review_queue"))
         self.assertIn(response.status_code, {302, 403})
 
 
 class PageRenderTests(TestCase):
     def setUp(self):
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
         self.other = make_player("bob")
         self.achievement = make_achievement()
         self.submission = make_submission(self.player, self.achievement)
         from tracker import scoring
 
         scoring.recalculate()
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
 
     def test_pages_render(self):
         urls = [
@@ -88,7 +88,7 @@ class PageRenderTests(TestCase):
             reverse("achievement_list"),
             reverse("achievement_detail", args=[self.achievement.slug]),
             reverse("leaderboard"),
-            reverse("player_profile", args=["jcuz"]),
+            reverse("player_profile", args=["alice"]),
             reverse("player_profile", args=["bob"]),
             reverse("submission_detail", args=[self.submission.pk]),
             reverse("submission_create"),
@@ -103,7 +103,7 @@ class PageRenderTests(TestCase):
 
     def test_dashboard_shows_the_champion_and_the_medals(self):
         response = self.client.get(reverse("dashboard"))
-        self.assertContains(response, "Jcuz")
+        self.assertContains(response, "Alice")
         self.assertContains(response, "First Overall")
 
     def test_played_time_is_never_shown_as_raw_seconds(self):
@@ -126,10 +126,10 @@ class PageRenderTests(TestCase):
 
 class SubmissionFlowTests(TestCase):
     def setUp(self):
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
         self.character = make_character(self.player, "Zappy")
         self.achievement = make_achievement()
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
 
     def post_data(self, **overrides):
         data = {
@@ -204,11 +204,11 @@ class SubmissionFlowTests(TestCase):
         self.player.can_submit = False
         self.player.save(update_fields=["can_submit"])
 
-        # GET shows the cheeky gif popup with a 403, not the form.
+        # GET shows the blocked popup with a 403, not the form.
         get = self.client.get(reverse("submission_create"))
         self.assertEqual(get.status_code, 403)
         self.assertTemplateUsed(get, "tracker/submission_blocked.html")
-        self.assertContains(get, "magic word", status_code=403)
+        self.assertContains(get, "blocked from submitting", status_code=403)
         # POST creates nothing.
         self.client.post(reverse("submission_create"), self.post_data())
         self.assertEqual(Submission.objects.count(), 0)
@@ -372,7 +372,7 @@ class SubmissionFlowTests(TestCase):
 class ReviewTests(TestCase):
     def setUp(self):
         self.admin = make_admin()
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
         self.achievement = make_achievement()
         self.submission = make_submission(
             self.player, self.achievement, status=Submission.Status.PENDING
@@ -520,9 +520,9 @@ class CsrfTests(TestCase):
 
     def setUp(self):
         self.client = self.client_class(enforce_csrf_checks=True)
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
         self.achievement = make_achievement()
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
 
     def test_submission_create_requires_csrf(self):
         response = self.client.post(reverse("submission_create"), {})

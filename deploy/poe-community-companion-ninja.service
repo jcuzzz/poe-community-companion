@@ -1,0 +1,14 @@
+# Install (on the server, as root):
+#   cp deploy/poe-community-companion-ninja.{service,timer} /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now poe-community-companion-ninja.timer
+#   systemctl start poe-community-companion-ninja.service   # run once now
+[Unit]
+Description=PoE Community Companion (poe-community-companion) poe.ninja scarab price refresh
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/poe-community-companion
+ExecStart=/opt/poe-community-companion/deploy/fetch-ninja-prices.sh

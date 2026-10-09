@@ -1,0 +1,13 @@
+[Unit]
+Description=PoE Community Companion (poe-community-companion) nightly backup
+# **Verify:** confirm the Docker daemon's unit name on Debian 13 (usually
+# docker.service) matches this After= line.
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# Replace with the non-root deploy user on your host.
+User=deploy
+WorkingDirectory=/opt/poe-community-companion
+ExecStart=/opt/poe-community-companion/deploy/backup.sh

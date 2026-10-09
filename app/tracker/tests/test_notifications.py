@@ -16,9 +16,9 @@ WEBHOOK = "https://discord.test/webhook/abc"
 
 class NotificationTests(TestCase):
     def setUp(self):
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
         self.achievement = make_achievement()
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
 
     def post_first(self):
         data = {"achievement": self.achievement.pk, "character_level": "79", **_mgmt()}
@@ -38,7 +38,7 @@ class NotificationTests(TestCase):
         self.assertEqual(post.call_count, 1)
         content = post.call_args.args[0]
         self.assertIn(self.achievement.name, content)
-        self.assertIn("jcuz", content.lower())
+        self.assertIn("alice", content.lower())
 
         sub = Submission.objects.get()
         self.assertTrue(sub.announced_first)

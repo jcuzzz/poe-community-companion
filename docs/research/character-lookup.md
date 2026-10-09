@@ -1,7 +1,7 @@
 # Research spike — character lookup / live PoB
 
 Feasibility of showing a member's live PoE character (poe.ninja / PoB style) on
-Squad Achieves. Assumes **PoE 1** (the in-app league is Divine/Mirror era).
+PoE Community Companion. Assumes **PoE 1** (the in-app league is Divine/Mirror era).
 Status: **researched, not built.** Referenced from [../ROADMAP.md](../ROADMAP.md).
 
 ## How the data is actually obtainable
@@ -12,13 +12,13 @@ Status: **researched, not built.** Referenced from [../ROADMAP.md](../ROADMAP.md
   expect unpredictable rate limiting from datacenter IPs.
   - **Hard requirement:** the account's profile/characters must be **public**
     ("Hide characters tab" OFF). Private profile → request fails. This is the #1
-    failure mode. A POESESSID cookie bypasses it but means handling a friend's live
+    failure mode. A POESESSID cookie bypasses it but means handling a member's live
     session cookie — don't.
   - Account name may need the `Name#1234` discriminator for newer accounts.
 - **OAuth 2.0** (official) — real scopes (`account:characters`, `account:profile`).
   A server app is a "confidential client" needing an HTTPS redirect domain + app
   registration by emailing GGG (uncertain approval) + per-user token lifecycle.
-  Removes the public-profile step but is heavy plumbing for ~5 friends.
+  Removes the public-profile step but is heavy plumbing for a small group.
 - **Third parties:** poe.ninja character/profile endpoints are internal/undocumented
   (don't depend on them); pobb.in/pob.cool store **PoB export codes**, they don't
   fetch character data — useful only as a display/share target.
@@ -30,7 +30,7 @@ their own export code and parse a summary (class/level/skills). No live passive-
 render without embedding PoB's renderer (heavy + arguably a GGG-art problem).
 
 ## Portraits / class art
-No license-friendly source, and it conflicts with the no-artwork rule (and the API
+No license-friendly source, and it conflicts with the hotlink-only art policy (and the API
 returns no portrait anyway). Use **CSS badges** instead: class, ascendancy, level,
 league — e.g. a colour-coded pill "Deadeye · Lvl 94". Genuinely enough here.
 

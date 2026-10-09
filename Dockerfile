@@ -1,4 +1,4 @@
-# Squad Achieves — production image.
+# PoE Community Companion — production image.
 # Multi-stage build: build toolchain (for Pillow's C extensions) stays in the
 # builder stage only; the final image ships no compilers.
 

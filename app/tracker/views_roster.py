@@ -14,6 +14,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from . import roster as roster_service
+from .access import public_read
 from .forms import PobPasteForm
 from .leagues import get_active_league, get_viewing_league
 from .models import CharacterSnapshot, MemberProfile, User
@@ -35,7 +36,7 @@ def _auto_ok(league) -> bool:
     )
 
 
-@login_required
+@public_read
 def roster(request: HttpRequest) -> HttpResponse:
     """Grid of guild members with their character showcase for the viewing league."""
     viewing = get_viewing_league(request)
@@ -76,7 +77,7 @@ def roster(request: HttpRequest) -> HttpResponse:
     )
 
 
-@login_required
+@public_read
 def character_detail(request: HttpRequest, username: str) -> HttpResponse:
     """poe.ninja / PoB-style character page for one member in the viewing league.
 

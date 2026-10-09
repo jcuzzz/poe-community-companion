@@ -1,5 +1,5 @@
 # Normalise text to LF in the repo. The app is built and run on Linux
-# (Docker/Debian LXC); CRLF in these files would break them at runtime.
+# (Docker/Linux); CRLF in these files would break them at runtime.
 * text=auto eol=lf
 
 # Shell scripts and container files MUST be LF regardless of platform —
@@ -9,8 +9,8 @@ entrypoint.sh   text eol=lf
 Dockerfile      text eol=lf
 *.yml       text eol=lf
 *.yaml      text eol=lf
-deploy/poe-tracker-backup.service  text eol=lf
-deploy/poe-tracker-backup.timer    text eol=lf
+deploy/poe-community-companion-backup.service  text eol=lf
+deploy/poe-community-companion-backup.timer    text eol=lf
 deploy/Caddyfile.snippet           text eol=lf
 
 # Binary assets git should never touch.

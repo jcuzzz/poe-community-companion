@@ -1,17 +1,18 @@
-# Squad Achieves — Feature inventory
+# PoE Community Companion — Feature inventory
 
 What the app does **today**. Kept current as features land so we don't rely on
-memory. Product origin and MVP boundary are in [../plan.md](../plan.md); the
+memory. The
 view⇄template contract is in [view-contract.md](view-contract.md); where the
 project is heading is in [ROADMAP.md](ROADMAP.md).
 
 **What it is now:** a private Path of Exile **guild / community companion site**
 for a small group — league achievement tracking with proof, a medal-based
 leaderboard, and lightweight social features. Self-hosted (Django + SQLite +
-HTMX), deployed via Docker/Caddy on a Proxmox LXC. See [../runbooks/](../runbooks/).
+HTMX), deployed with Docker Compose behind any reverse proxy. See [DEPLOY.md](DEPLOY.md).
 
 ## Accounts & access
-- **Private by default** — every page except `/healthz` requires login.
+- **Private by default** — every page except `/healthz` requires login. `PUBLIC_READ=1`
+  opens read-only pages (incl. proof images) to anonymous visitors; writes always need login.
 - **Invite-only onboarding** — single-use `InviteCode`s; `make_invite` prints join
   links (`/join/<code>/`). No public registration.
 - **Roles:** players (`is_player`) appear on the leaderboard; staff (`is_staff`)
@@ -83,7 +84,7 @@ HTMX), deployed via Docker/Caddy on a Proxmox LXC. See [../runbooks/](../runbook
 - **Audit trail** (`AuditEntry`) — append-only record of every create/approve/
   correct/etc.
 
-## Scoring & leaderboard (see [../plan.md](../plan.md) for the model)
+## Scoring & leaderboard
 - Per achievement: completion **+2** (once per player), first overall **+5**,
   lowest `/played` **+3**, fewest `/kills` **+2**, lowest level **+1**.
 - `Award` rows are **derived** — `scoring.recalculate()` rebuilds them; never edit
@@ -131,7 +132,7 @@ HTMX), deployed via Docker/Caddy on a Proxmox LXC. See [../runbooks/](../runbook
   Exarch, `StrategyVariant.device_influence`) with GGG art; free-text
   "Device craft" field alongside. Legacy free-text lines are preserved.
 - **Live pricing (poe.ninja)** — `manage.py fetch_ninja_prices` (6-hourly
-  systemd timer `poe-tracker-ninja.timer`) caches scarab prices + the divine
+  systemd timer `poe-community-companion-ninja.timer`) caches scarab prices + the divine
   rate per league in `NinjaPrice`; strategy pages show a computed "Scarab
   cost" (`~27c` / `~1.4 div`) with per-scarab tooltip and staleness note, and
   the editor live-sums the device as slots change. Requires the active
@@ -171,10 +172,9 @@ HTMX), deployed via Docker/Caddy on a Proxmox LXC. See [../runbooks/](../runbook
 - Per-submission **share-card PNG** (`/submissions/<id>/share-card.png`), Pillow-rendered.
 
 ## Ops
-- Docker Compose + gunicorn + WhiteNoise; Caddy reverse proxy; nightly SQLite-safe
-  backup (DB + media together) via a systemd timer. Full procedures in
-  [../runbooks/deploy.md](../runbooks/deploy.md) and
-  [../runbooks/operations.md](../runbooks/operations.md).
+- Docker Compose + gunicorn + WhiteNoise; any reverse proxy; nightly SQLite-safe
+  backup (DB + media together) via an optional systemd timer. See
+  [DEPLOY.md](DEPLOY.md).
 
 ## Data models
 Tracker: `User`, `InviteCode`, `Character`, `Achievement`, `AchievementTemplate(+Item)`,

@@ -1,4 +1,4 @@
-"""Django admin for the Squad Achieves league tracker.
+"""Django admin for the PoE Community Companion league tracker.
 
 Submissions are the workhorse screen here: approvals/rejections write an
 AuditEntry (tracker.models.log_audit) and trigger tracker.scoring.recalculate()

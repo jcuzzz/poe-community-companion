@@ -120,6 +120,9 @@
   border-color: var(--color-gold-dim, #8a6d2f);
 }
 .strat-vote-form { display: inline; }
+/* Read-only tally shown to logged-out visitors. */
+span.strat-vote { cursor: default; }
+span.strat-vote:hover { border-color: var(--color-border-strong, #4a3d28); }
 
 .strat-meta {
   display: flex;

@@ -17,8 +17,9 @@ of Exile Wiki contributors; artwork © Grinding Gear Games. Note the base-class 
 small square headshots while the ascendancy art is a wide banner — the UI crops them
 differently (see `portrait_is_avatar`).
 
-> **Open-source note:** the bundled portraits are CC-BY-NC-SA (non-commercial,
-> share-alike). If this project is published as open source, keep the art in a clearly
-> non-commercial context, retain this attribution, and consider making the portrait
-> bundle an optional download rather than shipping it in the code repo, to avoid a
-> license mismatch with the code's own license.
+> **License note:** the bundled portraits are CC-BY-NC-SA (non-commercial,
+> share-alike), which differs from the MIT license covering the code. Keep the art in a
+> non-commercial context and retain this attribution. If you need a fully MIT-clean
+> fork, remove `app/static/img/classes/`.
+
+This product isn't affiliated with or endorsed by Grinding Gear Games in any way.

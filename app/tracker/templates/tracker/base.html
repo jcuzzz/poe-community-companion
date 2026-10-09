@@ -44,8 +44,8 @@
           {% if features.strategies %}
           <li><a href="{% url 'strategy_list' %}"{% if cur == 'strategy_list' %} aria-current="page"{% endif %}>Strategies</a></li>
           {% endif %}
+          <li><a href="{% url 'activity_feed' %}"{% if cur == 'activity_feed' %} aria-current="page"{% endif %}>Activity</a></li>
           {% if user.is_authenticated %}
-            <li><a href="{% url 'activity_feed' %}"{% if cur == 'activity_feed' %} aria-current="page"{% endif %}>Activity</a></li>
             <li><a href="{% url 'submission_create' %}"{% if cur == 'submission_create' %} aria-current="page"{% endif %}>Submit</a></li>
             {% if user.is_staff %}
               <li>
@@ -167,7 +167,7 @@
   </script>
 
 
-  {% if user.is_authenticated %}{% include "tracker/partials/lightbox.html" %}{% endif %}
+  {% include "tracker/partials/lightbox.html" %}
   <script src="{% static 'js/htmx.min.js' %}" defer></script>
 </body>
 </html>

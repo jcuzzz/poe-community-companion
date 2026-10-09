@@ -1,14 +1,13 @@
 {% extends "tracker/base.html" %}
 {% load static %}
-{% block title %}Ah ah ah &middot; {{ brand_name }}{% endblock %}
+{% block title %}Submissions blocked &middot; {{ brand_name }}{% endblock %}
 {% block content %}
   <div class="blocked-overlay">
     <div class="blocked-popup" role="alertdialog" aria-labelledby="blocked-title" aria-describedby="blocked-body">
-      <h1 id="blocked-title" class="blocked-title">Ah ah ah&hellip;</h1>
-      <img class="blocked-gif" src="{% static 'img/magic-word.gif' %}"
-           alt="You didn't say the magic word" width="640" height="544">
+      <h1 id="blocked-title" class="blocked-title">Submissions blocked</h1>
+      <div class="blocked-mark" aria-hidden="true">&#10006;</div>
       <p id="blocked-body" class="blocked-body">
-        You didn&rsquo;t say the magic word. Your account is currently
+        Your account is currently
         <strong>blocked from submitting</strong>.
       </p>
       <a class="btn btn-primary" href="{% url 'dashboard' %}">Back to the dashboard</a>

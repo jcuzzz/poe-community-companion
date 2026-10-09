@@ -14,12 +14,16 @@
       </p>
     </div>
     <div class="strat-actions">
-      <form method="post" action="{% url 'strategy_vote' strategy.slug %}" class="strat-vote-form">
-        {% csrf_token %}
-        <button type="submit" class="strat-vote{% if has_voted %} is-voted{% endif %}">
-          &#9650; {{ vote_count }}
-        </button>
-      </form>
+      {% if user.is_authenticated %}
+        <form method="post" action="{% url 'strategy_vote' strategy.slug %}" class="strat-vote-form">
+          {% csrf_token %}
+          <button type="submit" class="strat-vote{% if has_voted %} is-voted{% endif %}">
+            &#9650; {{ vote_count }}
+          </button>
+        </form>
+      {% else %}
+        <span class="strat-vote" title="Votes">&#9650; {{ vote_count }}</span>
+      {% endif %}
       {% if can_edit %}
         <a class="btn btn-sm" href="{% url 'strategy_edit' strategy.slug %}">Edit</a>
         <form method="post" action="{% url 'strategy_delete' strategy.slug %}"

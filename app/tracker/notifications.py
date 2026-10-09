@@ -44,7 +44,7 @@ def _post(content: str) -> bool:
     request = urllib.request.Request(
         settings.DISCORD_WEBHOOK_URL,
         data=payload,
-        headers={"Content-Type": "application/json", "User-Agent": "SquadAchieves/1.0"},
+        headers={"Content-Type": "application/json", "User-Agent": "poe-community-companion/1.0"},
     )
     try:
         with urllib.request.urlopen(request, timeout=settings.DISCORD_TIMEOUT) as response:

@@ -1,25 +1,25 @@
-name: poe-tracker
+name: poe-community-companion
 
 services:
   web:
     build:
       context: .
       dockerfile: Dockerfile
-    image: poe-tracker:latest
+    image: poe-community-companion:latest
     restart: unless-stopped
     env_file:
       - .env
     ports:
-      # LAN-only bind: only the Docker host itself (192.0.2.60) can reach
-      # this port, and only Caddy on the LAN should ever talk to it.
+      # Loopback bind: only the Docker host itself can reach this port, and
+      # only your reverse proxy should ever talk to it.
       # NEVER bind 0.0.0.0:8000 — that would expose Django directly.
       #
-      # Local-only variant (default below): reachable only from inside the
-      # LXC itself, e.g. for `curl localhost:8000/healthz` during setup.
+      # Local-only variant (default below): reachable only from the host
+      # itself, e.g. for `curl localhost:8000/healthz` during setup.
       #
-      # LAN variant (use this once Caddy on 192.0.2.22 needs to reach it):
-      #   - "192.0.2.60:8000:8000"
-      - "127.0.0.1:8000:8000"
+      # LAN variant (if your reverse proxy runs on another machine): set
+      # APP_BIND=<host-lan-ip> in .env (compose reads it for interpolation).
+      - "${APP_BIND:-127.0.0.1}:8000:8000"
     volumes:
       - ./data:/app/data
       - ./media:/app/media
@@ -41,13 +41,13 @@ services:
       start_period: 20s
 
   # One-shot backup job. Run manually or from the systemd timer in
-  # deploy/poe-tracker-backup.timer:
+  # deploy/poe-community-companion-backup.timer:
   #   docker compose run --rm backup
   backup:
     build:
       context: .
       dockerfile: Dockerfile
-    image: poe-tracker:latest
+    image: poe-community-companion:latest
     profiles: ["backup"]
     env_file:
       - .env

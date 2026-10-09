@@ -7,8 +7,8 @@ verifies everything downstream of it: config presence, a stored connection,
 token refresh, and the three resource-API calls.
 
     python manage.py verify_poe_oauth               # first connected user
-    python manage.py verify_poe_oauth --user jcuz    # a specific user
-    python manage.py verify_poe_oauth --user jcuz --sync   # also write a snapshot
+    python manage.py verify_poe_oauth --user alice    # a specific user
+    python manage.py verify_poe_oauth --user alice --sync   # also write a snapshot
 """
 
 from __future__ import annotations

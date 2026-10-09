@@ -1,4 +1,4 @@
-# Squad Achieves — Roadmap
+# PoE Community Companion — Roadmap
 
 Where the project is heading. Current state is in [FEATURES.md](FEATURES.md).
 This is a living plan, not a commitment — reorder freely. Update it as items ship
@@ -6,28 +6,19 @@ This is a living plan, not a commitment — reorder freely. Update it as items s
 
 ## Direction
 
-This started as a league **achievement tracker** (codename "Squad Achieves", repo
-`poe-tracker`) and is becoming the **PoE Community Companion** — a guild/community
-site: the place a group gathers around a league to track firsts and efficiency,
-show off characters, talk about drops, run events, and keep history across leagues.
-The user-facing name is set via the `SITE_NAME` env var (default
-"PoE Community Companion") so self-hosted forks can brand their own instance —
-**the project is planned to go open source** so others can run it (see
-"Open-source readiness" below). Guiding principles carried over from
-[../plan.md](../plan.md):
+PoE Community Companion is a guild/community site: the place a group gathers around
+a league to track firsts and efficiency, show off characters, share farming
+strategies, run events, and keep history across leagues. The user-facing name is set
+via the `SITE_NAME` env var so self-hosted instances can brand their own.
+Guiding principles:
 
 - **Private, small-group first.** Invite-only; no scraping; trust-based with proof.
-- **Self-hosted and simple.** Django + SQLite + HTMX; no heavy infra for ~5–20 users.
-- **PoE artwork is OK, hotlinked not bundled** (revised 2026-07-26). Item/currency
-  icons come from GGG's CDN (`web.poecdn.com`), like poe.ninja / Craft of Exile — never
-  committed to the repo, so forks stay clean. Original CSS for everything else; **hard
-  edges** (angular/framed), not soft. Member avatars are user uploads + original crests
-  (GGG ascendancy portraits have no stable hotlink path).
+- **Self-hosted and simple.** Django + SQLite + HTMX; no heavy infra for ~5-20 users.
+- **PoE item art is hotlinked; class portraits are bundled.** Item/currency icons come from GGG's CDN
+  (`web.poecdn.com`), like poe.ninja / Craft of Exile. Class portraits (CC-BY-NC-SA) are bundled. Original
+  CSS for everything else; **hard edges** (angular/framed), not soft. Member avatars
+  are user uploads + original crests. See [ART-CREDITS.md](ART-CREDITS.md).
 - **Derived scoring stays derived.** Never hand-edit awards.
-
-Anything below that contradicts the original plan's "out of scope" list is called
-out — those were scoped out for an *achievement tracker*; some make sense again for
-a *community site*, but flag the shift before building.
 
 ## Now / next (small, high value)
 - **Farming strategies: featured flag** — the one leftover from the module
@@ -67,9 +58,9 @@ a *community site*, but flag the shift before building.
   [research/character-lookup-poe2.md](research/character-lookup-poe2.md)).
 - **All-time records & personal bests** across leagues (now unblocked).
 
-## Integrations (were "out of scope" for the tracker — reconsider for a guild)
+## Integrations
 - ✅ **Discord webhook on a new first-place / contested claim** — SHIPPED
-  (see FEATURES.md). The direction change from `plan.md` was greenlit 2026-07-25.
+  (see FEATURES.md).
 - **Discord bot / OAuth login** — larger; only if the group lives in Discord.
 - Trade/price-check, live character tracking, item evaluation — still likely
   overkill; revisit only if clearly wanted.
@@ -79,23 +70,6 @@ a *community site*, but flag the shift before building.
 - **OG meta tags** using the existing share-card so links unfurl nicely in chat.
 - **Contested-claim auto-resolution** — when the vote reaches a threshold, prompt
   the admin (or auto-flip) instead of purely manual resolution.
-
-## Open-source readiness (planned)
-Goal: anyone can self-host their own instance. Before making the repo public:
-- **License** — pick one (e.g. MIT or AGPL) and add `LICENSE`.
-- **De-brand / generalise config** — done: `SITE_NAME` is configurable; secrets
-  are env-only and gitignored. Still to do: move site-specific values out of docs
-  into examples (the runbooks hardcode `poe.example.com`, `192.0.2.x`, CT100 — keep
-  a sanitised generic guide + an optional "our setup" appendix).
-- **Setup docs for strangers** — a top-level quickstart (clone → `.env` → compose
-  up → seed), screenshots, and a note that it's PoE 1 / no GGG affiliation / no
-  artwork included.
-- **`CONTRIBUTING.md`** + a clean issue/PR template; ensure the test suite runs from
-  a fresh checkout with documented commands.
-- **Scrub history** — confirm no secret ever landed in git (the dev key/passwords
-  were only ever in `.env`/generated, not committed — verify before going public).
-- **Rename question** — decide whether to rename the repo from `poe-tracker` to
-  something matching the product before publishing.
 
 ## Known tech debt / follow-ups (from the code review)
 Fixed already: media behind login, secret-key prod guard, dead `rows` removed,

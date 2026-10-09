@@ -29,7 +29,7 @@ from tracker.models import (
 )
 
 PLAYERS = [
-    ("jcuz", "Jcuz", "Deadeye", 96),
+    ("alice", "Alice", "Deadeye", 96),
     ("bob", "Bob", "Necromancer", 94),
     ("carol", "Carol", "Juggernaut", 92),
     ("dave", "Dave", "Occultist", 95),

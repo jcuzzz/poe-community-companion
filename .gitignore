@@ -12,3 +12,11 @@ app/staticfiles/
 Assets/Concept/
 Assets/references/
 .playwright-mcp/
+
+.DS_Store
+.idea/
+.vscode/
+*.log
+.coverage
+htmlcov/
+.claude/

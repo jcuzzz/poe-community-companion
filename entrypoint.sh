@@ -1,5 +1,5 @@
 #!/bin/sh
-# Container entrypoint for Squad Achieves.
+# Container entrypoint for PoE Community Companion.
 # SQLite has no server to wait for, so there is no "wait for db" step.
 set -e
 

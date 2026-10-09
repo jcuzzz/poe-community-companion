@@ -45,7 +45,7 @@ class ScoringIsolationTests(TestCase):
     def setUp(self):
         self.league_a = League.get_active()
         self.league_b = make_league("Season Two", active=False)
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
         self.ach_a = make_achievement("Divine A", slug="divine-a", league=self.league_a)
         self.ach_b = make_achievement("Divine B", slug="divine-b", league=self.league_b)
         make_submission(self.player, self.ach_a)
@@ -76,8 +76,8 @@ class ViewingLeagueTests(TestCase):
     def setUp(self):
         self.active = League.get_active()
         self.archived = make_league("Old Season", active=False)
-        self.player = make_player("jcuz")
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.player = make_player("alice")
+        self.client.login(username="alice", password=PASSWORD)
 
     def test_default_viewing_is_active(self):
         response = self.client.get(reverse("dashboard"))
@@ -109,10 +109,10 @@ class ArchivedWriteGuardTests(TestCase):
     def setUp(self):
         self.active = League.get_active()
         self.archived = make_league("Old Season", active=False)
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
         self.ach_archived = make_achievement("Old Ach", slug="old-ach", league=self.archived)
         self.sub = make_submission(self.player, self.ach_archived)
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
 
     def test_owner_cannot_edit_archived_submission(self):
         response = self.client.get(reverse("submission_edit", args=[self.sub.pk]))

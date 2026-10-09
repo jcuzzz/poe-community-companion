@@ -15,7 +15,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 PLAYERS = [
-    ("jcuz", "Jcuz", 0),
+    ("alice", "Alice", 0),
     ("bob", "Bob", 72),
     ("carol", "Carol", 144),
     ("dave", "Dave", 216),

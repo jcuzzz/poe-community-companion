@@ -63,10 +63,10 @@ class LeagueCreateViewTests(TestCase):
     def setUp(self):
         league_api._CACHE.clear()
         self.admin = make_admin("boss")
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
 
     def test_requires_staff(self):
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
         response = self.client.get(reverse("league_create"))
         self.assertEqual(response.status_code, 302)  # user_passes_test redirects
 

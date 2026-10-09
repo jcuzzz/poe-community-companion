@@ -38,6 +38,13 @@
   transform: scale(0.96);
 }
 
+/* Logged-out visitors see the counts but can't react. */
+.reaction-btn:disabled {
+  cursor: default;
+  transform: none;
+  border-color: var(--color-border-strong);
+}
+
 .reaction-btn.is-active {
   background: var(--color-gold-dim);
   border-color: var(--color-gold);

@@ -13,9 +13,9 @@ PASSWORD = "correct-horse-battery-42"
 
 class ActivityFeedTests(TestCase):
     def setUp(self):
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
         self.achievement = make_achievement()
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
 
     def test_requires_login(self):
         self.client.logout()
@@ -47,11 +47,11 @@ class BrandingTests(TestCase):
 
 class ExportTests(TestCase):
     def setUp(self):
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
         self.achievement = make_achievement()
         make_submission(self.player, self.achievement)
         scoring.recalculate()
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
 
     def test_csv_export(self):
         response = self.client.get(reverse("leaderboard_export", args=["csv"]))
@@ -59,14 +59,14 @@ class ExportTests(TestCase):
         self.assertEqual(response["Content-Type"], "text/csv")
         body = response.content.decode()
         self.assertIn("player", body)
-        self.assertIn("Jcuz", body)
+        self.assertIn("Alice", body)
 
     def test_json_export(self):
         response = self.client.get(reverse("leaderboard_export", args=["json"]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/json")
         data = response.json()
-        self.assertTrue(any(row["username"] == "jcuz" for row in data))
+        self.assertTrue(any(row["username"] == "alice" for row in data))
 
     def test_bad_format(self):
         self.assertEqual(
@@ -82,11 +82,11 @@ class ExportTests(TestCase):
 
 class ShareCardTests(TestCase):
     def setUp(self):
-        self.player = make_player("jcuz")
+        self.player = make_player("alice")
         self.achievement = make_achievement()
         self.sub = make_submission(self.player, self.achievement)
         scoring.recalculate()
-        self.client.login(username="jcuz", password=PASSWORD)
+        self.client.login(username="alice", password=PASSWORD)
 
     def test_renders_png(self):
         response = self.client.get(reverse("share_card", args=[self.sub.pk]))

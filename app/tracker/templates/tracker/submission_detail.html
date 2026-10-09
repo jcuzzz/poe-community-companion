@@ -51,7 +51,7 @@
           {% csrf_token %}
           <input type="hidden" name="emoji" value="{{ emoji }}">
           <button
-            type="submit"
+            type="submit"{% if not user.is_authenticated %} disabled{% endif %}
             class="reaction-btn{% for group in reaction_groups %}{% if group.grouper == emoji %}{% for r in group.list %}{% if r.user_id == request.user.pk %} is-active{% endif %}{% endfor %}{% endif %}{% endfor %}"
             aria-label="React with {{ emoji }}"
           >
@@ -88,19 +88,23 @@
         <p class="text-muted">No comments yet — be the first to say something.</p>
       {% endif %}
     {% endwith %}
-    <form class="comment-form" method="post" action="{% url 'comment_add' submission.pk %}">
-      {% csrf_token %}
-      <label for="comment-body">Add a comment</label>
-      <textarea id="comment-body" name="body" maxlength="1000" rows="3" required placeholder="Say something nice (or not)..."></textarea>
-      <button type="submit" class="btn btn-primary">Post comment</button>
-    </form>
+    {% if user.is_authenticated %}
+      <form class="comment-form" method="post" action="{% url 'comment_add' submission.pk %}">
+        {% csrf_token %}
+        <label for="comment-body">Add a comment</label>
+        <textarea id="comment-body" name="body" maxlength="1000" rows="3" required placeholder="Say something nice (or not)..."></textarea>
+        <button type="submit" class="btn btn-primary">Post comment</button>
+      </form>
+    {% else %}
+      <p class="text-muted"><a href="{% url 'login' %}?next={{ request.path|urlencode }}">Log in</a> to comment or react.</p>
+    {% endif %}
   </section>
 
   {% if submission.status == "contested" %}
     <section id="contest" class="card social-block contest-panel" aria-labelledby="contest-heading">
       <h2 id="contest-heading">Contested claim &mdash; group vote</h2>
       <p class="text-muted contest-explainer">
-        This is an advisory group vote to help the squad weigh in on the contested claim.
+        This is an advisory group vote to help the group weigh in on the contested claim.
         It does not automatically decide the outcome &mdash; an admin makes the final call.
       </p>
       {% with votes=submission.contest_votes.all %}
@@ -123,6 +127,7 @@
         {% else %}
           <p class="text-muted">No votes cast yet.</p>
         {% endif %}
+        {% if user.is_authenticated %}
         <form class="contest-vote-form" method="post" action="{% url 'contest_vote' submission.pk %}">
           {% csrf_token %}
           <fieldset>
@@ -140,6 +145,7 @@
           <input type="text" id="contest-note" name="note" maxlength="200" value="{% for v in votes %}{% if v.voter_id == request.user.pk %}{{ v.note }}{% endif %}{% endfor %}" placeholder="Optional reasoning...">
           <button type="submit" class="btn btn-primary">Submit vote</button>
         </form>
+        {% endif %}
       {% endwith %}
     </section>
   {% endif %}

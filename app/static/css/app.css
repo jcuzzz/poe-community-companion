@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Squad Achieves — dark parchment / black-and-gold design system
+   PoE Community Companion — dark parchment / black-and-gold design system
    Hand-written, no framework, system font stack only.
    ========================================================================== */
 
@@ -1195,11 +1195,12 @@ input[type="radio"] {
   color: var(--color-gold-bright);
   margin-bottom: var(--space-4);
 }
-.blocked-gif {
-  max-width: 100%;
-  height: auto;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+.blocked-mark {
+  font-family: var(--font-display);
+  font-size: 4rem;
+  line-height: 1;
+  color: var(--color-gold-bright);
+  margin-bottom: var(--space-2);
 }
 .blocked-body {
   color: var(--color-parchment);

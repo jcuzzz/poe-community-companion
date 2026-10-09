@@ -8,6 +8,7 @@ from django.db.models import Count
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
+from tracker.access import public_read
 from tracker.features import feature_required
 from tracker.leagues import get_active_league, get_viewing_league
 
@@ -19,6 +20,8 @@ SCARAB_SLOTS = 5
 
 
 def _can_edit(user, strategy: Strategy) -> bool:
+    if not user.is_authenticated:
+        return False
     return user.is_staff or strategy.author_id == user.id
 
 
@@ -143,13 +146,15 @@ def _visible(request: HttpRequest):
     qs = Strategy.objects.filter(league=league).select_related("author")
     if request.user.is_staff:
         return qs, league
+    if not request.user.is_authenticated:
+        return qs.filter(is_published=True), league
     from django.db.models import Q
 
     return qs.filter(Q(is_published=True) | Q(author=request.user)), league
 
 
 @feature_required("strategies")
-@login_required
+@public_read
 def strategy_list(request: HttpRequest) -> HttpResponse:
     qs, league = _visible(request)
     tag = request.GET.get("tag", "").strip()
@@ -163,10 +168,14 @@ def strategy_list(request: HttpRequest) -> HttpResponse:
     strategies = list(qs)
     for strategy in strategies:
         strategy.device_strip = _device_strip(strategy)
-    voted_ids = set(
-        StrategyVote.objects.filter(user=request.user, strategy__in=strategies).values_list(
-            "strategy_id", flat=True
+    voted_ids = (
+        set(
+            StrategyVote.objects.filter(user=request.user, strategy__in=strategies).values_list(
+                "strategy_id", flat=True
+            )
         )
+        if request.user.is_authenticated
+        else set()
     )
     all_tags = sorted({t for s in strategies for t in s.tag_list})
     return render(
@@ -183,7 +192,7 @@ def strategy_list(request: HttpRequest) -> HttpResponse:
 
 
 @feature_required("strategies")
-@login_required
+@public_read
 def strategy_detail(request: HttpRequest, slug: str) -> HttpResponse:
     qs, league = _visible(request)
     strategy = get_object_or_404(qs, slug=slug)
@@ -214,7 +223,8 @@ def strategy_detail(request: HttpRequest, slug: str) -> HttpResponse:
             "strategy": strategy,
             "variants": variants,
             "vote_count": strategy.votes.count(),
-            "has_voted": strategy.votes.filter(user=request.user).exists(),
+            "has_voted": request.user.is_authenticated
+            and strategy.votes.filter(user=request.user).exists(),
             "can_edit": _can_edit(request.user, strategy),
             "cur": "strategy_list",
         },
@@ -298,7 +308,7 @@ def strategy_vote(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 @feature_required("strategies")
-@login_required
+@public_read
 def variant_tree_partial(request: HttpRequest, slug: str, pk: int) -> HttpResponse:
     """Read-only tree viewer for one variant, as an HTML fragment.
 

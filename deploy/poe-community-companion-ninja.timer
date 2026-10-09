@@ -1,5 +1,5 @@
-# Installed alongside poe-tracker-ninja.service (see its header).
-# Check with: systemctl list-timers poe-tracker-ninja.timer
+# Installed alongside poe-community-companion-ninja.service (see its header).
+# Check with: systemctl list-timers poe-community-companion-ninja.timer
 [Unit]
 Description=Refresh poe.ninja scarab prices every few hours
 

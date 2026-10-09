@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.urls import reverse
 from django.utils import timezone
@@ -27,8 +28,8 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             "--base-url",
-            default="https://poe.example.com",
-            help="Scheme + host to prefix the join path with (no trailing slash).",
+            default=None,
+            help="Scheme + host to prefix the join path with (no trailing slash). Defaults to settings.SITE_BASE_URL.",
         )
 
     def handle(self, *args, **options):
@@ -38,7 +39,7 @@ class Command(BaseCommand):
 
         display_name = options["display_name"]
         expires_days = options["expires_days"]
-        base_url = options["base_url"].rstrip("/")
+        base_url = (options["base_url"] or settings.SITE_BASE_URL).rstrip("/")
 
         expires_at = None
         if expires_days is not None:

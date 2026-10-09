@@ -38,7 +38,8 @@ def _ua() -> str:
     return getattr(
         settings,
         "POE_USER_AGENT",
-        "OAuth poe-community-companion/1.0 (contact: admin@poe.example.com)",
+        "OAuth poe-community-companion/1.0 (contact: %s)"
+        % getattr(settings, "POE_API_CONTACT", "self-hosted"),
     )
 
 

@@ -1,4 +1,4 @@
-"""Django settings for the Squad Achieves PoE league tracker."""
+"""Django settings for the PoE Community Companion PoE league tracker."""
 
 import os
 from pathlib import Path
@@ -40,13 +40,17 @@ INSTALLED_APPS = [
 ]
 
 # --- Feature modules -------------------------------------------------------
-# Squad Achieves is one companion app made of toggleable modules. Operators
+# PoE Community Companion is one companion app made of toggleable modules. Operators
 # disable a module per instance (e.g. a gauntlet event that doesn't want the
 # strategy library): disabled = no nav entry, its URLs 404. See
 # docs/design/farming-strategies.md.
 FEATURES = {
     "strategies": env_bool("FEATURE_STRATEGIES", True),
 }
+
+# Let anonymous visitors browse read-only pages (dashboard, leaderboard,
+# strategies, ...). Writes always need a login. Off = whole site behind login.
+PUBLIC_READ = env_bool("PUBLIC_READ", False)
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -154,7 +158,7 @@ SITE_NAME = os.environ.get("SITE_NAME", "PoE Community Companion")
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "").strip()
 DISCORD_TIMEOUT = float(os.environ.get("DISCORD_TIMEOUT", "5"))
 # Absolute base URL used to build links in notifications.
-SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "https://poe.example.com").rstrip("/")
+SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "http://localhost:8000").rstrip("/")
 
 # --- League --------------------------------------------------------------
 # Leagues are DB-backed (tracker.models.League). LEAGUE_NAME only seeds the name of
@@ -182,8 +186,10 @@ POE2_LEAGUES_API = os.environ.get(
 )
 POE_API_TIMEOUT = float(os.environ.get("POE_API_TIMEOUT", "8"))
 POE_SNAPSHOT_TTL_SECONDS = int(os.environ.get("POE_SNAPSHOT_TTL_SECONDS", "600"))
+# Contact (email/URL) GGG can reach you at; sent in the User-Agent.
+POE_API_CONTACT = os.environ.get("POE_API_CONTACT", "self-hosted")
 POE_USER_AGENT = os.environ.get(
-    "POE_USER_AGENT", "poe-community-companion/1.0 (self-hosted)"
+    "POE_USER_AGENT", f"poe-community-companion/1.0 (contact: {POE_API_CONTACT})"
 )
 
 # --- Official GGG OAuth 2.0 (live character data) -------------------------

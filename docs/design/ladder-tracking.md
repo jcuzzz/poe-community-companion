@@ -52,9 +52,8 @@ The public ladder returns at most **15,000 top-ranked entries**. Tested against
 the live challenge league (GGG id `Allflame`): all 14,988 entries were level
 99–100; our mid-level members did not appear. So public-ladder auto-track is an
 **event feature** (private leagues, where the whole small league is on its
-ladder) — NOT a way to track a casual friend group in the main league. Everyday
-small-group freshness = OAuth (when GGG reopens registration) or PoB paste. See
-docs/ggg-api-access-status.md.
+ladder) — NOT a way to track a casual small group in the main league. Everyday
+small-group freshness = OAuth (when GGG reopens registration) or PoB paste.
 
 ## Not yet built (follow-ups)
 - Auto-complete ladder-derivable achievements (level milestones, HC death).

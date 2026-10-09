@@ -1,4 +1,4 @@
-"""Core data model for the Squad Achieves league tracker.
+"""Core data model for the PoE Community Companion league tracker.
 
 Points are never stored on the Submission; they live on Award rows so the
 scoring breakdown is always explainable. See tracker/scoring.py.
