@@ -1,0 +1,32 @@
+[tool.ruff]
+target-version = "py313"
+# The code is wrapped at 100 columns (only ~18 of ~7k lines run over, all
+# docstrings/strings). E501 is not selected, so this only drives `ruff format`.
+line-length = 100
+extend-exclude = ["**/migrations", ".venv", "staticfiles", "backups"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP", "DJ"]
+ignore = [
+    # Django models/forms/admin conventionally carry unannotated ClassVar attrs
+    # (Meta, list_display, ...); RUF012 isn't selected, nothing to ignore there.
+    # DJ001 flags null=True on text fields; fixing means data migrations.
+    "DJ001",
+    # B905 zip(strict=) would require touching every zip() call site for no gain.
+    "B905",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["config", "tracker", "strategies"]
+
+[tool.mypy]
+python_version = "3.13"
+mypy_path = "app"
+plugins = ["mypy_django_plugin.main"]
+ignore_missing_imports = true
+check_untyped_defs = false
+warn_unused_ignores = true
+exclude = ["/migrations/", "/staticfiles/"]
+
+[tool.django-stubs]
+django_settings_module = "config.settings"

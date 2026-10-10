@@ -7,17 +7,26 @@ on:
 
 jobs:
   test:
+    # Shown as "CI" in the README badge; the workflow name is what the badge reads.
+    name: tests
     runs-on: ubuntu-latest
+    env:
+      DJANGO_DEBUG: "1"
+      DJANGO_SECRET_KEY: ci-dummy-secret-key-not-for-production
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: pip
-      - run: pip install -r requirements.txt
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Type check (mypy)
+        run: mypy app
       - name: Run tests
         working-directory: app
-        env:
-          DJANGO_DEBUG: "1"
-          DJANGO_SECRET_KEY: ci-dummy-secret-key-not-for-production
         run: python manage.py test
