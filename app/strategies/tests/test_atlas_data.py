@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 import unittest
 
-from . import atlas_data
+from strategies import atlas_data
 
 # constants.skillsPerOrbit / orbitRadii from the raw GGG export.
 SKILLS_PER_ORBIT = [1, 6, 16, 16, 40, 72, 72]

@@ -12,7 +12,7 @@ from django.template import Context, Template
 from django.template.library import InvalidTemplateLibrary
 from django.test import SimpleTestCase
 
-from . import scarabs
+from strategies import scarabs
 
 
 class BundleShapeTests(unittest.TestCase):
@@ -80,7 +80,7 @@ class LoaderApiTests(unittest.TestCase):
         self.assertEqual(scarabs.icon_for(sample["name"].lower()), sample["icon"])
 
     def test_icon_for_strips_legacy_quantity_suffix(self):
-        from . import scarabs
+        from strategies import scarabs
 
         known = scarabs.all_scarabs()[0]["name"]
         self.assertEqual(scarabs.icon_for(f"{known} x2"), scarabs.icon_for(known))

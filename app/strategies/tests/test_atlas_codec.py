@@ -7,7 +7,7 @@ import struct
 
 from django.test import SimpleTestCase
 
-from .atlas_codec import GGG_TREE_URL_PREFIX, decode_atlas_url, encode_ggg_url
+from strategies.atlas_codec import GGG_TREE_URL_PREFIX, decode_atlas_url, encode_ggg_url
 
 POEPLANNER_URL = (
     "https://poeplanner.com/atlas-tree/"
@@ -150,7 +150,7 @@ class HardeningTests(SimpleTestCase):
 
     def test_non_string_raises_value_error(self):
         with self.assertRaises(ValueError):
-            decode_atlas_url(None)  # type: ignore[arg-type]
+            decode_atlas_url(None)
 
     def test_oversize_payload_rejected(self):
         with self.assertRaisesMessage(ValueError, "too long"):

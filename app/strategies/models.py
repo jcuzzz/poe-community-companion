@@ -13,12 +13,61 @@ cache is keyed on that string and resolved by :mod:`strategies.pricing`.
 
 from __future__ import annotations
 
+from typing import Self
+
 from django.conf import settings
 from django.core.validators import URLValidator
 from django.db import models
 from django.utils.text import slugify
 
-from .influences import INFLUENCE_CHOICES, info as influence_info
+from .influences import INFLUENCE_CHOICES
+from .influences import info as influence_info
+
+
+def parse_tags(raw: str) -> list[str]:
+    """Normalise comma-separated tag text into unique, lowercase tag names.
+
+    Whitespace is collapsed, empties and names with no sluggable characters are
+    dropped, and tags that slugify identically ("Low Investment" and
+    "low-investment") collapse to the first spelling seen.
+    """
+    names: dict[str, str] = {}
+    for part in raw.split(","):
+        name = " ".join(part.lower().split())[:TAG_NAME_MAX]
+        slug = slugify(name)
+        if slug and slug not in names:
+            names[slug] = name
+    return list(names.values())
+
+
+TAG_NAME_MAX = 40
+
+
+class Tag(models.Model):
+    """A normalised strategy tag. Filtering is by exact ``slug``, never substring."""
+
+    name = models.CharField(max_length=TAG_NAME_MAX)
+    slug = models.SlugField(max_length=TAG_NAME_MAX, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+    def save(self, *args, **kwargs):
+        self.name = " ".join(self.name.lower().split())
+        self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def from_text(cls, raw: str) -> list[Self]:
+        """Get-or-create the tags named in comma-separated ``raw``."""
+        tags = []
+        for name in parse_tags(raw):
+            tag = cls.objects.filter(slug=slugify(name)).first() or cls.objects.create(name=name)
+            tags.append(tag)
+        return tags
 
 
 class Strategy(models.Model):
@@ -48,11 +97,7 @@ class Strategy(models.Model):
     body = models.TextField(
         blank=True, help_text="How to run it: mechanics, pacing, build requirements, links."
     )
-    tags = models.CharField(
-        max_length=200,
-        blank=True,
-        help_text='Comma-separated, e.g. "harvest, essence, low-investment".',
-    )
+    tags = models.ManyToManyField(Tag, blank=True, related_name="strategies")
     is_published = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -83,8 +128,12 @@ class Strategy(models.Model):
         super().save(*args, **kwargs)
 
     @property
+    def tags_text(self) -> str:
+        return ", ".join(self.tag_list)
+
+    @property
     def tag_list(self) -> list[str]:
-        return [t.strip() for t in self.tags.split(",") if t.strip()]
+        return [t.name for t in self.tags.all()]
 
 
 class StrategyVariant(models.Model):

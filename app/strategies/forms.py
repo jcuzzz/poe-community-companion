@@ -4,17 +4,52 @@ from __future__ import annotations
 
 from django import forms
 
-from .models import Strategy, StrategyVariant
+from .models import Strategy, StrategyVariant, Tag, parse_tags
 
 
 class StrategyForm(forms.ModelForm):
+    # Tags are a M2M, edited as comma-separated text and resolved in save().
+    tags = forms.CharField(
+        required=False,
+        max_length=200,
+        help_text='Comma-separated, e.g. "harvest, essence, low-investment".',
+    )
+
     class Meta:
         model = Strategy
-        fields = ["title", "kind", "external_url", "summary", "tags", "body", "is_published"]
+        fields = ["title", "kind", "external_url", "summary", "body", "is_published"]
         widgets = {
             "body": forms.Textarea(attrs={"rows": 12}),
             "summary": forms.TextInput(attrs={"maxlength": 200}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.order_fields(
+            ["title", "kind", "external_url", "summary", "tags", "body", "is_published"]
+        )
+        if self.instance.pk:
+            self.fields["tags"].initial = self.instance.tags_text
+
+    def clean_tags(self) -> list[str]:
+        return parse_tags(self.cleaned_data.get("tags", ""))
+
+    def save(self, commit=True):
+        strategy = super().save(commit=commit)
+        if commit:
+            self._save_tags(strategy)
+        else:
+            old_save_m2m = self.save_m2m
+
+            def save_m2m():
+                old_save_m2m()
+                self._save_tags(strategy)
+
+            self.save_m2m = save_m2m
+        return strategy
+
+    def _save_tags(self, strategy: Strategy) -> None:
+        strategy.tags.set(Tag.from_text(", ".join(self.cleaned_data.get("tags", []))))
 
     def clean(self):
         cleaned = super().clean()

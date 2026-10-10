@@ -11,7 +11,7 @@ import re
 import unittest
 from xml.etree import ElementTree as ET
 
-from . import atlas_data, atlas_render
+from strategies import atlas_data, atlas_render
 
 # The SVG is emitted for inline embedding in HTML (like tracker/tree_render.py),
 # so it carries no xmlns declaration and ElementTree sees unqualified tags.
@@ -89,6 +89,8 @@ class ThumbTests(unittest.TestCase):
 
 
 class FullTests(unittest.TestCase):
+    root: ET.Element
+
     @classmethod
     def setUpClass(cls):
         cls.alloc = sample_allocation(100)

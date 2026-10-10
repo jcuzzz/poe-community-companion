@@ -49,6 +49,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime
+from typing import Any
 
 from .models import NinjaPrice
 
@@ -149,7 +150,7 @@ def prices_for_league(league) -> dict:
        "fetched_at": datetime|None}`` — all empty/None when nothing is cached,
     which is the signal for the UI to show no pricing at all.
     """
-    empty = {"prices": {}, "divine_chaos": None, "fetched_at": None}
+    empty: dict[str, Any] = {"prices": {}, "divine_chaos": None, "fetched_at": None}
     league_id = ninja_league_id(league)
     if not league_id:
         return empty

@@ -17,9 +17,9 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict, deque
+from collections.abc import Iterable
 from functools import lru_cache
 from pathlib import Path
-from typing import Iterable
 
 _DATA = Path(__file__).resolve().parent / "atlas_tree_data.json"
 

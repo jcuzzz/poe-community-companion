@@ -7,14 +7,15 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.text import slugify
+from django.views.decorators.http import require_POST
 
 from tracker.access import public_read
 from tracker.features import feature_required
 from tracker.leagues import get_active_league, get_viewing_league
 
 from .forms import StrategyForm, StrategyVariantForm
-from .models import Strategy, StrategyVariant, StrategyVote
-
+from .models import Strategy, StrategyVariant, StrategyVote, Tag
 
 SCARAB_SLOTS = 5
 
@@ -157,12 +158,15 @@ def _visible(request: HttpRequest):
 @public_read
 def strategy_list(request: HttpRequest) -> HttpResponse:
     qs, league = _visible(request)
+    all_tags = list(
+        Tag.objects.filter(strategies__in=qs).distinct().values_list("name", flat=True)
+    )
     tag = request.GET.get("tag", "").strip()
     if tag:
-        qs = qs.filter(tags__icontains=tag)
+        qs = qs.filter(tags__slug=slugify(tag))
     qs = (
         qs.annotate(vote_count=Count("votes"))
-        .prefetch_related("variants")  # one extra query for every card's device strip
+        .prefetch_related("tags", "variants")  # one extra query for every card's device strip
         .order_by("-vote_count", "-updated_at")
     )
     strategies = list(qs)
@@ -177,7 +181,6 @@ def strategy_list(request: HttpRequest) -> HttpResponse:
         if request.user.is_authenticated
         else set()
     )
-    all_tags = sorted({t for s in strategies for t in s.tag_list})
     return render(
         request,
         "strategies/strategy_list.html",
@@ -244,6 +247,7 @@ def strategy_create(request: HttpRequest) -> HttpResponse:
         strategy.league = league
         strategy.author = request.user
         strategy.save()
+        form.save_m2m()
         # Every strategy starts with one variant so the atlas tree / scarab
         # fields are immediately reachable (rename it or add tiers later).
         StrategyVariant.objects.create(strategy=strategy, name="Main")
@@ -281,27 +285,30 @@ def strategy_edit(request: HttpRequest, slug: str) -> HttpResponse:
 
 @feature_required("strategies")
 @login_required
+@require_POST
 def strategy_delete(request: HttpRequest, slug: str) -> HttpResponse:
     qs, _ = _visible(request)
     strategy = get_object_or_404(qs, slug=slug)
     if not _can_edit(request.user, strategy):
         raise Http404
-    if request.method == "POST":
-        strategy.delete()
-        messages.success(request, "Strategy deleted.")
-        return redirect("strategy_list")
-    return redirect("strategy_detail", slug=slug)
+    strategy.delete()
+    messages.success(request, "Strategy deleted.")
+    return redirect("strategy_list")
 
 
 @feature_required("strategies")
 @login_required
+@require_POST
 def strategy_vote(request: HttpRequest, slug: str) -> HttpResponse:
     qs, _ = _visible(request)
     strategy = get_object_or_404(qs, slug=slug)
-    if request.method == "POST":
-        vote, created = StrategyVote.objects.get_or_create(strategy=strategy, user=request.user)
-        if not created:
-            vote.delete()
+    # login_required guarantees an authenticated user; stubs type it as User | AnonymousUser.
+    vote, created = StrategyVote.objects.get_or_create(
+        strategy=strategy,
+        user=request.user,  # type: ignore[misc]
+    )
+    if not created:
+        vote.delete()
     if request.POST.get("next") == "list":
         return redirect("strategy_list")
     return redirect("strategy_detail", slug=slug)

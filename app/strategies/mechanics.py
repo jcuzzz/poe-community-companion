@@ -19,7 +19,7 @@ here touches the scarab catalogue.
 from __future__ import annotations
 
 import re
-from functools import lru_cache
+from functools import cache, lru_cache
 
 from django.utils.html import escape
 from django.utils.safestring import SafeString, mark_safe
@@ -91,7 +91,7 @@ def label_for(key: str) -> str:
     return entry[0] if entry else ""
 
 
-@lru_cache(maxsize=None)
+@cache
 def icon_svg_for(icon_key: str, cls: str = "focus-icon") -> SafeString | str:
     """A standalone inline ``<svg>`` cropping ``icon_key`` out of its sprite sheet.
 

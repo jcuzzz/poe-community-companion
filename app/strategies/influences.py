@@ -9,7 +9,7 @@ falls through to the next iconic item for that boss.
 
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cache
 
 # key -> (label, art-name preference order)
 INFLUENCES: dict[str, tuple[str, tuple[str, ...]]] = {
@@ -22,7 +22,7 @@ INFLUENCES: dict[str, tuple[str, tuple[str, ...]]] = {
 INFLUENCE_CHOICES = [("", "None")] + [(key, label) for key, (label, _) in INFLUENCES.items()]
 
 
-@lru_cache(maxsize=None)
+@cache
 def icon_for(key: str) -> str:
     """Hotlinked GGG art URL for an influence key; "" when unknown/none."""
     entry = INFLUENCES.get((key or "").strip())

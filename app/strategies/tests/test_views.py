@@ -5,15 +5,17 @@ from __future__ import annotations
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from strategies.models import Strategy, StrategyVariant, StrategyVote, Tag, parse_tags
 from tracker.tests.factories import make_admin, make_league, make_player
-
-from .models import Strategy, StrategyVariant, StrategyVote
 
 PASSWORD = "correct-horse-battery-42"
 
 
-def make_strategy(league, author, title="Frozen Cabins Harvest", **kwargs) -> Strategy:
-    return Strategy.objects.create(league=league, author=author, title=title, **kwargs)
+def make_strategy(league, author, title="Frozen Cabins Harvest", tags=(), **kwargs) -> Strategy:
+    strategy = Strategy.objects.create(league=league, author=author, title=title, **kwargs)
+    if tags:
+        strategy.tags.set(Tag.from_text(",".join(tags)))
+    return strategy
 
 
 class FeatureFlagTests(TestCase):
@@ -129,11 +131,47 @@ class StrategyCrudTests(TestCase):
         self.assertNotContains(response, "Archived Strat")
 
     def test_tag_filter(self):
-        make_strategy(self.league, self.author, "Harvest Farm", tags="harvest")
-        make_strategy(self.league, self.author, "Legion Farm", tags="legion")
+        make_strategy(self.league, self.author, "Harvest Farm", tags=["harvest"])
+        make_strategy(self.league, self.author, "Legion Farm", tags=["legion"])
         response = self.client.get(reverse("strategy_list"), {"tag": "harvest"})
         self.assertContains(response, "Harvest Farm")
         self.assertNotContains(response, "Legion Farm")
+
+    def test_tag_filter_is_exact_not_substring(self):
+        make_strategy(self.league, self.author, "Singular Strat", tags=["map"])
+        make_strategy(self.league, self.author, "Plural Strat", tags=["maps"])
+        response = self.client.get(reverse("strategy_list"), {"tag": "map"})
+        self.assertContains(response, "Singular Strat")
+        self.assertNotContains(response, "Plural Strat")
+        response = self.client.get(reverse("strategy_list"), {"tag": "maps"})
+        self.assertContains(response, "Plural Strat")
+        self.assertNotContains(response, "Singular Strat")
+
+    def test_tag_filter_is_case_insensitive(self):
+        make_strategy(self.league, self.author, "Harvest Farm", tags=["Harvest"])
+        response = self.client.get(reverse("strategy_list"), {"tag": "HARVEST"})
+        self.assertContains(response, "Harvest Farm")
+
+    def test_edit_form_prefills_and_replaces_tags(self):
+        strategy = make_strategy(self.league, self.author, "Tagged", tags=["a", "b"])
+        url = reverse("strategy_edit", args=[strategy.slug])
+        self.assertContains(self.client.get(url), 'value="a, b"')
+        self.client.post(url, {"title": "Tagged", "kind": "homegrown", "tags": "B, c, C", "is_published": "on"})
+        self.assertEqual(strategy.tag_list, ["b", "c"])
+        self.assertEqual(Tag.objects.filter(slug="b").count(), 1)
+
+    def test_parse_tags_normalises(self):
+        self.assertEqual(
+            parse_tags(" Low  Investment, low-investment,,MAP , map ,!!!"),
+            ["low investment", "map"],
+        )
+
+    def test_delete_and_vote_reject_get(self):
+        strategy = make_strategy(self.league, self.author, "Mine")
+        for name in ("strategy_delete", "strategy_vote"):
+            response = self.client.get(reverse(name, args=[strategy.slug]))
+            self.assertEqual(response.status_code, 405, name)
+        self.assertTrue(Strategy.objects.filter(pk=strategy.pk).exists())
 
 
 class VoteAndVariantTests(TestCase):
@@ -256,7 +294,7 @@ class VoteAndVariantTests(TestCase):
         return data
 
     def test_single_save_stores_fields_and_tree_together(self):
-        from . import atlas_data
+        from strategies import atlas_data
 
         self.client.login(username="vauthor", password=PASSWORD)
         variant = StrategyVariant.objects.create(strategy=self.strategy, name="Draft")
@@ -281,7 +319,7 @@ class VoteAndVariantTests(TestCase):
         self.assertContains(response, "id_map_device")
 
     def test_import_loads_the_tree_and_keeps_typed_fields(self):
-        from . import atlas_codec
+        from strategies import atlas_codec
 
         self.client.login(username="vauthor", password=PASSWORD)
         variant = StrategyVariant.objects.create(strategy=self.strategy, name="Endgame")
@@ -339,7 +377,7 @@ class VoteAndVariantTests(TestCase):
     def test_rejected_save_rerenders_attempted_allocation(self):
         # An over-budget/disconnected submission must come back to the editor,
         # not be silently replaced by the stored tree.
-        from . import atlas_data
+        from strategies import atlas_data
 
         self.client.login(username="vauthor", password=PASSWORD)
         variant = StrategyVariant.objects.create(
@@ -403,7 +441,7 @@ class VoteAndVariantTests(TestCase):
         self.assertContains(response, "map-device")
         self.assertContains(response, "atlas-import-compact")
         for key in ("maven", "eater", "exarch"):
-            self.assertContains(response, 'value="%s"' % key)
+            self.assertContains(response, f'value="{key}"')
 
     def test_detail_page_renders_the_influence(self):
         StrategyVariant.objects.create(
@@ -418,7 +456,7 @@ class VoteAndVariantTests(TestCase):
         response = self.client.get(reverse("strategy_list"))
         self.assertContains(response, "stretched-link")
         self.assertContains(
-            response, 'href="%s"' % reverse("strategy_detail", args=[self.strategy.slug])
+            response, f'href="{reverse("strategy_detail", args=[self.strategy.slug])}"'
         )
 
     def test_variant_delete_action(self):
@@ -435,7 +473,7 @@ def _nodes_matching(pattern: str, limit: int, kinds=("s", "n")) -> list[int]:
     """Ids of atlas nodes whose name/stats match ``pattern`` (built from the real bundle)."""
     import re
 
-    from . import atlas_data
+    from strategies import atlas_data
 
     rx = re.compile(pattern, re.I)
     found = []
@@ -454,18 +492,18 @@ class MechanicsTests(TestCase):
     """Mechanic inference reads the shipped atlas bundle, not a fixture."""
 
     def test_empty_tree_has_no_mechanics(self):
-        from . import mechanics
+        from strategies import mechanics
 
         self.assertEqual(mechanics.top_mechanics([]), [])
         self.assertEqual(mechanics.top_mechanics(None), [])
 
     def test_unknown_ids_are_ignored(self):
-        from . import mechanics
+        from strategies import mechanics
 
         self.assertEqual(mechanics.top_mechanics([-1, 999999999]), [])
 
     def test_essence_heavy_tree_ranks_essence_first(self):
-        from . import mechanics
+        from strategies import mechanics
 
         essence = _nodes_matching(r"\bessence", 8)
         harvest = _nodes_matching(r"\blifeforce\b|\bharvest\b", 2)
@@ -484,7 +522,7 @@ class MechanicsTests(TestCase):
         self.assertTrue(top[0]["icon_key"])
 
     def test_icon_comes_from_the_best_weighted_matching_node(self):
-        from . import atlas_data, mechanics
+        from strategies import atlas_data, mechanics
 
         notable = _nodes_matching(r"\bessence", 1, kinds=("n",))
         small = _nodes_matching(r"\bessence", 1, kinds=("s",))
@@ -494,7 +532,7 @@ class MechanicsTests(TestCase):
         self.assertEqual(top["icon_key"], nodes[str(notable[0])]["icon"])
 
     def test_icon_svg_is_an_inset_crop_of_the_sheet(self):
-        from . import atlas_data, mechanics
+        from strategies import atlas_data, mechanics
 
         coords = atlas_data.load()["sprites"]["coords"]
         key = next(k for k, c in coords.items() if c[2] > 2 and c[3] > 2 and c[4] > 2)
@@ -508,14 +546,14 @@ class MechanicsTests(TestCase):
     def test_no_scarab_dependency(self):
         import inspect
 
-        from . import mechanics
+        from strategies import mechanics
 
         source = inspect.getsource(mechanics)
         self.assertNotIn("import scarabs", source)
         self.assertFalse(hasattr(mechanics, "icon_for"))
 
     def test_harvest_heavy_tree_ranks_harvest_first(self):
-        from . import mechanics
+        from strategies import mechanics
 
         harvest = _nodes_matching(r"\blifeforce\b|\bharvest\b|\bsacred grove\b", 8)
         essence = _nodes_matching(r"\bessence", 1)
@@ -523,14 +561,14 @@ class MechanicsTests(TestCase):
         self.assertEqual(mechanics.top_mechanics(harvest + essence)[0]["key"], "harvest")
 
     def test_strongbox_covers_ambush_wording(self):
-        from . import mechanics
+        from strategies import mechanics
 
         boxes = _nodes_matching(r"\bstrongbox", 6)
         self.assertTrue(boxes)
         self.assertEqual(mechanics.top_mechanics(boxes)[0]["key"], "strongbox")
 
     def test_notables_outweigh_smalls(self):
-        from . import mechanics
+        from strategies import mechanics
 
         small = _nodes_matching(r"\bessence", 1, kinds=("s",))
         notable = _nodes_matching(r"\bessence", 1, kinds=("n",))
@@ -539,7 +577,7 @@ class MechanicsTests(TestCase):
         self.assertEqual(mechanics.score_mechanics(notable)["essence"], 2)
 
     def test_generic_map_nodes_are_not_mechanics(self):
-        from . import mechanics
+        from strategies import mechanics
 
         # A pure map-quantity node must not invent a "focus".
         generic = _nodes_matching(r"increased Quantity of Items found in your Maps", 3)
@@ -556,7 +594,7 @@ class ScarabTooltipAndFocusTests(TestCase):
         self.client.login(username="tipauthor", password=PASSWORD)
 
     def test_detail_page_shows_focus_chips_for_a_saved_tree(self):
-        from . import atlas_data
+        from strategies import atlas_data
 
         nodes = _nodes_matching(r"\bessence", 8)
         StrategyVariant.objects.create(
@@ -579,7 +617,7 @@ class ScarabTooltipAndFocusTests(TestCase):
         self.assertNotContains(response, "map-device-focus")
 
     def test_detail_slot_carries_the_scarab_tooltip(self):
-        from . import scarabs
+        from strategies import scarabs
 
         probe = "Ambush Scarab"
         StrategyVariant.objects.create(
@@ -596,7 +634,7 @@ class ScarabTooltipAndFocusTests(TestCase):
         self.assertContains(response, "scarab-tip-stats")
 
     def test_list_card_shows_the_condensed_device_strip(self):
-        from . import atlas_data
+        from strategies import atlas_data
 
         StrategyVariant.objects.create(
             strategy=self.strategy,

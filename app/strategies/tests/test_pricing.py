@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from io import StringIO
 from unittest import mock
 
 from django.core.management import call_command
@@ -10,10 +11,9 @@ from django.core.management.base import CommandError
 from django.test import TestCase
 from django.urls import reverse
 
+from strategies import pricing
+from strategies.models import NinjaPrice, Strategy, StrategyVariant
 from tracker.tests.factories import make_league, make_player
-
-from . import pricing
-from .models import NinjaPrice, Strategy, StrategyVariant
 
 PASSWORD = "correct-horse-battery-42"
 
@@ -87,7 +87,7 @@ class FetchCommandTests(TestCase):
             "strategies.pricing.urllib.request.urlopen",
             side_effect=_fake_urlopen(SCARAB_FEED, CURRENCY_FEED),
         ):
-            call_command("fetch_ninja_prices", **kwargs)
+            call_command("fetch_ninja_prices", stdout=StringIO(), **kwargs)
 
     def test_upserts_scarabs_and_divine(self):
         self._run()
@@ -106,7 +106,7 @@ class FetchCommandTests(TestCase):
             "strategies.pricing.urllib.request.urlopen",
             side_effect=_fake_urlopen(cheaper, CURRENCY_FEED),
         ):
-            call_command("fetch_ninja_prices")
+            call_command("fetch_ninja_prices", stdout=StringIO())
         self.assertEqual(NinjaPrice.objects.count(), 3)  # the vanished row is kept
         self.assertEqual(
             NinjaPrice.objects.get(item_id="titanic-scarab-of-legend").chaos_value, 8.0
@@ -121,7 +121,7 @@ class FetchCommandTests(TestCase):
             "strategies.pricing.urllib.request.urlopen", side_effect=OSError("boom")
         ):
             with self.assertRaises(CommandError) as ctx:
-                call_command("fetch_ninja_prices")
+                call_command("fetch_ninja_prices", stdout=StringIO())
         self.assertIn("poe.ninja", str(ctx.exception))
         self.assertEqual(NinjaPrice.objects.count(), 0)
 
@@ -129,7 +129,7 @@ class FetchCommandTests(TestCase):
         self.league.is_active = False
         self.league.save()
         with self.assertRaises(CommandError):
-            call_command("fetch_ninja_prices")
+            call_command("fetch_ninja_prices", stdout=StringIO())
 
 
 def _price(league_id, name, chaos, item_id=None):

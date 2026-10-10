@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import base64
 import struct
-from typing import Iterable
+from collections.abc import Iterable
 
 __all__ = ["decode_atlas_url", "encode_ggg_url", "GGG_TREE_URL_PREFIX"]
 

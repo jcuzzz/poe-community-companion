@@ -45,7 +45,7 @@ class Command(BaseCommand):
             try:
                 self.stdout.write(", ".join(pricing.fetch_league_ids()))
             except pricing.PriceFetchError as exc:
-                raise CommandError(f"Could not reach poe.ninja: {exc}")
+                raise CommandError(f"Could not reach poe.ninja: {exc}") from exc
             return
 
         league_id = (opts.get("league") or "").strip() or pricing.ninja_league_id(
@@ -60,7 +60,7 @@ class Command(BaseCommand):
             scarabs = pricing.fetch_overview(league_id, "Scarab")
             currency = pricing.fetch_overview(league_id, "Currency")
         except pricing.PriceFetchError as exc:
-            raise CommandError(f"Could not reach poe.ninja: {exc}")
+            raise CommandError(f"Could not reach poe.ninja: {exc}") from exc
 
         rows = scarabs + [row for row in currency if row["item_id"] in CURRENCY_KEEP]
         if not rows:

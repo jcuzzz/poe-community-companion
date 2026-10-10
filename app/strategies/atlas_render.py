@@ -228,7 +228,7 @@ def _ring_radius(nid: int, node: dict, starts) -> float:
     """How far from the node centre its frame art ends (edges stop there)."""
     if nid in starts:
         return _START_RADIUS
-    return float(_RADIUS.get(node.get("k"), _RADIUS["s"]))
+    return float(_RADIUS.get(node.get("k", ""), _RADIUS["s"]))
 
 
 def _orbit_angle(node: dict, per_orbit: list) -> float | None:
@@ -377,7 +377,7 @@ def _render_thumb(alloc: set[int]) -> str:
             alloc_d.append(f'M{na["x"]} {na["y"]}L{nb["x"]} {nb["y"]}')
     for nid in sorted(alloc_here):
         node = nodes[nid]
-        r = _THUMB_RADIUS.get(node.get("k"), 34)
+        r = _THUMB_RADIUS.get(node.get("k", ""), 34)
         if not r:
             continue
         circles.append(f'<circle class="at-node" cx="{node["x"]}" cy="{node["y"]}" r="{r}"/>')
