@@ -27,7 +27,6 @@ from django.utils import timezone
 
 from .models import CharacterSnapshot, PoeConnection
 
-
 # --- Config / enablement --------------------------------------------------
 
 def is_enabled() -> bool:
@@ -195,7 +194,7 @@ def fetch_character(token: str, name: str) -> dict:
 
 # --- Map GGG character JSON → parse_pob_build shape -----------------------
 
-_FRAME_RARITY = {0: "normal", 1: "magic", 2: "rare", 3: "unique"}
+_FRAME_RARITY: dict[int | None, str] = {0: "normal", 1: "magic", 2: "rare", 3: "unique"}
 
 # GGG inventory slot id → our display slot label (matches roster._GEAR_SLOTS).
 _SLOT_MAP = {

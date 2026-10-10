@@ -21,10 +21,11 @@ def league(request):
     end = viewing_league.ends_at if viewing_league else None
     now = timezone.now()
 
-    pending = 0
+    # Staff nav badge: contested claims waiting on a decision.
+    contested = 0
     user = getattr(request, "user", None)
     if user is not None and user.is_authenticated and user.is_staff:
-        pending = Submission.objects.pending_review().count()
+        contested = Submission.objects.contested().count()
 
     return {
         # Named brand_name (not site_name) to avoid colliding with the site_name
@@ -43,7 +44,7 @@ def league(request):
         # Only meaningful when a start date is set AND is in the future — used to
         # distinguish "hasn't started yet" from "no start date configured".
         "league_starts_in_days": (start - now).days if start and start > now else None,
-        "pending_review_count": pending,
+        "contested_count": contested,
         # Feature-module toggles (settings.FEATURES) — templates gate nav on these.
         "features": settings.FEATURES,
     }

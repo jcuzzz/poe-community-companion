@@ -462,6 +462,8 @@ class PobbinFetchTests(TestCase):
 class PollPobBuildsCommandTests(TestCase):
     @patch("tracker.roster.fetch_pobbin_code")
     def test_polls_and_updates_linked_builds(self, mock_fetch):
+        from io import StringIO
+
         from django.core.management import call_command
         player = make_player("poller")
         league = League.get_active()
@@ -470,7 +472,7 @@ class PollPobBuildsCommandTests(TestCase):
         save_pob_snapshot(player, league, "https://pobb.in/abc123")
         # pobb.in build now reports level 95; polling should refresh it.
         mock_fetch.return_value = build_pob_code(level=95, class_name="Ranger", ascend="Deadeye")
-        call_command("poll_pob_builds", "--delay", "0")
+        call_command("poll_pob_builds", "--delay", "0", stdout=StringIO(), stderr=StringIO())
         snap = CharacterSnapshot.objects.get(user=player, league=league)
         self.assertEqual(snap.level, 95)
 

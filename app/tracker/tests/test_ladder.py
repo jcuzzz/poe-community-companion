@@ -88,7 +88,7 @@ class PollLadderCommandTests(TestCase):
         entries = [poe_ladder.normalize_entry(_raw(1, "Top", 95, "Slayer", "a#1", public=True)),
                    poe_ladder.normalize_entry(_raw(2, "Dead1", 60, "Witch", "b#2", dead=True))]
         with mock.patch.object(poe_ladder, "iter_entries", return_value=entries):
-            call_command("poll_ladder", stdout=out, **kw)
+            call_command("poll_ladder", stdout=out, stderr=StringIO(), **kw)
         return out.getvalue()
 
     def test_writes_rows_for_active_league(self):
@@ -112,7 +112,7 @@ class PollLadderCommandTests(TestCase):
     def test_errors_without_ladder_id(self):
         League.objects.filter(pk=self.league.pk).update(ggg_id="")
         with self.assertRaises(CommandError):
-            call_command("poll_ladder", league="gauntlet", stdout=StringIO())
+            call_command("poll_ladder", league="gauntlet", stdout=StringIO(), stderr=StringIO())
 
 
 class LinkMembersTests(TestCase):

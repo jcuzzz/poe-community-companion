@@ -8,7 +8,7 @@ from django.urls import reverse
 from tracker import scoring
 from tracker.models import Submission
 
-from .factories import make_achievement, make_admin, make_player, make_submission
+from .factories import make_achievement, make_player, make_submission
 
 PASSWORD = "correct-horse-battery-42"
 WEBHOOK = "https://discord.test/webhook/abc"

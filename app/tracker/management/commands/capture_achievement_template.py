@@ -26,7 +26,7 @@ class Command(BaseCommand):
         try:
             league = League.objects.get(slug=opts["league"])
         except League.DoesNotExist:
-            raise CommandError(f"No league with slug '{opts['league']}'.")
+            raise CommandError(f"No league with slug '{opts['league']}'.") from None
 
         if AchievementTemplate.objects.filter(name=opts["name"]).exists():
             raise CommandError(f"A template named '{opts['name']}' already exists.")

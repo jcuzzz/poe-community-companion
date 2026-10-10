@@ -4,9 +4,21 @@ from __future__ import annotations
 
 import io
 import re
+from typing import TYPE_CHECKING, cast
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.http import HttpRequest
+
+if TYPE_CHECKING:
+    from .models import User
+
+
+def current_user(request: HttpRequest) -> User:
+    """The signed-in user. Only call from views behind ``login_required``; the stubs
+    type ``request.user`` as ``User | AnonymousUser``."""
+    return cast("User", request.user)
+
 
 _PLAYED_TOKEN = re.compile(r"(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[dhms])", re.IGNORECASE)
 _UNIT_SECONDS = {"d": 86400, "h": 3600, "m": 60, "s": 1}
@@ -48,6 +60,29 @@ def parse_played(value: str) -> int:
         seen.add(unit)
         total += float(match.group("value")) * _UNIT_SECONDS[unit]
     return int(total)
+
+
+# Pillow format name -> file extension we are willing to store.
+_FORMAT_EXTENSIONS = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp", "GIF": "gif"}
+
+
+def image_extension(file) -> str:
+    """Extension derived from the image's detected format, never the client's name.
+    Falls back to a non-servable ``bin`` if the content is not a known image."""
+    from PIL import Image
+
+    try:
+        file.seek(0)
+        with Image.open(file) as img:
+            fmt = (img.format or "").upper()
+    except Exception:  # noqa: BLE001 - undecodable content gets the inert fallback
+        fmt = ""
+    finally:
+        try:
+            file.seek(0)
+        except Exception:  # noqa: BLE001
+            pass
+    return _FORMAT_EXTENSIONS.get(fmt, "bin")
 
 
 def validate_proof_image(uploaded) -> None:

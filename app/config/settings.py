@@ -1,6 +1,8 @@
 """Django settings for the PoE Community Companion PoE league tracker."""
 
 import os
+import sys
+from datetime import timedelta
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,6 +27,8 @@ if not DEBUG and SECRET_KEY == "dev-insecure-key-change-me":
         "(python -c \"import secrets; print(secrets.token_urlsafe(50))\")."
     )
 
+TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
+
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]")
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
@@ -35,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "axes",
     "tracker",
     "strategies",
 ]
@@ -61,6 +66,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Must come last: turns an axes lockout into the 429 response.
+    "axes.middleware.AxesMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -102,6 +109,12 @@ DATABASES = {
 
 AUTH_USER_MODEL = "tracker.User"
 
+AUTHENTICATION_BACKENDS = [
+    # Axes first so a locked-out user is refused before the password is checked.
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {
@@ -111,6 +124,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+if TESTING:
+    # Hashing is deliberately slow; tests only need a working hasher.
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
@@ -227,10 +244,33 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", 0))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
+# `check --deploy` W004 (HSTS) and W008 (SSL redirect) are silenced on purpose: Caddy
+# terminates TLS and owns HSTS and the http->https redirect in front of this app.
+SILENCED_SYSTEM_CHECKS = ["security.W004", "security.W008"]
+
+# --- Brute-force protection (django-axes) -----------------------------------
+# Lock a username+IP pair out after 5 failed logins for 15 minutes. Covers the
+# site login and the admin login. Disabled under `manage.py test` (tests that
+# exercise it use override_settings(AXES_ENABLED=True)).
+AXES_ENABLED = not TESTING
+AXES_FAILURE_LIMIT = int(os.environ.get("AXES_FAILURE_LIMIT", 5))
+AXES_COOLOFF_TIME = timedelta(minutes=int(os.environ.get("AXES_COOLOFF_MINUTES", 15)))
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+AXES_RESET_ON_SUCCESS = True
+# Behind Caddy every request arrives from the proxy, so the real client address is the
+# last X-Forwarded-For entry Caddy appended. Only trusted in production (where Caddy
+# fronts the app, as SECURE_PROXY_SSL_HEADER below also assumes) unless overridden.
+TRUST_X_FORWARDED_FOR = env_bool("TRUST_X_FORWARDED_FOR", not DEBUG)
+if TRUST_X_FORWARDED_FOR:
+    AXES_IPWARE_PROXY_COUNT = 1
+    AXES_IPWARE_META_PRECEDENCE_ORDER = ["HTTP_X_FORWARDED_FOR", "REMOTE_ADDR"]
+# Cache-based throttle for other unauthenticated endpoints (invite redemption).
+THROTTLE_ENABLED = not TESTING
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {"simple": {"format": "{levelname} {asctime} {name} {message}", "style": "{"}},
     "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "simple"}},
-    "root": {"handlers": ["console"], "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO")},
+    "root": {"handlers": ["console"], "level": "CRITICAL" if TESTING else os.environ.get("DJANGO_LOG_LEVEL", "INFO")},
 }

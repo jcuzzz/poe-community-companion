@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from .models import ContestVote, Submission, SubmissionComment, SubmissionReaction
+from ..models import ContestVote, Submission, SubmissionComment, SubmissionReaction
 
 
 def _redirect_to(pk, fragment):

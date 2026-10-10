@@ -11,16 +11,23 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
 from . import dashboard_widgets
+from .utils import image_extension
+
+
+def avatar_upload_path(instance, filename: str) -> str:
+    """Random name; the extension comes from the image's real format, never the client."""
+    return f"avatars/{secrets.token_hex(8)}.{image_extension(instance.avatar.file)}"
 
 
 class User(AbstractUser):
     display_name = models.CharField(max_length=40, blank=True)
-    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
+    avatar = models.ImageField(upload_to=avatar_upload_path, blank=True, null=True)
     banner_hue = models.PositiveSmallIntegerField(
         default=42,
         help_text="0-360 hue used for this player's banner accent.",
@@ -195,7 +202,7 @@ class League(models.Model):
         return self.game == self.Game.POE1
 
     @classmethod
-    def get_active(cls) -> "League | None":
+    def get_active(cls) -> League | None:
         return cls.objects.filter(is_active=True).first()
 
     def activate(self) -> None:
@@ -227,6 +234,9 @@ class Achievement(models.Model):
     )
     active = models.BooleanField(default=True)
     sort_order = models.PositiveSmallIntegerField(default=0)
+    icon_url = models.URLField(
+        blank=True, help_text="Optional image URL for the icon (overrides the emoji)."
+    )
 
     class Meta:
         ordering = ["sort_order", "name"]
@@ -251,10 +261,6 @@ class Achievement(models.Model):
         "first-hinekoras-lock": "Art/2DItems/Currency/HinekorasLock.png",
         "first-ralakeshs-impatience": "Art/2DItems/Armours/Boots/RalakeshsImpatience.png",
     }
-
-    icon_url = models.URLField(
-        blank=True, help_text="Optional image URL for the icon (overrides the emoji)."
-    )
 
     @property
     def art_url(self) -> str:
@@ -409,14 +415,13 @@ class SubmissionQuerySet(models.QuerySet):
         """Everything except drafts is public within the group."""
         return self.exclude(status=Submission.Status.DRAFT)
 
-    def pending_review(self):
-        return self.filter(status__in=[Submission.Status.PENDING, Submission.Status.CONTESTED])
+    def contested(self):
+        return self.filter(status=Submission.Status.CONTESTED)
 
 
 class Submission(models.Model):
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
-        PENDING = "pending", "Pending review"
         APPROVED = "approved", "Approved"
         REJECTED = "rejected", "Rejected"
         CONTESTED = "contested", "Contested"
@@ -490,11 +495,48 @@ class Submission(models.Model):
     def get_absolute_url(self) -> str:
         return reverse("submission_detail", args=[self.pk])
 
-    @property
-    def is_editable_by_player(self) -> bool:
-        # Approvals are disabled: a player owns their own entry and may edit it
-        # at any time. Only other people's entries are off-limits.
-        return True
+    # Submissions count the moment they are logged (auto-approve), so there is no
+    # pre-approval queue. Staff can still moderate afterwards: reject, contest (opens
+    # an advisory group vote) or restore a submission via transition().
+    NOTE_REQUIRED_ACTIONS = frozenset({"reject", "contest", "request_proof"})
+    # action -> (resulting status, AuditEntry action)
+    TRANSITIONS = {
+        "approve": (Status.APPROVED, "approved"),
+        "reject": (Status.REJECTED, "rejected"),
+        "contest": (Status.CONTESTED, "contested"),
+        "request_proof": (Status.REJECTED, "rejected"),
+    }
+
+    def auto_approve(self, actor, detail: str) -> None:
+        """Count this entry immediately (the product's no-review policy)."""
+        self.status = self.Status.APPROVED
+        self.reviewed_by = actor
+        self.reviewed_at = timezone.now()
+        self.save(update_fields=["status", "reviewed_by", "reviewed_at"])
+        log_audit(self, actor, "approved", detail)
+
+    def transition(self, action: str, actor, note: str = "") -> None:
+        """Staff moderation: move to the status ``action`` names, record who/when/why
+        and write an audit entry. The caller recalculates scoring afterwards.
+
+        Raises ValueError for an unknown action and ValidationError when a required
+        note is missing.
+        """
+        try:
+            status, audit_action = self.TRANSITIONS[action]
+        except KeyError:
+            raise ValueError(f"Unknown submission action: {action!r}") from None
+        note = (note or "").strip()
+        if action in self.NOTE_REQUIRED_ACTIONS and not note:
+            raise ValidationError("A note is required for this action.")
+        self.status = status
+        self.reviewed_by = actor
+        self.reviewed_at = timezone.now()
+        self.review_note = (
+            f"Replacement proof requested: {note}" if action == "request_proof" else note
+        )
+        self.save(update_fields=["status", "reviewed_by", "reviewed_at", "review_note"])
+        log_audit(self, actor, audit_action, detail=note)
 
     @property
     def played_display(self) -> str:
@@ -523,7 +565,7 @@ def format_played(seconds: int) -> str:
 
 
 def proof_upload_path(instance, filename: str) -> str:
-    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
+    ext = image_extension(instance.image.file)
     return (
         f"proofs/{instance.submission.achievement.slug}/"
         f"{instance.submission_id}/{secrets.token_hex(8)}.{ext}"
@@ -586,7 +628,7 @@ class Award(models.Model):
         Type.LOWEST_LEVEL: 1,
     }
 
-    SHORT_LABEL = {
+    SHORT_LABEL: dict[str, str] = {
         Type.COMPLETION: "Verified",
         Type.FIRST: "First Overall",
         Type.LOWEST_PLAYED: "Lowest /played",

@@ -67,7 +67,7 @@ class Command(BaseCommand):
             try:
                 conn = PoeConnection.objects.get(user__username=username)
             except PoeConnection.DoesNotExist:
-                raise CommandError(f"No PoE connection stored for user '{username}'.")
+                raise CommandError(f"No PoE connection stored for user '{username}'.") from None
         else:
             conn = PoeConnection.objects.select_related("user").first()
             if conn is None:
@@ -85,7 +85,7 @@ class Command(BaseCommand):
         try:
             token = poe_oauth.valid_access_token(conn)
         except Exception as exc:  # surface the real reason
-            raise CommandError(f"Token refresh failed: {exc}")
+            raise CommandError(f"Token refresh failed: {exc}") from exc
         if not token:
             raise CommandError("No access token available after refresh.")
         self.stdout.write(ok(f"   token acquired ({len(token)} chars)"))
@@ -96,12 +96,12 @@ class Command(BaseCommand):
             profile = poe_oauth.fetch_profile(token)
             self.stdout.write(ok(f"   profile: {profile.get('name', profile)!r}"))
         except Exception as exc:
-            raise CommandError(f"fetch_profile failed: {exc}")
+            raise CommandError(f"fetch_profile failed: {exc}") from exc
 
         try:
             chars = poe_oauth.fetch_characters(token)
         except Exception as exc:
-            raise CommandError(f"fetch_characters failed: {exc}")
+            raise CommandError(f"fetch_characters failed: {exc}") from exc
         self.stdout.write(ok(f"   characters: {len(chars)} found"))
         for c in chars[:10]:
             self.stdout.write(

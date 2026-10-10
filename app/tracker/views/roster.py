@@ -6,18 +6,25 @@ All lookups are best-effort and never raise to the page.
 
 from __future__ import annotations
 
+import json
+from typing import Any
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from . import roster as roster_service
-from .access import public_read
-from .forms import PobPasteForm
-from .leagues import get_active_league, get_viewing_league
-from .models import CharacterSnapshot, MemberProfile, User
+from .. import poe_oauth
+from .. import roster as roster_service
+from ..access import public_read
+from ..forms import PobPasteForm
+from ..leagues import get_active_league, get_viewing_league
+from ..models import CharacterSnapshot, LadderCharacter, PoeConnection, User
+from ..tree_render import render_tree_svg
+from ..utils import current_user
+from .helpers import safe_next_url
 
 
 def _snapshot_for(user, league):
@@ -49,7 +56,7 @@ def roster(request: HttpRequest) -> HttpResponse:
         s.user_id: s
         for s in CharacterSnapshot.objects.filter(league=viewing, user__in=members)
     }
-    cards = [{"member": m, "snapshot": snapshots.get(m.pk)} for m in members]
+    cards: list[dict[str, Any]] = [{"member": m, "snapshot": snapshots.get(m.pk)} for m in members]
 
     # Filters: by class (from the snapshot) and by player.
     class_filter = request.GET.get("class", "").strip()
@@ -84,8 +91,6 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
     Renders the rich parse of the member's stored PoB code (stats, gear, skills,
     passive tree). The owner can (re-)import a PoB code inline.
     """
-    from django.shortcuts import get_object_or_404
-
     member = get_object_or_404(User, username=username, is_active=True)
     viewing = get_viewing_league(request)
     active = get_active_league()
@@ -95,8 +100,6 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
     # Owner "Sync now" — pull the latest character. Prefer live OAuth (official
     # PoE account) when connected; otherwise re-fetch the linked pobb.in build.
     if request.method == "POST" and is_owner and request.POST.get("action") == "sync":
-        from . import poe_oauth
-
         connected = poe_oauth.is_enabled() and getattr(request.user, "poe_connection", None)
         if connected and active is not None:
             _snap, error = poe_oauth.sync_snapshot(request.user, active)
@@ -139,14 +142,8 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
             if snapshot.source == CharacterSnapshot.Source.POB:
                 build = roster_service.parse_pob_build(snapshot.raw)
             elif snapshot.source == CharacterSnapshot.Source.OAUTH:
-                import json as _json
-
-                from . import poe_oauth
-
-                build = poe_oauth.build_from_ggg_character(_json.loads(snapshot.raw))
+                build = poe_oauth.build_from_ggg_character(json.loads(snapshot.raw))
             if build and build.get("tree") and build["tree"].get("node_ids"):
-                from .tree_render import render_tree_svg
-
                 tree_svg = render_tree_svg(build["tree"]["node_ids"])
         except ValueError as exc:
             parse_error = str(exc)
@@ -156,8 +153,6 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
     # Live ladder standing (auto-tracked, no auth) for this member in the
     # viewing league — the low-friction half of the hybrid, shown alongside the
     # opt-in build detail above.
-    from .models import LadderCharacter
-
     ladder_standing = None
     if viewing:
         ladder_standing = (
@@ -180,15 +175,13 @@ def character_detail(request: HttpRequest, username: str) -> HttpResponse:
             "viewing_league": viewing,
             "ladder_standing": ladder_standing,
             "can_import": is_owner and active is not None and viewing == active,
-            "poe_oauth_enabled": _poe_oauth_enabled(),
+            "poe_oauth_enabled": poe_oauth.is_enabled(),
             "poe_connected": bool(getattr(member, "poe_connection", None)),
         },
     )
 
 
 def _poe_oauth_enabled() -> bool:
-    from . import poe_oauth
-
     return poe_oauth.is_enabled()
 
 
@@ -219,7 +212,7 @@ def roster_refresh(request: HttpRequest) -> HttpResponse:
         messages.error(request, error)
     else:
         messages.success(request, "Character refreshed.")
-    return redirect(request.POST.get("next") or "account_settings")
+    return redirect(safe_next_url(request, "account_settings"))
 
 
 # --- Official PoE OAuth (live character data) ----------------------------
@@ -231,8 +224,6 @@ _OAUTH_VERIFIER_KEY = "poe_oauth_verifier"
 @login_required
 def poe_connect(request: HttpRequest) -> HttpResponse:
     """Kick off the GGG authorisation-code flow (PKCE)."""
-    from . import poe_oauth
-
     if not poe_oauth.is_enabled():
         messages.error(request, "PoE account linking isn't configured yet.")
         return redirect("account_settings")
@@ -246,8 +237,6 @@ def poe_connect(request: HttpRequest) -> HttpResponse:
 @login_required
 def poe_callback(request: HttpRequest) -> HttpResponse:
     """Handle GGG's redirect: verify state, exchange the code, store tokens."""
-    from . import poe_oauth
-
     if not poe_oauth.is_enabled():
         raise Http404("Not found.")
     state = request.session.pop(_OAUTH_STATE_KEY, None)
@@ -284,9 +273,7 @@ def poe_callback(request: HttpRequest) -> HttpResponse:
 @require_POST
 def poe_disconnect(request: HttpRequest) -> HttpResponse:
     """Unlink the member's PoE account (delete the stored tokens)."""
-    from .models import PoeConnection
-
-    PoeConnection.objects.filter(user=request.user).delete()
+    PoeConnection.objects.filter(user=current_user(request)).delete()
     messages.success(request, "PoE account disconnected.")
     return redirect("account_settings")
 
@@ -296,8 +283,6 @@ def ladder_board(request: HttpRequest) -> HttpResponse:
     the viewing league. No login required — this is the spectator surface and the
     low-friction half of the hybrid (ladder gives progress; OAuth/PoB gives build
     detail on the character page). See docs/design/ladder-tracking.md."""
-    from .models import LadderCharacter
-
     viewing = get_viewing_league(request)
     chars = (
         list(LadderCharacter.objects.filter(league=viewing).select_related("member"))

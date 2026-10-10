@@ -203,7 +203,7 @@ def _resolve_options(wtype: str, options) -> dict:
     """Merge stored options over the type's defaults, keeping only known keys."""
     defaults = dict(WIDGET_TYPES[wtype]["option_defaults"])
     if isinstance(options, dict):
-        for key, default in defaults.items():
+        for key in defaults:
             if key in options:
                 defaults[key] = options[key]
     return defaults
@@ -360,6 +360,8 @@ def sanitize_layout(raw) -> list[dict]:
         if not isinstance(entry, dict):
             continue
         wtype = entry.get("type")
+        if not isinstance(wtype, str):
+            continue
         meta = WIDGET_TYPES.get(wtype)
         if meta is None:
             continue
@@ -391,6 +393,8 @@ def resolve_widgets(layout, data) -> list[dict]:
         if not isinstance(entry, dict):
             continue
         wtype = entry.get("type")
+        if not isinstance(wtype, str):
+            continue
         meta = WIDGET_TYPES.get(wtype)
         if meta is None:
             continue

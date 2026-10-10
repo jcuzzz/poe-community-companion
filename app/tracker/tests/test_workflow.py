@@ -1,10 +1,9 @@
-"""End-to-end submission, review and access-control behaviour."""
+"""End-to-end submission, moderation and access-control behaviour."""
 
 from __future__ import annotations
 
 import io
 
-from django.contrib.messages import get_messages
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -369,59 +368,76 @@ class SubmissionFlowTests(TestCase):
                 self.assertEqual(self.client.get(url).status_code, 405)
 
 
-class ReviewTests(TestCase):
+class ModerationTests(TestCase):
+    """Entries auto-approve; staff moderate them afterwards."""
+
     def setUp(self):
         self.admin = make_admin()
         self.player = make_player("alice")
         self.achievement = make_achievement()
-        self.submission = make_submission(
-            self.player, self.achievement, status=Submission.Status.PENDING
-        )
-        self.client.login(username="leagueadmin", password=PASSWORD)
+        self.submission = make_submission(self.player, self.achievement)
+        from tracker import scoring
 
-    def test_queue_lists_pending(self):
+        scoring.recalculate()
+        self.client.login(username="leagueadmin", password=PASSWORD)
+        self.url = reverse("review_submission", args=[self.submission.pk])
+
+    def test_queue_lists_contested_not_fresh_entries(self):
+        contested = make_submission(
+            make_player("bob"), self.achievement, status=Submission.Status.CONTESTED
+        )
         response = self.client.get(reverse("review_queue"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.achievement.name)
+        self.assertEqual(list(response.context["contested"]), [contested])
 
-    def test_approve_awards_points_and_logs(self):
-        self.client.post(
-            reverse("review_submission", args=[self.submission.pk]),
-            {"action": "approve", "review_note": "Clear screenshots."},
-        )
-        self.submission.refresh_from_db()
+    def test_nav_badge_counts_contested(self):
+        make_submission(make_player("bob"), self.achievement, status=Submission.Status.CONTESTED)
+        response = self.client.get(reverse("review_queue"))
+        self.assertEqual(response.context["contested_count"], 1)
 
-        self.assertEqual(self.submission.status, Submission.Status.APPROVED)
-        self.assertEqual(self.submission.reviewed_by, self.admin)
-        self.assertIsNotNone(self.submission.reviewed_at)
-        self.assertTrue(self.submission.audit_entries.filter(action="approved").exists())
+    def test_reject_unscores_and_logs(self):
         self.assertTrue(Award.objects.filter(submission=self.submission).exists())
-
-    def test_reject_requires_a_note(self):
-        response = self.client.post(
-            reverse("review_submission", args=[self.submission.pk]),
-            {"action": "reject", "review_note": ""},
-        )
+        self.client.post(self.url, {"action": "reject", "review_note": "Borrowed gear."})
         self.submission.refresh_from_db()
-        self.assertEqual(self.submission.status, Submission.Status.PENDING)
-        self.assertEqual(response.status_code, 200)
 
-    def test_reject_then_reapprove_recalculates(self):
-        url = reverse("review_submission", args=[self.submission.pk])
-        self.client.post(url, {"action": "approve", "review_note": "ok"})
-        self.assertTrue(Award.objects.exists())
-
-        self.client.post(url, {"action": "reject", "review_note": "Proof was borrowed gear."})
+        self.assertEqual(self.submission.status, Submission.Status.REJECTED)
+        self.assertEqual(self.submission.reviewed_by, self.admin)
+        self.assertEqual(self.submission.review_note, "Borrowed gear.")
+        self.assertTrue(self.submission.audit_entries.filter(action="rejected").exists())
         self.assertFalse(Award.objects.exists())
 
+    def test_reject_requires_a_note(self):
+        response = self.client.post(self.url, {"action": "reject", "review_note": ""})
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.status, Submission.Status.APPROVED)
+        self.assertEqual(response.status_code, 200)
+
+    def test_reopen_is_no_longer_an_action(self):
+        response = self.client.post(self.url, {"action": "reopen", "review_note": "x"})
+        self.assertEqual(response.status_code, 200)
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.status, Submission.Status.APPROVED)
+
+    def test_reject_then_restore_recalculates(self):
+        self.client.post(self.url, {"action": "reject", "review_note": "Borrowed gear."})
+        self.assertFalse(Award.objects.exists())
+        self.client.post(self.url, {"action": "approve", "review_note": "Checked again."})
+        self.assertTrue(Award.objects.exists())
+
     def test_contest_keeps_it_visible_but_unscored(self):
-        url = reverse("review_submission", args=[self.submission.pk])
-        self.client.post(url, {"action": "approve", "review_note": "ok"})
-        self.client.post(url, {"action": "contest", "review_note": "Disputed by the group."})
+        self.client.post(self.url, {"action": "contest", "review_note": "Disputed by the group."})
 
         self.submission.refresh_from_db()
         self.assertEqual(self.submission.status, Submission.Status.CONTESTED)
         self.assertFalse(Award.objects.exists())
+
+    def test_owner_cannot_re_log_a_moderated_entry(self):
+        self.client.post(self.url, {"action": "reject", "review_note": "Borrowed gear."})
+        self.client.logout()
+        self.client.login(username="alice", password=PASSWORD)
+        self.client.post(reverse("submission_send", args=[self.submission.pk]))
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.status, Submission.Status.REJECTED)
 
     def test_admin_correction_of_an_approved_submission_is_audited(self):
         self.submission.status = Submission.Status.APPROVED

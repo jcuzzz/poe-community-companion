@@ -2,7 +2,7 @@
 # Wrapper invoked by the poe-community-companion-backup systemd service (and usable
 # directly / from cron). Runs the SQLite-safe backup command inside the
 # app container via the compose "backup" profile, which covers the DB and
-# the media directory together per plan.md's backup requirement.
+# the media directory together so they stay consistent.
 #
 # Cron alternative (if you prefer cron over systemd timers), run as the
 # deploying user's crontab:

@@ -157,11 +157,11 @@
     {% if submission.status == "draft" %}
       <form class="inline-btn" method="post" action="{% url 'submission_send' submission.pk %}">
         {% csrf_token %}
-        <button type="submit" class="btn btn-primary">Send for review</button>
+        <button type="submit" class="btn btn-primary">Log achievement</button>
       </form>
     {% endif %}
     {% if can_review %}
-      <a class="btn btn-primary" href="{% url 'review_submission' submission.pk %}">Review</a>
+      <a class="btn btn-primary" href="{% url 'review_submission' submission.pk %}">Moderate</a>
     {% endif %}
     {% if can_edit %}
       <form class="inline-btn" method="post" action="{% url 'submission_delete' submission.pk %}" onsubmit="return confirm('Delete this submission?');">

@@ -1,7 +1,7 @@
 {% extends "tracker/base.html" %}
 {% block title %}Review &middot; {{ submission.achievement.name }}{% endblock %}
 {% block content %}
-  <p><a href="{% url 'review_queue' %}">&larr; Review queue</a></p>
+  <p><a href="{% url 'review_queue' %}">&larr; Moderation</a></p>
 
   <div class="u-flex-between">
     <h1>{{ submission.user.name }} &mdash; {{ submission.achievement.name }}</h1>

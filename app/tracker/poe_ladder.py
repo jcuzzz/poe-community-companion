@@ -38,8 +38,8 @@ def _ua() -> str:
     return getattr(
         settings,
         "POE_USER_AGENT",
-        "OAuth poe-community-companion/1.0 (contact: %s)"
-        % getattr(settings, "POE_API_CONTACT", "self-hosted"),
+        "OAuth poe-community-companion/1.0 (contact: "
+        f"{getattr(settings, 'POE_API_CONTACT', 'self-hosted')})",
     )
 
 
@@ -121,9 +121,9 @@ def link_members(league) -> int:
 
     linked = 0
     for lc in LadderCharacter.objects.filter(league=league):
-        uid = by_account.get(lc.account_name) or by_char.get(lc.character_name)
-        if uid and lc.member_id != uid:
-            lc.member_id = uid
+        member_id = by_account.get(lc.account_name) or by_char.get(lc.character_name)
+        if member_id and lc.member_id != member_id:
+            lc.member_id = member_id
             lc.save(update_fields=["member"])
             linked += 1
     return linked
@@ -143,12 +143,13 @@ def feed_member_snapshots(league) -> int:
     """
     from .models import CharacterSnapshot, LadderCharacter
 
-    best: dict[int, "LadderCharacter"] = {}
+    best: dict[int, LadderCharacter] = {}
     for lc in (
         LadderCharacter.objects.filter(league=league, member__isnull=False)
         .order_by("-level")
     ):
-        best.setdefault(lc.member_id, lc)
+        if lc.member_id is not None:
+            best.setdefault(lc.member_id, lc)
 
     touched = 0
     for uid, lc in best.items():

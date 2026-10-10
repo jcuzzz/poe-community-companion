@@ -48,7 +48,7 @@ class Command(BaseCommand):
             try:
                 league = League.objects.get(slug=opts["league"])
             except League.DoesNotExist:
-                raise CommandError(f"No league with slug '{opts['league']}'.")
+                raise CommandError(f"No league with slug '{opts['league']}'.") from None
         else:
             league = get_active_league()
 
@@ -72,7 +72,7 @@ class Command(BaseCommand):
         try:
             entries = list(poe_ladder.iter_entries(ladder_id, max_entries=opts.get("max")))
         except poe_ladder.LadderError as exc:
-            raise CommandError(str(exc))
+            raise CommandError(str(exc)) from exc
 
         if not entries:
             self.stdout.write(warn("No entries returned."))

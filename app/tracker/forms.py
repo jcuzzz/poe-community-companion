@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from django import forms
 from django.conf import settings
 from django.contrib.auth import password_validation
@@ -43,6 +45,11 @@ class PlayedTimeField(forms.CharField):
             raise ValidationError("Could not read that played time.") from exc
 
 
+def _choice_field(form: forms.BaseForm, name: str) -> forms.ModelChoiceField:
+    """A form field known to be a ModelChoiceField (the stubs only expose ``Field``)."""
+    return cast("forms.ModelChoiceField", form.fields[name])
+
+
 class SubmissionForm(forms.ModelForm):
     # Only the achievement is required. Everything else is optional so logging a
     # claim never gets blocked; the obtained time is taken from the server clock.
@@ -74,8 +81,8 @@ class SubmissionForm(forms.ModelForm):
         achievements = Achievement.objects.filter(active=True)
         if self.league is not None:
             achievements = achievements.filter(league=self.league)
-        self.fields["achievement"].queryset = achievements
-        self.fields["allowlist_item"].queryset = AllowlistItem.objects.filter(active=True)
+        _choice_field(self, "achievement").queryset = achievements
+        _choice_field(self, "allowlist_item").queryset = AllowlistItem.objects.filter(active=True)
         for name in ("character", "character_level", "kill_count", "allowlist_item", "notes"):
             self.fields[name].required = False
 
@@ -88,16 +95,15 @@ class SubmissionForm(forms.ModelForm):
                 label="Submitting on behalf of",
             )
             # Any player's character may be attached; ownership is checked in clean().
-            self.fields["character"].queryset = Character.objects.filter(retired=False)
+            _choice_field(self, "character").queryset = Character.objects.filter(retired=False)
         else:
-            self.fields["character"].queryset = Character.objects.filter(
-                user=self.user, retired=False
-            )
+            own_characters = Character.objects.filter(user=self.user, retired=False)
+            _choice_field(self, "character").queryset = own_characters
             # Pre-select the player's default character (one-time pick).
             if not (self.instance and self.instance.pk) and not self.initial.get("character"):
-                default = self.fields["character"].queryset.filter(is_default=True).first()
+                default = own_characters.filter(is_default=True).first()
                 if default is None:
-                    default = self.fields["character"].queryset.first()
+                    default = own_characters.first()
                 if default is not None:
                     self.initial["character"] = default.pk
 
@@ -282,9 +288,8 @@ class ReviewForm(forms.Form):
         ("reject", "Reject"),
         ("contest", "Mark contested"),
         ("request_proof", "Request replacement proof"),
-        ("reopen", "Reopen"),
     ]
-    NOTE_REQUIRED_ACTIONS = {"reject", "contest", "request_proof"}
+    NOTE_REQUIRED_ACTIONS = Submission.NOTE_REQUIRED_ACTIONS
 
     action = forms.ChoiceField(choices=ACTION_CHOICES)
     review_note = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), required=False)

@@ -11,7 +11,6 @@ from __future__ import annotations
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.html import format_html
 
 from . import scoring
@@ -35,6 +34,7 @@ from .models import (
     SubmissionComment,
     SubmissionReaction,
     User,
+    log_audit,
 )
 
 
@@ -176,26 +176,29 @@ class LeagueAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):
-    fieldsets = DjangoUserAdmin.fieldsets + (
+    fieldsets = (
+        *(DjangoUserAdmin.fieldsets or ()),
         (
             "League profile",
             {"fields": ("display_name", "avatar", "banner_hue", "is_player", "can_submit")},
         ),
     )
-    add_fieldsets = DjangoUserAdmin.add_fieldsets + (
+    add_fieldsets = (
+        *DjangoUserAdmin.add_fieldsets,
         (
             "League profile",
             {"fields": ("display_name", "avatar", "banner_hue", "is_player", "can_submit")},
         ),
     )
-    list_display = DjangoUserAdmin.list_display + (
+    list_display = (
+        *DjangoUserAdmin.list_display,  # type: ignore[misc]
         "display_name",
         "banner_hue",
         "is_player",
         "can_submit",
     )
     list_editable = ("can_submit",)
-    list_filter = DjangoUserAdmin.list_filter + ("is_player", "can_submit")
+    list_filter = (*DjangoUserAdmin.list_filter, "is_player", "can_submit")
     actions = ["block_submissions", "unblock_submissions"]
 
     @admin.action(description="Block selected players from submitting")
@@ -344,33 +347,25 @@ class SubmissionAdmin(admin.ModelAdmin):
     def played_display(self, obj):
         return obj.played_display
 
-    def _set_status(self, request, queryset, status, action_label):
-        achievements = set()
-        now = timezone.now()
-        for submission in queryset:
-            submission.status = status
-            submission.reviewed_by = request.user
-            submission.reviewed_at = now
-            submission.save(update_fields=["status", "reviewed_by", "reviewed_at"])
-            from .models import log_audit
-
-            log_audit(submission, request.user, status, detail=f"Bulk action: {action_label}")
-            achievements.add(submission.achievement_id)
-
-        for achievement_id in achievements:
-            scoring.recalculate(Achievement.objects.get(pk=achievement_id))
+    def _moderate(self, request, queryset, action):
+        achievements = {}
+        for submission in queryset.select_related("achievement"):
+            submission.transition(action, request.user, "Bulk admin action.")
+            achievements[submission.achievement_id] = submission.achievement
+        for achievement in achievements.values():
+            scoring.recalculate(achievement)
 
     @admin.action(description="Approve selected submissions")
     def approve_selected(self, request, queryset):
-        self._set_status(request, queryset, Submission.Status.APPROVED, "approved")
+        self._moderate(request, queryset, "approve")
 
     @admin.action(description="Reject selected submissions")
     def reject_selected(self, request, queryset):
-        self._set_status(request, queryset, Submission.Status.REJECTED, "rejected")
+        self._moderate(request, queryset, "reject")
 
     @admin.action(description="Mark selected submissions as contested")
     def mark_contested(self, request, queryset):
-        self._set_status(request, queryset, Submission.Status.CONTESTED, "contested")
+        self._moderate(request, queryset, "contest")
 
     def save_model(self, request, obj, form, change):
         was_approved = False
@@ -381,8 +376,6 @@ class SubmissionAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
         if was_approved and form.changed_data:
-            from .models import log_audit
-
             detail = f"Fields changed by admin: {', '.join(form.changed_data)}"
             log_audit(obj, request.user, AuditEntry.Action.CORRECTED, detail=detail)
             scoring.recalculate(obj.achievement)

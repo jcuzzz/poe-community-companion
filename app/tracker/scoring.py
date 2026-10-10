@@ -4,7 +4,7 @@ Awards are derived state: they are deleted and rebuilt from approved
 submissions every time something changes. That keeps the leaderboard
 consistent even after an admin corrects or un-approves a submission.
 
-Rules per achievement (plan.md):
+Rules per achievement (see the README "Scoring" section):
     verified completion      +2
     first verified           +5   (earliest approved obtained_at)
     lowest /played           +3
@@ -19,6 +19,7 @@ submission receives the full points, matching how the group would call it.
 from __future__ import annotations
 
 from collections import defaultdict
+from typing import Any
 
 from django.db import transaction
 from django.db.models import Count, Sum
@@ -147,7 +148,7 @@ def leaderboard(league: League | None = None) -> list[dict]:
         for row in approved.values("user").annotate(n=Count("achievement", distinct=True))
     }
 
-    rows = []
+    rows: list[dict[str, Any]] = []
     for player in players:
         counts = medals.get(player.pk, {})
         rows.append(
@@ -166,32 +167,49 @@ def leaderboard(league: League | None = None) -> list[dict]:
 
     rank = 0
     previous = None
-    for index, row in enumerate(rows, start=1):
-        if row["points"] != previous:
+    for index, entry in enumerate(rows, start=1):
+        if entry["points"] != previous:
             rank = index
-            previous = row["points"]
-        row["rank"] = rank
+            previous = entry["points"]
+        entry["rank"] = rank
     return rows
 
 
-def champion(league: League | None = None):
-    rows = leaderboard(league)
+def champion(rows: list[dict]) -> dict | None:
+    """The top row of an already-computed leaderboard, if anyone has points."""
     if rows and rows[0]["points"] > 0:
         return rows[0]
     return None
 
 
 def achievement_standings(achievement: Achievement) -> dict:
-    """Everything one achievement card needs. Only players with submissions appear
-    (small pool → boards stay compact, more categories visible)."""
-    subs = list(
-        Submission.objects.visible()
-        .filter(achievement=achievement)
-        .select_related("user", "character")
-        .prefetch_related("awards", "proofs")
-        .order_by("obtained_at", "submitted_at")
-    )
+    """Everything one achievement card needs (see achievement_standings_for)."""
+    return achievement_standings_for([achievement])[0]
 
+
+def achievement_standings_for(achievements) -> list[dict]:
+    """Card data for many achievements at once, in the order given.
+
+    Fetches every relevant submission (plus awards and proofs) in a constant number
+    of queries and groups them in Python, so listing N achievements is not N+1.
+    Only players with submissions appear (small pool - boards stay compact).
+    """
+    achievements = list(achievements)
+    by_achievement: dict[int, list[Submission]] = defaultdict(list)
+    if achievements:
+        subs_qs = (
+            Submission.objects.visible()
+            .filter(achievement__in=achievements)
+            .select_related("user", "character", "achievement")
+            .prefetch_related("awards", "proofs")
+            .order_by("obtained_at", "submitted_at")
+        )
+        for sub in subs_qs:
+            by_achievement[sub.achievement_id].append(sub)
+    return [_standings(a, by_achievement.get(a.pk, [])) for a in achievements]
+
+
+def _standings(achievement: Achievement, subs: list[Submission]) -> dict:
     winner = None
     for sub in subs:
         if sub.status == Submission.Status.APPROVED and any(
@@ -255,7 +273,7 @@ def medals_matrix(league: League | None = None) -> dict:
         cells[user.pk][award.submission.achievement_id].add(award.award_type)
         totals[user.pk] += award.points
 
-    rows = []
+    rows: list[dict[str, Any]] = []
     for uid, user in players.items():
         row_cells = []
         for ach in achievements:
@@ -304,10 +322,10 @@ def player_stats(player: User, league: League | None = None) -> dict:
         "lowest_played": counts[Award.Type.LOWEST_PLAYED],
         "fewest_kills": counts[Award.Type.FEWEST_KILLS],
         "lowest_level": counts[Award.Type.LOWEST_LEVEL],
-        "total_played_seconds": max(
+        "max_played_seconds": max(
             (s.played_seconds for s in approved if s.played_seconds is not None), default=0
         ),
-        "total_kills": max((s.kill_count for s in approved if s.kill_count is not None), default=0),
+        "max_kills": max((s.kill_count for s in approved if s.kill_count is not None), default=0),
         "highest_level": max(
             (s.character_level for s in approved if s.character_level is not None), default=0
         ),

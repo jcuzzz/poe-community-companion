@@ -39,7 +39,7 @@ _MAX_POB_XML_BYTES = 8 * 1024 * 1024
 # --- PoB export code parsing ---------------------------------------------
 
 
-def _pob_root(code: str) -> "ET.Element":
+def _pob_root(code: str) -> ET.Element:
     """Decode a PoB export code (or pobb.in URL) into its parsed XML root.
 
     Raises ValueError with a friendly message on anything we can't read.
@@ -164,7 +164,7 @@ _GEAR_SLOTS = [
 ]
 
 
-def _fmt_stat(value: float, fmt: str) -> str:
+def _fmt_stat(value: float | str, fmt: str) -> str:
     try:
         v = float(value)
     except (TypeError, ValueError):
@@ -346,9 +346,9 @@ def parse_pob_build(code: str) -> dict:
         if not gems:
             continue
         actives = [x for x in gems if not x["support"]]
-        label = actives[0]["name"] if actives else gems[0]["name"]
+        group_label = actives[0]["name"] if actives else gems[0]["name"]
         skill_groups.append({
-            "label": label,
+            "label": group_label,
             "gems": gems,
             "is_main": i == main_group,
         })
@@ -457,7 +457,7 @@ def _pick_character(characters: list[dict], preferred_name: str, league: League 
         for c in characters:
             if (c.get("name") or "").lower() == preferred_name.lower():
                 return c
-    league_text = league.ggg_id or (league.name if league else "")
+    league_text = (league.ggg_id if league else "") or (league.name if league else "")
     if league_text:
         in_league = [c for c in characters if (c.get("league") or "") == league_text]
         if in_league:

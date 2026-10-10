@@ -30,13 +30,13 @@ class Command(BaseCommand):
         try:
             template = AchievementTemplate.objects.get(slug=opts["template"])
         except AchievementTemplate.DoesNotExist:
-            raise CommandError(f"No template with slug '{opts['template']}'.")
+            raise CommandError(f"No template with slug '{opts['template']}'.") from None
 
         if opts.get("league"):
             try:
                 league = League.objects.get(slug=opts["league"])
             except League.DoesNotExist:
-                raise CommandError(f"No league with slug '{opts['league']}'.")
+                raise CommandError(f"No league with slug '{opts['league']}'.") from None
         else:
             league = get_active_league()
             if league is None:

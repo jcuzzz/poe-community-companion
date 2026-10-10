@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from tracker import scoring
-from tracker.models import Award, Submission
+from tracker.models import Submission
 
 from .factories import make_achievement, make_player, make_submission
 

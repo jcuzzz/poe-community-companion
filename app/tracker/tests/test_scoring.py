@@ -1,4 +1,4 @@
-"""Scoring rules from plan.md: 2 / +5 first / +3 played / +2 kills / +1 level."""
+"""Scoring rules (README "Scoring" section): 2 / +5 first / +3 played / +2 kills / +1 level."""
 
 from django.test import TestCase
 
@@ -70,7 +70,6 @@ class ScoringTests(TestCase):
     def test_only_approved_submissions_score(self):
         for status in [
             Submission.Status.DRAFT,
-            Submission.Status.PENDING,
             Submission.Status.REJECTED,
             Submission.Status.CONTESTED,
         ]:
@@ -231,10 +230,10 @@ class LeaderboardTests(TestCase):
         self.assertEqual(rows["dave"]["points"], 0)
 
     def test_champion_is_none_until_someone_scores(self):
-        self.assertIsNone(scoring.champion())
+        self.assertIsNone(scoring.champion(scoring.leaderboard()))
         make_submission(self.alice, self.divine)
         scoring.recalculate()
-        self.assertEqual(scoring.champion()["player"], self.alice)
+        self.assertEqual(scoring.champion(scoring.leaderboard())["player"], self.alice)
 
     def test_every_player_appears_even_with_no_submissions(self):
         self.assertEqual(len(scoring.leaderboard()), 3)
@@ -277,8 +276,8 @@ class AchievementStandingsTests(TestCase):
         self.assertEqual(card["submissions"], [])
         self.assertEqual(card["entries"], [])
 
-    def test_pending_shows_but_does_not_win(self):
-        make_submission(self.alice, self.divine, status=Submission.Status.PENDING)
+    def test_contested_shows_but_does_not_win(self):
+        make_submission(self.alice, self.divine, status=Submission.Status.CONTESTED)
         card = scoring.achievement_standings(self.divine)
         self.assertEqual(len(card["submissions"]), 1)
         self.assertIsNone(card["winner"])
@@ -361,4 +360,47 @@ class PlayerStatsTests(TestCase):
         self.assertEqual(stats["firsts"], 1)
         self.assertEqual(stats["points"], 2 + 5 + 3 + 2 + 1)
         self.assertEqual(stats["highest_level"], 70)
-        self.assertEqual(stats["total_kills"], 900)
+        self.assertEqual(stats["max_kills"], 900)
+
+
+class StandingsBulkTests(TestCase):
+    def setUp(self):
+        self.players = [make_player(f"p{i}") for i in range(3)]
+
+    def _achievements(self, n):
+        achs = [make_achievement(f"Ach {i}", slug=f"ach-{i}") for i in range(n)]
+        for ach in achs:
+            for player in self.players:
+                make_submission(player, ach)
+        scoring.recalculate()
+        return achs
+
+    def test_bulk_matches_single(self):
+        achs = self._achievements(3)
+        bulk = scoring.achievement_standings_for(achs)
+        self.assertEqual([c["achievement"] for c in bulk], achs)
+        for card, ach in zip(bulk, achs):
+            single = scoring.achievement_standings(ach)
+            self.assertEqual(card["winner"], single["winner"])
+            self.assertEqual(card["entries"], single["entries"])
+            self.assertEqual(card["approved_count"], 3)
+
+    def test_empty_list_does_no_queries(self):
+        with self.assertNumQueries(0):
+            self.assertEqual(scoring.achievement_standings_for([]), [])
+
+    def test_query_count_is_constant(self):
+        achs = self._achievements(6)
+        # submissions + awards prefetch + proofs prefetch, regardless of N.
+        for subset in (achs[:1], achs):
+            with self.assertNumQueries(3):
+                cards = scoring.achievement_standings_for(subset)
+                for card in cards:
+                    for sub in card["entries"]:
+                        self.assertTrue(sub.user.name and sub.achievement.name)
+                        list(sub.awards.all()), list(sub.proofs.all())
+
+    def test_champion_helper(self):
+        self.assertIsNone(scoring.champion([]))
+        self.assertIsNone(scoring.champion([{"points": 0}]))
+        self.assertEqual(scoring.champion([{"points": 4}, {"points": 1}]), {"points": 4})

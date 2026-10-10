@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from django.test import TestCase
 from django.urls import reverse
-
-from types import SimpleNamespace
 
 from tracker.dashboard_widgets import (
     DEFAULT_LAYOUT,

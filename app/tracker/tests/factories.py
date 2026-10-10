@@ -4,12 +4,9 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from tracker.models import Achievement, Character, League, Submission
-
-User = get_user_model()
+from tracker.models import Achievement, Character, League, Submission, User
 
 LEAGUE_START = timezone.now() - timedelta(days=10)
 

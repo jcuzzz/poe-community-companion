@@ -16,7 +16,7 @@ import logging
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone as dt_timezone
+from datetime import UTC, datetime
 
 from django.conf import settings
 
@@ -46,7 +46,7 @@ def _parse_dt(value):
         return None
     try:
         # GGG returns e.g. "2024-03-29T20:00:00Z" (UTC).
-        return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=dt_timezone.utc)
+        return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
     except (ValueError, TypeError):
         return None
 

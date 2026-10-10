@@ -3,7 +3,7 @@
 Populates players, a full achievement set, varied submissions (so different players
 win different medals and the leaderboard/matrix look realistic), plus roster
 character snapshots. Idempotent-ish and guarded: refuses to run unless DEBUG is on
-or --force is passed. Intended for the Playwright visual-iteration loop.
+or --force is passed. Intended for local UI development and screenshots.
 """
 
 from __future__ import annotations
@@ -57,6 +57,7 @@ def _demo_tree_nodes(rng, count: int = 110) -> str:
     """A connected blob of REAL passive-tree node ids (BFS from a random start)
     so the demo character page renders a believable allocated tree."""
     import collections
+
     from tracker.tree_render import _tree
 
     data = _tree()
@@ -245,7 +246,7 @@ class Command(BaseCommand):
         base = timezone.now() - timedelta(days=8)
         for ach in achievements:
             entrants = rng.sample(users, k=rng.randint(1, len(users)))
-            for i, (user, _asc, level) in enumerate(entrants):
+            for user, _asc, level in entrants:
                 if Submission.objects.filter(user=user, achievement=ach).exists():
                     continue
                 Submission.objects.create(
