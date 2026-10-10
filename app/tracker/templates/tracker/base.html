@@ -22,7 +22,7 @@
 
   <div class="shell">
     {# ---------------------------------------------------------------- #}
-    {# Left sidebar: brand, primary nav, brazier art, online footer      #}
+    {# Left sidebar: brand, primary nav      #}
     {# ---------------------------------------------------------------- #}
     <aside class="sidebar" id="site-nav" aria-label="Primary">
       <a class="brand" href="{% url 'dashboard' %}">
@@ -50,8 +50,8 @@
             {% if user.is_staff %}
               <li>
                 <a href="{% url 'review_queue' %}"{% if cur == 'review_queue' %} aria-current="page"{% endif %}>
-                  Review
-                  {% if pending_review_count %}<span class="nav-badge">{{ pending_review_count }}</span>{% endif %}
+                  Moderation
+                  {% if contested_count %}<span class="nav-badge">{{ contested_count }}</span>{% endif %}
                 </a>
               </li>
               <li><a href="{% url 'admin:index' %}">Manage</a></li>
@@ -63,9 +63,6 @@
         {% endwith %}
       </nav>
 
-      <div class="sidebar-foot">
-        <span class="brazier" aria-hidden="true"></span>
-      </div>
     </aside>
 
     <div class="main-area">

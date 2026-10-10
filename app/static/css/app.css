@@ -276,21 +276,6 @@ ul, ol { padding-left: 1.25rem; }
   border-radius: 0;
 }
 
-.sidebar-foot {
-  padding: var(--space-4) var(--space-4) 0;
-  margin: 0 var(--space-4);
-  border-top: 1px solid var(--color-border);
-  text-align: center;
-}
-.brazier {
-  display: block;
-  width: 100%;
-  height: 3.5rem;
-  margin-bottom: var(--space-2);
-  background:
-    radial-gradient(ellipse 40% 90% at 50% 100%, rgba(232, 160, 60, 0.55), rgba(201, 90, 30, 0.25) 45%, transparent 70%),
-    radial-gradient(ellipse 22% 70% at 50% 100%, rgba(255, 220, 130, 0.8), transparent 65%);
-}
 .online-count {
   font-size: var(--fs-xs);
   font-variant: small-caps;
@@ -1195,12 +1180,11 @@ input[type="radio"] {
   color: var(--color-gold-bright);
   margin-bottom: var(--space-4);
 }
-.blocked-mark {
-  font-family: var(--font-display);
-  font-size: 4rem;
-  line-height: 1;
-  color: var(--color-gold-bright);
-  margin-bottom: var(--space-2);
+.blocked-gif {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 }
 .blocked-body {
   color: var(--color-parchment);
@@ -1302,14 +1286,6 @@ html[data-season="allflame"] .stat-tile--first {
   background:
     radial-gradient(circle at top, rgba(130, 228, 201, 0.10), transparent 70%),
     var(--color-bg-card);
-}
-
-/* The brazier becomes the Allflame: a cold teal-green ghost-fire with a hot
-   ember core. */
-html[data-season="allflame"] .brazier {
-  background:
-    radial-gradient(ellipse 42% 92% at 50% 100%, rgba(53, 196, 168, 0.55), rgba(255, 138, 61, 0.22) 45%, transparent 70%),
-    radial-gradient(ellipse 22% 70% at 50% 100%, rgba(140, 255, 224, 0.85), transparent 65%);
 }
 
 /* Dark Allflame (default): abyssal teal glow above, deep vignette below. */
