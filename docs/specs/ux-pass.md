@@ -1,89 +1,43 @@
-# UX pass — proposal (2026-07-26) — APPLIED
+# UX pass: design decisions
 
-**Status: shipped 2026-07-26.** Greenlit decisions: all three tiers; "Not submitted"
-removed entirely; roster cards class/level only; art = user avatars + original CSS
-crests (no bundled GGG assets). Delivered via 3 parallel
-subagents (boards / dashboard / roster-profile) over a shared crest partial. 153 tests.
-**Remaining follow-up:** a deep light-theme audit of the *legacy* stylesheets
-(proofs.css / firsts.css / social.css) — the new UX CSS is theme-aware, but those
-older files still have hardcoded dark colours.
+Why the interface looks the way it does. Component-level conventions live in
+[../view-contract.md](../view-contract.md).
 
----
+## Information density
+- **Boards show only players with submissions.** Achievement cards no longer list
+  everyone who has not submitted; with a small player pool that was mostly filler and
+  hid how many categories there are. A "not submitted" list survives on the
+  achievement detail page only.
+- **Medals matrix.** A players x achievements grid (one medal cell per pair, plus a
+  total column) shows every category on one screen. It sits beside the points
+  leaderboard as a tab.
+- **First-place trophy cards** (icon, winner, level/time, proof link) replace the
+  plain banner, since the first-place claim is the main thing the site celebrates.
+- **Dashboard hierarchy:** league champion, "first" trophy row, recent activity,
+  standings. It later became a configurable widget board (see the dashboard section of
+  [../view-contract.md](../view-contract.md)).
+- **Roster cards** show class and level only. Parsing life/ES/armour out of PoB codes
+  was rejected as fragile for little value.
 
-## Round 2 — design direction change (2026-07-26)
+## Visual language
+- **Hard edges.** Path of Exile's UI is angular and framed, so all `--radius-*` tokens
+  are `0` and panels are sharp and bordered. This was the single biggest lever against
+  a generic, soft look. Do not reintroduce rounded cards.
+- **Game art is hotlinked, never bundled.** Item and currency icons and atlas artwork
+  load from GGG's CDN (`web.poecdn.com`), as poe.ninja and Craft of Exile do. Class
+  portraits are bundled under their own license (see [../ART-CREDITS.md](../ART-CREDITS.md)).
+  Everything else (medallions, crests, badges) is original CSS.
+- **Dark theme only.** The earlier light theme was dropped when the Allflame skin
+  landed; maintaining two palettes across per-feature stylesheets was not worth it.
+- **Consistent medal iconography** as reusable CSS, used everywhere a medal appears.
 
-Feedback: the applied pass still looks "AI-made" (too soft) and underwhelming (sparse
-live data). New decisions:
-- **PoE artwork is now ALLOWED** (reversing the earlier no-art rule), used the way
-  poe.ninja / Craft of Exile do: class/ascendancy **avatars** and **item icons**,
-  **hotlinked from GGG's CDN `web.poecdn.com`** (item icons come from the API `icon`
-  field). Nothing bundled in the repo → still OSS-clean.
-- **Hard edges, not soft.** PoE's UI is angular/framed. Strip `border-radius`
-  (→ 0 / minimal) globally; move to sharp bordered panels. Biggest lever against the
-  generic look.
-- **Visual feedback loop:** Playwright MCP configured at `../.mcp.json` (workspace
-  root, not in the app repo). Requires a Claude Code restart + approval. Once live,
-  iterate on the redesign against screenshots of a LOCAL runserver seeded with
-  `manage.py seed_demo` (rich demo data: 5 players, 7 achievements, submissions,
-  awards, roster snapshots).
-- **Redesign scope (next, with sight):** global hard-edge theme + PoE art avatars/
-  icons, then re-judge dashboard / leaderboard / roster / cards against the concept
-  mockups. Also fold in the deferred legacy light-theme audit.
+## Copy and mobile
+- Headings, labels and empty states were tightened so calls to action are obvious.
+- Dense cards and the medals matrix collapse for phones: the matrix scrolls
+  horizontally and cards stack.
 
-
-Driven by the four concept mockups in `Assets/Concept/` (esp. image 4, literally
-titled "POE Community Companion") + the explicit ask: **each achievement board should
-show only players with submissions** (small pool → less filler, more categories
-visible). Status: **proposed, awaiting greenlight** (propose-first).
-
-## Guardrails / what we adapt vs skip
-The concepts are gorgeous but built on assets/features we don't do:
-- **No PoE artwork (standing rule).** The concepts use character portraits + item
-  sprites throughout. We keep the rule: adopt the *layout, density, hierarchy and
-  medal iconography* rendered as our **own CSS** (gold medallions, class-coloured
-  pills), plus the existing user `avatar` upload + `banner_hue` accent. No game art.
-- **Single private guild.** Skip multi-guild "Guild Standings", guild-rank "Top 18%".
-- **Data we actually have.** PoB paste gives class/ascendancy/level (+ a few defence
-  numbers). No live passive-tree render or full gear grid → the deep character sheet
-  (concept 3) is out of reach now.
-- **Out of this pass (bigger features):** global search / Cmd+K, notifications bell,
-  online-presence dots, left-sidebar nav redesign, guild-progression charts.
-
-## Tier 1 — the leaderboard/density asks (your requirement) + quick wins
-1. **Achievement cards: drop the "Not submitted" list from the card face.** Only
-   players *with* submissions show. (Optionally keep a tiny "N not yet submitted"
-   count, expandable, on the achievement *detail* page only — concept 4 shows it as a
-   small corner aside.) → your explicit requirement.
-2. **New "Medals" matrix leaderboard** (concept 3 & 4): a compact grid, players ×
-   achievements, each cell a medal icon (First / Best / efficiency / none) + a Total
-   Points column. One screen shows *every* category at once — directly serves "see
-   more categories." Add as a tab alongside the existing points leaderboard.
-3. **First-place "trophy card" treatment** for the winner on each achievement (icon +
-   winner name + level/time + View Proof), matching concepts 1/2/4 — denser and more
-   celebratory than the current banner.
-
-## Tier 2 — visual hierarchy & consistency (full visual review)
-4. **Dashboard reorg** to the concept-4 hierarchy: League Champion card · "First
-   Achievements" trophy row · Recent Activity · Leaderboard standings. All data exists;
-   it's layout + CSS.
-5. **Consistent medal iconography** as reusable CSS (gold medallions for First/Best/
-   Lowest-played/Fewest-kills/Lowest-level) used everywhere medals appear.
-6. **Roster cards** (concept 2): class/level badge + a stat line (Life/ES/Armour *if*
-   we can parse them from the PoB code) + prominent "Paste your PoB code" CTA; add
-   grid/list toggle + class/player filters.
-
-## Tier 3 — copy & clarity + mobile
-7. **Copy pass:** headings, labels, empty states, onboarding hints — tighten tone
-   ("Prove your strength. Be the first." style), make CTAs obvious.
-8. **Mobile density** (concept 6): make the denser cards + the medals matrix collapse
-   cleanly on phones (horizontal-scroll the matrix, stack cards).
-9. **Light-theme polish:** the earlier hardcoded dark colours in proofs/firsts/social
-   css need light-mode overrides (already flagged in ROADMAP).
-
-## Open decisions (need your call)
-- **Art policy:** keep no-game-art (recommended — badges + user avatars), or revisit?
-- **"Not submitted":** remove entirely from cards, or keep a small expandable count on
-  the detail page?
-- **Scope to apply now:** all three tiers, or Tier 1 first then reassess?
-- **Roster stat line:** worth parsing Life/ES/Armour out of PoB codes, or keep
-  class/level only for now?
+## Decisions considered and rejected
+- Multi-guild features, global search, a notifications bell and presence dots: out of
+  scope for a single-community app.
+- A full character sheet with gear grid: needs data the app cannot reliably obtain
+  (see [../research/character-lookup.md](../research/character-lookup.md)).

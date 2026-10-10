@@ -5,18 +5,37 @@ Thanks for helping out.
 ## Dev setup
 
 ```bash
-python -m venv .venv && . .venv/bin/activate   # Windows: .venv/Scripts/activate
-pip install -r requirements.txt
+# POSIX
+python -m venv .venv
+.venv/bin/pip install -r requirements.txt
 cd app
 export DJANGO_DEBUG=1
-python manage.py migrate && python manage.py seed_achievements
-python manage.py runserver
+../.venv/bin/python manage.py migrate
+../.venv/bin/python manage.py seed_achievements
+../.venv/bin/python manage.py runserver
+```
+
+```powershell
+# Windows (PowerShell)
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+cd app
+$env:DJANGO_DEBUG = "1"
+..\.venv\Scripts\python manage.py migrate
+..\.venv\Scripts\python manage.py seed_achievements
+..\.venv\Scripts\python manage.py runserver
 ```
 
 ## Tests
 
 ```bash
-cd app && DJANGO_DEBUG=1 python manage.py test
+# POSIX
+cd app && DJANGO_DEBUG=1 ../.venv/bin/python manage.py test
+```
+
+```powershell
+# Windows (PowerShell)
+cd app; $env:DJANGO_DEBUG = "1"; ..\.venv\Scripts\python manage.py test
 ```
 
 Add or update tests with your change; the suite must pass.

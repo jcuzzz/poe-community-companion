@@ -29,7 +29,7 @@ signup friction.
 - `manage.py poll_ladder` — `--league <slug>` (default active), `--ggg-id` override
   for testing, `--max N`, `--dry-run`.
 - `/ladder/` (`ladder_board` view) — read-only spectator board for the viewing
-  league. No login required.
+  league. No login required, even when `PUBLIC_READ=0`: it only shows data from GGG's public ladder.
 
 ## Operating
 Set the league's **GGG id** (exact PoE league name, e.g. `Standard` or a private
@@ -47,15 +47,15 @@ each `LadderCharacter` to a registered member by (1) OAuth PoE account, else
 live "Live ladder" strip (rank/level/class/alive-dead) beside the opt-in build
 detail, and ladder-board rows link through to the member's page.
 
-## Hard limit: public ladder is top-15k only (found 2026-08-02)
+## Hard limit: the public ladder is top-15k only
 The public ladder returns at most **15,000 top-ranked entries**. Tested against
-the live challenge league (GGG id `Allflame`): all 14,988 entries were level
-99–100; our mid-level members did not appear. So public-ladder auto-track is an
+a live challenge league: all 14,988 entries were level
+99-100; our mid-level members did not appear. So public-ladder auto-track is an
 **event feature** (private leagues, where the whole small league is on its
 ladder) — NOT a way to track a casual small group in the main league. Everyday
-small-group freshness = OAuth (when GGG reopens registration) or PoB paste.
+small-group freshness comes from OAuth (once a client is registered) or PoB paste.
 
 ## Not yet built (follow-ups)
 - Auto-complete ladder-derivable achievements (level milestones, HC death).
 - Cache the spectator board for large-event view load.
-- Scheduled polling (management command is ready; needs a timer).
+- Scheduled polling (the management command is ready; it needs a timer).

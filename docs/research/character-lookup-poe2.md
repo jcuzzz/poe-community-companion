@@ -2,13 +2,13 @@
 
 Companion to [character-lookup.md](character-lookup.md) (PoE 1). Feasibility of the
 poe.ninja / PoB-style character showcase for **PoE 2** characters.
-Status: **researched 2026-07-25, not built.** Referenced from
+Status: research only. Referenced from
 [../specs/leagues.md](../specs/leagues.md) and [../specs/roster.md](../specs/roster.md).
 
 ## Headline (the important difference from PoE 1)
 **There is no anonymous public-profile lookup for PoE 2.** The PoE 1 approach —
 fetch any character just because the owner made their profile public — **does not
-exist for PoE 2**. GGG staff confirmed (forum, Oct 2025) PoE 2 characters aren't
+exist for PoE 2**. GGG staff confirmed (official forum) PoE 2 characters aren't
 viewable on the website, no ETA. So the "account + character name → done" flow we
 planned as the *primary* path works for PoE 1 only.
 
@@ -28,7 +28,7 @@ For PoE 2, the only sanctioned programmatic lookups are:
   **OAuth-gated → owner's own characters only**; not a third-party lookup.
 - **Legacy character-window endpoints** (the PoE 1 public-profile path) have **no
   working PoE 2 public equivalent.** Do not design around it.
-- **poe.ninja** launched PoE 2 Builds (Feb 2025) but its build/character endpoints
+- **poe.ninja** launched PoE 2 Builds  but its build/character endpoints
   are internal, unsupported, and closed to third parties — its economy API is public,
   builds are not. Don't depend on them.
 - **PoB2** (`PathOfBuildingCommunity/PathOfBuilding-PoE2`, active) imports a character
@@ -48,7 +48,7 @@ For PoE 2, the only sanctioned programmatic lookups are:
   PoE 1-only (stashes, public-stash, pvp).
 
 ## Hard blockers
-1. No anonymous public-profile route for PoE 2 (confirmed GGG, Oct 2025).
+1. No anonymous public-profile route for PoE 2 (confirmed by GGG staff).
 2. OAuth needs per-user consent + GGG client approval + token storage/refresh.
 3. Cloudflare + descriptive User-Agent + rate limits on all `api.pathofexile.com`.
 4. PoE 2 still evolving — "limited" endpoint coverage; class/tree data shift.
@@ -71,14 +71,13 @@ For PoE 2, the only sanctioned programmatic lookups are:
 
 ## Sources
 - pathofexile.com/developer/docs/reference — realm=poe2 on /character, "limited PoE2
-  APIs" note, scopes, PoE2-only item fields. (2026)
+  APIs" note, scopes, PoE2-only item fields.
 - pathofexile.com/developer/docs/authorization — OAuth scopes, Confidential Client,
-  token lifetimes. (2026)
+  token lifetimes.
 - pathofexile.com/forum/view-thread/3671711 — GGG staff: PoE2 characters not viewable
-  on website, no ETA. (Oct 2025)
+  on website, no ETA.
 - github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2 + its DeepWiki import page —
-  OAuth+PKCE import (owner-only) and build-code paste format. (2026)
+  OAuth+PKCE import (owner-only) and build-code paste format.
 - poe.ninja/posts/launching-builds — PoE 2 Builds launch; build API internal/closed.
-  (Feb 2025)
 - maxroll.gg/poe2 & mobalytics.gg/poe-2 — PoE 2 class/ascendancy names & campaign
-  ascendancy unlock. (2026)
+  ascendancy unlock.

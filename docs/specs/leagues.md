@@ -1,11 +1,10 @@
 # Spec — League scoping (seasons)
 
-Status: **BUILT & deployed 2026-07-25** (core scoping). Follow-ons still open: GGG
-leagues-API auto-fill (manual entry works now), the per-league achievement "clone
-from previous" is an admin action (done), and PoE 2 auto-lookup stays deferred
-(PoB-paste only — see [../research/character-lookup-poe2.md](../research/character-lookup-poe2.md)).
-This was a prerequisite for the roster spec ([roster.md](roster.md)) — character
-lookups are league-aware, so the `League` model landed first.
+Status: built. The GGG leagues-API dropdown and the per-league "clone achievements"
+admin action are done; PoE 2 character lookup stays PoB-paste only (see
+[../research/character-lookup-poe2.md](../research/character-lookup-poe2.md)).
+This was a prerequisite for the roster spec ([roster.md](roster.md)): character
+lookups are league-aware, so the `League` model came first.
 
 ## Why
 The site should support multiple PoE leagues ("seasons") over time. The admin picks
@@ -13,7 +12,7 @@ an **active league**; each league is its own isolated competition. Past leagues 
 preserved as read-only archives. Characters in PoE are tied to a league, so knowing
 the active league is also what makes accurate character lookup possible.
 
-## Decisions (from the 2026-07-25 interview)
+## Decisions
 - **Scope = everything.** Submissions, awards, leaderboard, AND roster/character
   lookups are all filtered to a league. Switching leagues starts a fresh
   competition; old data is archived, never mixed in.
@@ -29,9 +28,9 @@ the active league is also what makes accurate character lookup possible.
   NOT** — there is no anonymous public route, only OAuth (owner consent) or PoB2-code
   paste. So for `game == poe2` the roster's auto-fetch is skipped and PoB-paste is the
   primary path. The `League.game` field is what the lookup service branches on.
-- **Existing data migrates.** Create a `League` record for the current
-  "Curse of the Allflame" and assign all existing submissions/awards/achievements to
-  it so nothing is lost — it becomes the first archived season.
+- **Existing data migrates.** A data migration creates a `League` record for the
+  season already in progress and assigns all existing submissions/awards/achievements
+  to it so nothing is lost.
 - **Admin-only, current-only.** Only staff set the active league. Members submit only
   to the currently-active league; past leagues are read-only.
 - **Viewing = site-wide league selector.** A header dropdown lets anyone switch which
@@ -56,8 +55,8 @@ New `League` model in `tracker/models.py`:
 - `created_at`
 
 ### What gains a `league` FK
-- `Achievement` — **now per-league.** (Migration must assign all existing
-  achievements to the Curse-of-the-Allflame league.)
+- `Achievement` — **now per-league.** (The migration assigns all existing
+  achievements to the seeded league.)
 - `Submission` — every submission belongs to a league (denormalised from its
   achievement's league, or set explicitly at create-time = the active league).
 - `Award` — derived per-league; `scoring.recalculate()` scopes by league.
@@ -90,16 +89,16 @@ New `League` model in `tracker/models.py`:
 - Config: `POE_LEAGUES_API` (default GGG URL), reuse `POE_API_TIMEOUT` /
   `POE_USER_AGENT` from the roster spec.
 
-## Migration plan (existing "Curse of the Allflame" data)
+## Migration plan (existing data)
 1. Add `League` model + FKs as **nullable**.
-2. Data migration: create the Curse-of-the-Allflame league (active=True, game=poe1),
+2. Data migration: create the initial league (active=True, game=poe1),
    backfill it onto all existing `Achievement`/`Submission`/`Award` rows.
 3. Second migration: make the FKs non-nullable.
-Keep it reversible; test on a copy of the prod DB before deploying.
+Keep it reversible; test on a copy of a real database before deploying.
 
-## Build order (when greenlit)
+## Build order
 1. `League` model + single-active invariant + `get_active()` + admin registration.
-2. Migrations (nullable → backfill Curse-of-the-Allflame → non-nullable).
+2. Migrations (nullable -> backfill initial league -> non-nullable).
 3. Scope `scoring.recalculate()` + leaderboard/achievement/submission queries by
    league; wire the active league into submit/edit write paths.
 4. Context processor + header **league selector** (view scope) + archived-league

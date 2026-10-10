@@ -1,8 +1,6 @@
 # PoE Community Companion — Feature inventory
 
-What the app does **today**. Kept current as features land so we don't rely on
-memory. The
-view⇄template contract is in [view-contract.md](view-contract.md); where the
+What the app does today. The view/template contract is in [view-contract.md](view-contract.md); where the
 project is heading is in [ROADMAP.md](ROADMAP.md).
 
 **What it is now:** a private Path of Exile **guild / community companion site**
@@ -56,9 +54,14 @@ HTMX), deployed with Docker Compose behind any reverse proxy. See [DEPLOY.md](DE
   & league). Full design: [specs/roster.md](specs/roster.md).
 - **Path of Building paste** is the way members set their showcased character (works
   for PoE 1 **and** PoE 2; parsed locally, no API). Re-paste to update.
-- **Auto-lookup is disabled by default** (`POE_AUTO_LOOKUP_ENABLED=0`): GGG's
-  Cloudflare blocks server-side character lookups (verified 2026). The service code is
-  retained behind the flag for a future OAuth build. See
+- **Optional PoE OAuth** (`POE_OAUTH_*`; authorisation code + PKCE): members link
+  their account to pull live gear and tree via `PoeConnection`. Dormant until a GGG
+  client is configured.
+- **Ladder tracking** (`LadderCharacter`, `poll_ladder`, public `/ladder/` board):
+  rank, level and alive/dead for a league's ladder. See
+  [design/ladder-tracking.md](design/ladder-tracking.md).
+- **Anonymous auto-lookup is disabled by default** (`POE_AUTO_LOOKUP_ENABLED=0`): GGG's
+  Cloudflare blocks server-side character lookups. See
   [research/character-lookup-poe2.md](research/character-lookup-poe2.md).
 
 ## Achievements & submissions
@@ -78,9 +81,9 @@ HTMX), deployed with Docker Compose behind any reverse proxy. See [DEPLOY.md](DE
   drag-and-drop and Ctrl+V paste supported, with thumbnail previews. Uploads are
   Pillow-validated (real JPEG/PNG/WebP only), EXIF-stripped, 10 MB cap. Served
   behind login. A prominent gallery + a site-wide **lightbox** (full-viewport).
-- **Statuses:** draft / pending / approved / rejected / contested. Staff review
-  queue (`/review`) exists for reject/contest/correct even though normal logging
-  auto-approves.
+- **Statuses:** draft / approved / rejected / contested. Logging auto-approves;
+  staff moderate after the fact from `/review` (reject / contest / request proof /
+  restore), and contested claims get an advisory member vote.
 - **Audit trail** (`AuditEntry`) — append-only record of every create/approve/
   correct/etc.
 
@@ -107,7 +110,7 @@ HTMX), deployed with Docker Compose behind any reverse proxy. See [DEPLOY.md](DE
 - **Emoji reactions** (🔥 👏 😮 😂 🐟), toggle per player.
 - **Contested-claim vote:** when a submission is `contested`, players cast an
   advisory uphold/reject vote with a live tally; an admin still makes the final
-  call (implements the plan's mirror-tier majority-vote idea).
+  call (a tie-breaker, not binding).
 
 ## Farming strategies (feature module)
 - **Strategy library** (`/strategies/`, `strategies` Django app) — members share
@@ -167,8 +170,7 @@ HTMX), deployed with Docker Compose behind any reverse proxy. See [DEPLOY.md](DE
   (stdlib `urllib`, short timeout); dormant when the URL is unset.
 
 ## Presentation
-- Hand-written dark parchment / gold theme (no PoE artwork). **Light theme toggle**
-  (persisted). Mobile-first, `prefers-reduced-motion` respected, WCAG-AA targeted.
+- Hand-written dark theme, hard-edged panels, with an Allflame season skin. Mobile-first, `prefers-reduced-motion` respected, WCAG-AA targeted.
 - Per-submission **share-card PNG** (`/submissions/<id>/share-card.png`), Pillow-rendered.
 
 ## Ops
@@ -185,7 +187,7 @@ Tracker: `User`, `InviteCode`, `Character`, `Achievement`, `AchievementTemplate(
 Strategies: `Strategy`, `StrategyVariant`, `StrategyVote`, `NinjaPrice`.
 
 ## Test coverage
-425 tests: scoring rules, played-time parsing, upload validation, auth gating,
+430+ tests: scoring rules, played-time parsing, upload validation, auth gating,
 CSRF, submission/review workflow, invites, blocking, on-behalf, media-behind-login,
 activity/export/share-card, social features, leagues, roster/PoB parsing, ladder,
 OAuth (mocked), dashboard config, and the full strategies module (feature

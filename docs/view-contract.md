@@ -149,7 +149,7 @@ ordered by total award points desc then earliest `obtained_at`),
   cream body text, `--color-gold*` the Allflame green accent,
   `--color-parchment-dim` the muted supporting text, `--color-brass*` the
   tarnished decorative detailing.
-- Hard edges: `--radius-*` are `0` per `docs/specs/ux-pass.md` Round 2. Don't
+- Hard edges: `--radius-*` are `0` per [specs/ux-pass.md](specs/ux-pass.md). Don't
   reintroduce rounded cards.
 - Styles live in `app/static/css/`, split per feature; no CSS framework, no
   inline `style=` except player banner hue and the progress ring's `--p`.

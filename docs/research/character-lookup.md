@@ -1,13 +1,13 @@
 # Research spike — character lookup / live PoB
 
 Feasibility of showing a member's live PoE character (poe.ninja / PoB style) on
-PoE Community Companion. Assumes **PoE 1** (the in-app league is Divine/Mirror era).
-Status: **researched, not built.** Referenced from [../ROADMAP.md](../ROADMAP.md).
+PoE Community Companion. Assumes **PoE 1**.
+Status: research only; the findings fed [../specs/roster.md](../specs/roster.md).
 
 ## How the data is actually obtainable
 - **GGG legacy character-window API** — `GET /character-window/get-characters`,
   `POST /character-window/get-items`, `.../get-passive-skills` on pathofexile.com.
-  Still works (2026); it's what PoB / pobb.in / community wrappers use. Undocumented,
+  It is what PoB / pobb.in / community wrappers use. Undocumented,
   Cloudflare-fronted, no SLA — could disappear without notice. Set a `User-Agent`;
   expect unpredictable rate limiting from datacenter IPs.
   - **Hard requirement:** the account's profile/characters must be **public**
@@ -46,7 +46,7 @@ league — e.g. a colour-coded pill "Deadeye · Lvl 94". Genuinely enough here.
 - **C — Manual PoB-code paste.** Effort **S**. Textarea → base64/zlib/XML parse →
   store class/level/skills; link to pobb.in. Not live, but zero API fragility.
 
-## Recommended MVP
+## Recommendation at the time
 Option **A**, with **C** as a fallback for anyone who won't unhide their profile.
 Store the snapshot; fetch live on view with a TTL; render badges, no art; wrap all
 fetch failures gracefully ("lookup unavailable"). Document the privacy-toggle step

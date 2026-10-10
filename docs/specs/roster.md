@@ -1,21 +1,21 @@
 # Spec — Guild roster & character showcase
 
-Status: **BUILT & deployed 2026-07-25** (MVP). Builds on the feasibility work in
+Status: built. Builds on the feasibility work in
 [../research/character-lookup.md](../research/character-lookup.md) and the PoE 2 spike
 [../research/character-lookup-poe2.md](../research/character-lookup-poe2.md).
 Shipped: `MemberProfile` + `CharacterSnapshot`, a `/roster/` grid, profile showcase,
-account/roster settings, PoB-code paste (both games) and PoE 1 auto-lookup with a
-Refresh button + TTL throttle. Deferred: a separate `PobBuild` model (PoB code is
-stored on the snapshot's `raw` field for now), PoE 2 OAuth, and the passive-tree view.
-Decision: support **both** auto-lookup (public profile) **and** a PoB-code paste
-fallback. No PoE artwork — class/level shown as CSS badges.
+account/roster settings, PoB-code paste (both games), optional PoE OAuth, and
+ladder-based tracking ([../design/ladder-tracking.md](../design/ladder-tracking.md)).
+Deferred: a separate `PobBuild` model (PoB code is stored on the snapshot's `raw` field
+for now) and a passive-tree view for characters.
+Class/level are shown as CSS badges rather than game art.
 
-**Depends on [leagues.md](leagues.md)** (approved 2026-07-25): characters are tied to
+**Depends on [leagues.md](leagues.md):** characters are tied to
 a league, so lookups are league-aware and `CharacterSnapshot` is per (user, league).
-Auto-lookup is the **primary** path (the poe.ninja / Path of Building model: pull a
-character by account + character name from GGG's public API — items + passive tree —
-requires a public profile); PoB-code paste is the fallback for private profiles.
-Build the `League` model first.
+The original plan was anonymous auto-lookup (the poe.ninja / Path of Building model:
+pull a character by account + character name from GGG's public API) with PoB-code paste
+as the fallback. That did not survive contact with Cloudflare; see "Auto-lookup is
+disabled" below.
 
 ## Goal
 A **roster** page listing guild members, each with a character showcase: class,
@@ -69,27 +69,23 @@ the members list.
 - Onboarding note + an account-settings toggle explaining the "make your PoE
   profile public" step (the #1 failure mode).
 
-## Auto-lookup is disabled (2026 reality)
-**Update 2026-07-25:** anonymous server-side auto-lookup is **turned off by default**
+## Auto-lookup is disabled
+Anonymous server-side auto-lookup is **turned off by default**
 (`POE_AUTO_LOOKUP_ENABLED=0`). Live testing confirmed GGG's Cloudflare returns **403 to
 any non-browser TLS client** (curl/urllib), regardless of User-Agent, headers, or a
-residential IP — so the legacy `character-window` endpoint cannot be used from a server.
+residential IP, so the legacy `character-window` endpoint cannot be used from a server.
 This matches PoB community bug reports and poe.ninja's move to OAuth. **Path of Building
-code paste is now the primary (and only enabled) path**; it works for both games and
-needs no API. The auto-lookup service code is retained but gated behind the flag for a
-possible future OAuth build (the correct long-term path — needs a GGG-approved app).
+code paste is the default path**; it works for both games and needs no API. The
+anonymous lookup code is retained but gated behind the flag.
 
-**OAuth is currently NOT attainable (verified 2026-07-26).** GGG's developer docs state
-"We are currently unable to process new applications" — new OAuth app registration is
-**closed**, no self-serve portal, no small-app fast-track, contact `oauth@grindinggear.com`
-(frozen queue, no ETA). There is no OAuth without a registered `client_id` (PKCE removes
-the secret, not the registration). PoB's own "Import by Account Name" only works because
-PoB is a *local desktop app* (residential IP + native TLS); a hosted web app can't
-replicate it (Cloudflare 403 server-side + browser CORS). **Decision (2026-07-26):
-stay on PoB-code paste** — it's the only path that works without GGG. Revisit OAuth
-only if registration reopens; the flow is ~1–2 days of standard Authorization-Code work
-once a `client_id` exists (authorize endpoint `https://www.pathofexile.com/oauth/authorize`,
-token `…/oauth/token`, scope `account:characters`, character API `https://api.pathofexile.com/character`).
+**OAuth is the sanctioned alternative, but needs a GGG-issued client.** GGG gates new
+OAuth app registration, and a client_id is required even with PKCE (PKCE removes the
+secret, not the registration). The integration (`tracker/poe_oauth.py`) is written
+against GGG's documented contract (authorize endpoint
+`https://www.pathofexile.com/oauth/authorize`, token `.../oauth/token`, scope
+`account:characters`, character API `https://api.pathofexile.com/character`) and
+covered by mocked-HTTP tests. It stays dormant until `POE_OAUTH_CLIENT_ID` and friends
+are configured. Tokens are stored per member in `PoeConnection`.
 
 ## Per-game lookup (PoE 1 vs PoE 2)
 The auto path (when enabled) is **PoE 1 only**. Per the PoE 2 spike
@@ -97,7 +93,7 @@ The auto path (when enabled) is **PoE 1 only**. Per the PoE 2 spike
 has **no anonymous public lookup** — the service branches on `league.game`:
 - `poe1` → public character-window fetch (account + character name), as below.
 - `poe2` → **skip auto-fetch**; present the PoB2-code paste as the primary path. Don't
-  show a "make your profile public" prompt (it wouldn't help). OAuth is deferred.
+  show a "make your profile public" prompt (it wouldn't help).
 
 ## Effort & risk
 Medium. Main risks (from the research docs): the character-window API is
@@ -106,7 +102,7 @@ resets** churn character lists, and **PoE 2 has no anonymous lookup at all**. Tr
 auto-lookup as best-effort (PoE 1 only); the PoB paste path is the reliable floor and
 the PoE 2 default.
 
-## Build order (when greenlit)
+## Build order
 1. `MemberProfile` + account-settings fields + the "make public" onboarding copy.
 2. PoB-paste path end-to-end (reliable, no external calls) + badge rendering.
 3. Auto-lookup service module + caching + Refresh, layered on top.

@@ -1,13 +1,12 @@
 # Farming Strategies module
 
-Status: design agreed 2026-08-10. **Phases 1–5 SHIPPED 2026-08-11**: feature
-flags + strategy library (phase 1), structured scarab picker (phase 2 — 116
+Status: phases 1-5 built, plus votes and tag filters from phase 6 (a "featured" flag
+remains). Phases: feature flags + strategy library (phase 1), structured scarab picker (phase 2 — 116
 scarabs from poe.ninja's `economy/exchange` API, NOT the retired
 `/api/data/itemoverview`; picker syncs into the untouched `scarabs_text` form
 field), atlas tree viewer/editor with full artwork, arc connectors, PoB-style
 path-allocate/prune and transform-based pan/zoom (phases 3+4 — see "Atlas tree
-implementation notes"), poe.ninja auto-pricing (phase 5 — see below). Phase 6
-(votes/tag filters/featured flag) is next.
+implementation notes"), poe.ninja auto-pricing (phase 5 — see below).
 
 ## poe.ninja pricing (phase 5, as built)
 
@@ -20,14 +19,14 @@ unique on league+item_id) caches one row per priced item; `league` is the
 fetches `.../economy/exchange/current/overview?league=<L>&type=Scarab` plus
 `&type=Currency`, keeping only the Divine Orb row from the latter; items that
 drop out of the feed keep their stale row rather than disappearing.
-Field facts pinned against the live Allflame feed: **`lines` is a list** joined
+Field facts pinned against the live feed: **`lines` is a list** joined
 to `items` on `id`, and the chaos price is **`primaryValue`** (there is no
 buy/sell pair; `maxVolumeRate` is a trading-pair depth hint, not a price). The
 `id` is the slugified name with apostrophes dropped —
 `titanic-scarab-of-legend`, `awakeners-orb` — which is exactly how
 `strategies/pricing.py` joins price rows back to catalogue names; the Divine Orb
-row is the short id `divine` (198.9c at ship time). A live run priced **115 of
-the 116 catalogue scarabs** in Allflame (only actually-traded items are listed).
+row is the short id `divine`. A live run priced 115 of
+the 116 catalogue scarabs (only actually-traded items are listed).
 `strategies/pricing.py` also owns `variant_cost` (sum over the five device
 slots, duplicates counted, legacy `"Name x3"` suffixes expanded, overflow
 excluded) and `format_cost` (chaos, switching to `~1.4 div` at half a divine).
@@ -63,7 +62,7 @@ A shared library of PoE farming strategies (atlas tree + scarabs + map device +
 economics + write-up), authored by guild members or catalogued from the web.
 First feature to ship under the new **feature-module toggle system**.
 
-## Product decisions (agreed 2026-08-10)
+## Product decisions
 
 - **Atlas tree: full in-app viewer AND editor** in v1 — render the 3.29
   redesigned atlas tree with official artwork; members can view imported trees
@@ -93,10 +92,10 @@ First feature to ship under the new **feature-module toggle system**.
 applicable to ladder/spectator features. Per-league overrides are a possible
 follow-on, not v1.
 
-Rationale (agreed): The app is one group-size-agnostic companion app;
-modules keep any single mode (e.g. gauntlet event instance) uncluttered.
+Rationale: The app is one group-size-agnostic companion app;
+modules keep any single mode (e.g. a large event) uncluttered.
 A separately-packaged plugin system is overkill for self-hosters deploying the
-whole repo. Cross-instance shared libraries would fight Model A single-tenancy
+whole repo. Cross-instance shared libraries would fight the single-tenant model
 — "import from web" is the knowledge-sharing escape hatch.
 
 ## Data model sketch
@@ -142,12 +141,8 @@ whole repo. Cross-instance shared libraries would fight Model A single-tenancy
    viewer + GGG/poeplanner import.
 4. Editor interactions (allocate/deallocate, budget, save per variant).
 5. poe.ninja pricing job + computed cost/profit. ✅
-6. Votes/favorites, tag filters, "featured" flag.
+6. Votes/favorites and tag filters (done); "featured" flag (open).
 
 ## Open questions
 
-- Exact 3.29 atlas export availability at build time (grindinggear/skilltree
-  export repo or poe-tool-dev mirror) and sprite licensing note for
-  `docs/ART-CREDITS.md`.
-- poeplanner code format spike.
-- Whether comments ride on the existing social/feed machinery or v2.
+- Whether strategy comments ride on the existing social machinery or ship later.

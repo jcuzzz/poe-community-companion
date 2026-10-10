@@ -17,6 +17,17 @@ of Exile Wiki contributors; artwork © Grinding Gear Games. Note the base-class 
 small square headshots while the ascendancy art is a wide banner — the UI crops them
 differently (see `portrait_is_avatar`).
 
+## Allflame background
+`app/static/img/allflame-bg.jpg` is the abyssal-smoke backdrop for the Allflame theme,
+derived from Path of Exile artwork. Artwork © Grinding Gear Games; used as fan content
+under the disclaimer below.
+
+## Submission-blocked reaction gif
+`app/static/img/magic-word.gif` is a clip from *Jurassic Park* (1993), © Universal
+Pictures. It is used as a parody / meme reaction on the "submissions blocked" page, not
+as a licensed asset; remove the file (and its `<img>` in
+`tracker/submission_blocked.html`) if you redistribute under stricter terms.
+
 > **License note:** the bundled portraits are CC-BY-NC-SA (non-commercial,
 > share-alike), which differs from the MIT license covering the code. Keep the art in a
 > non-commercial context and retain this attribution. If you need a fully MIT-clean

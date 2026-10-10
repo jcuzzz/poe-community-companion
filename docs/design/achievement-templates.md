@@ -35,7 +35,7 @@ each achievement by hand. That's what templates add.
 ## Built-in templates
 `seed_achievement_templates` creates **"Standard Season"** from the canonical
 `seed_achievements.ACHIEVEMENTS` set, so there's a ready-made option in the
-picker. Capture your current Allflame set into another with
+picker. Capture your current set into another with
 `capture_achievement_template`.
 
 ## Per-event points — scope

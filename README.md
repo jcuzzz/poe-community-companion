@@ -1,21 +1,31 @@
 # PoE Community Companion
 
-A self-hosted Path of Exile guild / community companion. Members submit
-screenshot-backed claims for league achievements, an admin reviews them, and the site
+[![CI](https://github.com/jcuzzz/poe-community-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/jcuzzz/poe-community-companion/actions/workflows/ci.yml)
+
+A self-hosted Path of Exile guild / community companion. Members log
+screenshot-backed claims for league achievements, which count immediately (staff can
+moderate after the fact and members can vote on contested claims), and the site
 ranks everyone by who got there first and who got there most efficiently. It also
 tracks ladder characters and hosts a farming-strategy library with an interactive
 atlas passive tree editor.
 
 ## Screenshots
 
-<!-- Add screenshots under docs/images/ and reference them here, e.g.
-![Dashboard](docs/images/dashboard.png) -->
+![Dashboard: league champion, stats, guild characters and first achievements](docs/images/dashboard.png)
 
-_Coming soon._
+| Leaderboard | Farming strategy with atlas tree |
+|---|---|
+| ![Medal leaderboard](docs/images/leaderboard.png) | ![Strategy detail with map device and atlas passive tree](docs/images/strategy.png) |
+
+| Characters | Mobile |
+|---|---|
+| ![Character gallery](docs/images/characters.png) | ![Dashboard on a phone](docs/images/mobile.png) |
+
+_Screenshots use the `seed_demo` dataset._
 
 ## Features
 
-- **Achievements** with screenshot proofs, admin review, contested-claim votes,
+- **Achievements** with screenshot proofs, post-hoc staff moderation, contested-claim votes,
   comments and reactions, and a medal-based leaderboard (see [Scoring](#scoring)).
 - **Leagues / seasons** with per-league achievements, read-only archives, and PoE 1 /
   PoE 2 support.
@@ -24,9 +34,29 @@ _Coming soon._
 - **Farming strategies:** shareable strategies with scarab / map-device setups, live
   poe.ninja pricing, and an atlas passive tree viewer/editor.
 - **Extras:** invite-only onboarding, configurable dashboard, share-card images,
-  CSV/JSON export, optional Discord webhook, light/dark theme.
+  CSV/JSON export, optional Discord webhook.
 
 Full inventory: [docs/FEATURES.md](docs/FEATURES.md).
+
+## Engineering highlights
+
+- **Derived-state scoring engine.** Awards are never edited; `scoring.recalculate()`
+  rebuilds them from approved submissions inside a single transaction, with tie
+  handling for shared bonuses.
+- **Data modelling.** Partial unique constraints (one active league, one default
+  character per player), composite indexes, and an append-only audit log of every
+  state change.
+- **External APIs with graceful degradation.** GGG OAuth (authorisation code + PKCE),
+  the public ladder and league APIs, and poe.ninja pricing, all cached and rate-limit
+  aware; when an upstream is down the feature falls back to cached data or quietly
+  disappears.
+- **Server-rendered SVG atlas passive-tree editor.** Shortest-path allocation and
+  orphan pruning, server-side validation of every save, and import/export of
+  pathofexile.com and poeplanner links.
+- **Container-query dashboard** with a drag-and-drop layout builder; widgets pick
+  their presentation from their own width, not the viewport.
+- **460+ tests**, plus ruff and mypy (django-stubs), run in CI; query-count tests
+  guard the dashboard against N+1 regressions.
 
 ## Stack
 
@@ -55,14 +85,37 @@ real use put a TLS-terminating reverse proxy in front; see [docs/DEPLOY.md](docs
 
 ```bash
 python -m venv .venv
-.venv/bin/pip install -r requirements.txt     # Windows: .venv/Scripts/pip
+```
 
+Install dependencies:
+
+```bash
+# POSIX
+.venv/bin/pip install -r requirements.txt
+# Windows
+.venv\Scripts\pip install -r requirements.txt
+```
+
+Set up and run (from the repo root):
+
+```bash
+# POSIX
 cd app
 export DJANGO_DEBUG=1
 ../.venv/bin/python manage.py migrate
 ../.venv/bin/python manage.py seed_achievements
 ../.venv/bin/python manage.py seed_players --admin leagueadmin
 ../.venv/bin/python manage.py runserver
+```
+
+```powershell
+# Windows (PowerShell)
+cd app
+$env:DJANGO_DEBUG = "1"
+..\.venv\Scripts\python manage.py migrate
+..\.venv\Scripts\python manage.py seed_achievements
+..\.venv\Scripts\python manage.py seed_players --admin leagueadmin
+..\.venv\Scripts\python manage.py runserver
 ```
 
 ## Configuration
@@ -74,7 +127,13 @@ at `DJANGO_ADMIN_PATH` (change the default before going live).
 ## Running tests
 
 ```bash
-cd app && DJANGO_DEBUG=1 python manage.py test
+# POSIX
+cd app && DJANGO_DEBUG=1 ../.venv/bin/python manage.py test
+```
+
+```powershell
+# Windows (PowerShell)
+cd app; $env:DJANGO_DEBUG = "1"; ..\.venv\Scripts\python manage.py test
 ```
 
 ## Scoring
@@ -101,12 +160,14 @@ the approved submissions. Never edit them by hand; run
 ## Security posture
 
 Registration is closed; accounts are created by an admin or redeemed through a
-single-use invite code. By default every page except `/healthz` requires a login;
+single-use invite code. Failed logins lock out per username + IP (django-axes) and
+invite redemption is rate limited. By default every page except `/healthz` requires a login;
 set `PUBLIC_READ=1` to let anyone browse read-only pages (dashboard, leaderboard,
 characters, strategies, proof images) while submitting, voting, commenting and
 editing still need an account. Uploads are
 capped at 10 MB, restricted to JPEG/PNG/WebP by decoding the file rather than trusting
-its extension, and re-encoded to strip EXIF. The Django admin account is kept separate
+its extension (the stored extension comes from the detected format), and re-encoded to
+strip EXIF. The Django admin account is kept separate
 from player accounts.
 
 To report a vulnerability, see
